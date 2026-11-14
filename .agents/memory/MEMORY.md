@@ -1,0 +1,1 @@
+- [Cashia payments](cashia-payments.md) — Cashia is the chosen provider; uploaded checkout examples lack settlement verification and use KES.

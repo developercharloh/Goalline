@@ -11,6 +11,84 @@ tags:
   - name: health
     description: Health operations
 paths:
+  /probet/dashboard:
+    get:
+      operationId: getDashboard
+      responses:
+        "200":
+          description: Dashboard
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Dashboard" }
+  /probet/wallet:
+    get:
+      operationId: getWallet
+      responses:
+        "200":
+          description: Wallet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Wallet" }
+  /probet/transactions:
+    get:
+      operationId: getTransactions
+      responses:
+        "200":
+          description: Transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Transaction" }
+  /probet/tips:
+    get:
+      operationId: getTips
+      responses:
+        "200":
+          description: Tip packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TipPackage" }
+  /probet/purchases:
+    post:
+      operationId: purchaseTips
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PurchaseInput" }
+      responses:
+        "200":
+          description: Purchased
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PurchaseResult" }
+  /probet/chat:
+    get:
+      operationId: getChat
+      responses:
+        "200":
+          description: Chat history
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ChatMessage" }
+    post:
+      operationId: sendChat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatInput" }
+      responses:
+        "200":
+          description: Assistant response
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessage" }
   /healthz:
     get:
       operationId: healthCheck
@@ -26,6 +104,85 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    Wallet:
+      type: object
+      required: [balance, currency, isDemo, paymentsEnabled, provider]
+      properties:
+        balance: { type: number }
+        currency: { type: string }
+        isDemo: { type: boolean }
+        paymentsEnabled: { type: boolean }
+        provider: { type: string }
+    Transaction:
+      type: object
+      required: [id, title, amount, type, createdAt, isDemo]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        amount: { type: number }
+        type: { type: string, enum: [topup, purchase] }
+        createdAt: { type: string }
+        isDemo: { type: boolean }
+    Tip:
+      type: object
+      required: [match, prediction, league]
+      properties:
+        match: { type: string }
+        prediction: { type: string }
+        league: { type: string }
+    TipPackage:
+      type: object
+      required: [id, title, description, price, purchased, isSample, tips, matchCount]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        purchased: { type: boolean }
+        isSample: { type: boolean }
+        matchCount: { type: integer }
+        tips:
+          type: array
+          items: { $ref: "#/components/schemas/Tip" }
+    Dashboard:
+      type: object
+      required: [wallet, packages, recentTransactions, purchasedCount, aiEnabled]
+      properties:
+        wallet: { $ref: "#/components/schemas/Wallet" }
+        packages:
+          type: array
+          items: { $ref: "#/components/schemas/TipPackage" }
+        recentTransactions:
+          type: array
+          items: { $ref: "#/components/schemas/Transaction" }
+        purchasedCount: { type: integer }
+        aiEnabled: { type: boolean }
+    PurchaseInput:
+      type: object
+      required: [packageId]
+      properties:
+        packageId: { type: string, minLength: 1 }
+    PurchaseResult:
+      type: object
+      required: [success, balance, packageId, isDemo]
+      properties:
+        success: { type: boolean }
+        balance: { type: number }
+        packageId: { type: string }
+        isDemo: { type: boolean }
+    ChatInput:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 2000 }
+    ChatMessage:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id: { type: string }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        createdAt: { type: string }
     HealthStatus:
       type: object
       properties:

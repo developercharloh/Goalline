@@ -1,5 +1,7 @@
+@layer theme, base, clerk, components, utilities;
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import '@clerk/themes/shadcn.css';
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
@@ -78,72 +80,72 @@
   --elevate-1: rgba(0, 0, 0, 0.03);
   --elevate-2: rgba(0, 0, 0, 0.08);
 
-  --background: red; /*replace with H S L */
+  --background: 224 70% 7%;
 
-  --foreground: red; /*replace with H S L */
+  --foreground: 215 60% 96%;
 
-  --border: red; /*replace with H S L */
+  --border: 220 60% 22%;
 
-  --card: red; /*replace with H S L */
+  --card: 224 62% 12%;
 
-  --card-foreground: red; /*replace with H S L */
+  --card-foreground: 215 60% 96%;
 
-  --card-border: red; /*replace with H S L */
+  --card-border: 220 60% 22%;
 
-  --sidebar: red; /*replace with H S L */
+  --sidebar: 225 70% 9%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  --sidebar-foreground: 215 60% 96%;
 
-  --sidebar-border: red; /*replace with H S L */
+  --sidebar-border: 220 60% 18%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  --sidebar-primary: 217 100% 55%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  --sidebar-accent: 222 60% 16%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  --sidebar-accent-foreground: 215 60% 96%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  --sidebar-ring: 217 100% 55%;
 
-  --popover: red; /*replace with H S L */
+  --popover: 224 62% 12%;
 
-  --popover-foreground: red; /*replace with H S L */
+  --popover-foreground: 215 60% 96%;
 
-  --popover-border: red; /*replace with H S L */
+  --popover-border: 220 60% 22%;
 
-  --primary: red; /*replace with H S L */
+  --primary: 217 100% 55%;
 
-  --primary-foreground: red; /*replace with H S L */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: red; /*replace with H S L */
+  --secondary: 222 55% 18%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  --secondary-foreground: 215 60% 96%;
 
-  --muted: red; /*replace with H S L */
+  --muted: 222 50% 15%;
 
-  --muted-foreground: red; /*replace with H S L */
+  --muted-foreground: 218 30% 70%;
 
-  --accent: red; /*replace with H S L */
+  --accent: 43 96% 56%;
 
-  --accent-foreground: red; /*replace with H S L */
+  --accent-foreground: 224 70% 10%;
 
-  --destructive: red; /*replace with H S L */
+  --destructive: 0 84% 60%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 0 0% 100%;
 
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 220 55% 26%;
+  --ring: 217 100% 60%;
+  --chart-1: 217 100% 55%;
+  --chart-2: 43 96% 56%;
+  --chart-3: 142 70% 48%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 200 90% 60%;
 
-  --app-font-sans: 'Inter', sans-serif;
+  --app-font-sans: 'Manrope', sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  --radius: 0.5rem; /* 8px */
+  --radius: 0.85rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0); /*replace with H S L */
   --shadow-sm:
@@ -227,68 +229,68 @@
   --elevate-1: rgba(255, 255, 255, 0.04);
   --elevate-2: rgba(255, 255, 255, 0.09);
 
-  --background: red; /*replace with H S L */
+  --background: 224 70% 7%;
 
-  --foreground: red; /*replace with H S L */
+  --foreground: 215 60% 96%;
 
-  --border: red; /*replace with H S L */
+  --border: 220 60% 22%;
 
-  --card: red; /*replace with H S L */
+  --card: 224 62% 12%;
 
-  --card-foreground: red; /*replace with H S L */
+  --card-foreground: 215 60% 96%;
 
-  --card-border: red; /*replace with H S L */
+  --card-border: 220 60% 22%;
 
-  --sidebar: red; /*replace with H S L */
+  --sidebar: 225 70% 9%;
 
-  --sidebar-foreground: red; /*replace with H S L */
+  --sidebar-foreground: 215 60% 96%;
 
-  --sidebar-border: red; /*replace with H S L */
+  --sidebar-border: 220 60% 18%;
 
-  --sidebar-primary: red; /*replace with H S L */
+  --sidebar-primary: 217 100% 55%;
 
-  --sidebar-primary-foreground: red; /*replace with H S L */
+  --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: red; /*replace with H S L */
+  --sidebar-accent: 222 60% 16%;
 
-  --sidebar-accent-foreground: red; /*replace with H S L */
+  --sidebar-accent-foreground: 215 60% 96%;
 
-  --sidebar-ring: red; /*replace with H S L */
+  --sidebar-ring: 217 100% 55%;
 
-  --popover: red; /*replace with H S L */
+  --popover: 224 62% 12%;
 
-  --popover-foreground: red; /*replace with H S L */
+  --popover-foreground: 215 60% 96%;
 
-  --popover-border: red; /*replace with H S L */
+  --popover-border: 220 60% 22%;
 
-  --primary: red; /*replace with H S L */
+  --primary: 217 100% 55%;
 
-  --primary-foreground: red; /*replace with H S L */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary: red; /*replace with H S L */
+  --secondary: 222 55% 18%;
 
-  --secondary-foreground: red; /*replace with H S L */
+  --secondary-foreground: 215 60% 96%;
 
-  --muted: red; /*replace with H S L */
+  --muted: 222 50% 15%;
 
-  --muted-foreground: red; /*replace with H S L */
+  --muted-foreground: 218 30% 70%;
 
-  --accent: red; /*replace with H S L */
+  --accent: 43 96% 56%;
 
-  --accent-foreground: red; /*replace with H S L */
+  --accent-foreground: 224 70% 10%;
 
-  --destructive: red; /*replace with H S L */
+  --destructive: 0 84% 60%;
 
-  --destructive-foreground: red; /*replace with H S L */
+  --destructive-foreground: 0 0% 100%;
 
   /* Used as the border around inputs. Dark mode: Should be a border that is light enough to have high contrast when rendered on a --card background. More contrast than standard --border */
-  --input: red; /*replace with H S L */
-  --ring: red; /*replace with H S L */
-  --chart-1: red; /*replace with H S L */
-  --chart-2: red; /*replace with H S L */
-  --chart-3: red; /*replace with H S L */
-  --chart-4: red; /*replace with H S L */
-  --chart-5: red; /*replace with H S L */
+  --input: 220 55% 26%;
+  --ring: 217 100% 60%;
+  --chart-1: 217 100% 55%;
+  --chart-2: 43 96% 56%;
+  --chart-3: 142 70% 48%;
+  --chart-4: 0 84% 60%;
+  --chart-5: 200 90% 60%;
 
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0);
@@ -431,3 +433,21 @@
     inset: -1px;
   }
 }
+
+.font-display{font-family:'Exo 2',sans-serif}
+body{background:radial-gradient(ellipse 90% 60% at 50% -10%,hsl(217 100% 35%/.45),transparent 70%),radial-gradient(ellipse 60% 40% at 100% 100%,hsl(222 100% 30%/.3),transparent),hsl(224 70% 6%);background-attachment:fixed;min-height:100dvh}
+.glass{background:linear-gradient(160deg,hsl(222 65% 16%/.9),hsl(225 70% 10%/.9));border:1px solid hsl(217 80% 40%/.35);box-shadow:inset 0 1px 0 hsl(210 100% 80%/.08),0 18px 40px -20px hsl(224 90% 3%)}
+.btn-blue{background:linear-gradient(180deg,hsl(214 100% 60%),hsl(222 100% 48%));color:#fff;box-shadow:inset 0 1px 0 hsl(210 100% 85%/.4),0 8px 24px -10px hsl(217 100% 50%/.8);transition:transform .15s,filter .15s}
+.btn-blue:hover{filter:brightness(1.1)}.btn-blue:active,.btn-gold:active,.btn-green:active{transform:scale(.97)}
+.btn-gold{background:linear-gradient(180deg,hsl(46 100% 64%),hsl(38 95% 50%));color:hsl(224 70% 10%);box-shadow:inset 0 1px 0 hsl(50 100% 85%/.6);transition:transform .15s,filter .15s}.btn-gold:hover{filter:brightness(1.07)}
+.btn-green{background:linear-gradient(180deg,hsl(140 75% 50%),hsl(145 80% 36%));color:#fff;transition:transform .15s,filter .15s}.btn-green:hover{filter:brightness(1.08)}
+.gold-card{background:linear-gradient(150deg,hsl(224 60% 14%),hsl(226 70% 9%));border:1.5px solid hsl(43 96% 56%/.8);box-shadow:0 0 0 1px hsl(43 96% 56%/.1),0 20px 40px -24px hsl(43 96% 50%/.5)}
+.text-gold{color:hsl(43 96% 58%)}.text-win{color:hsl(142 72% 52%)}.text-loss{color:hsl(0 85% 62%)}
+.brand-grad{background:linear-gradient(180deg,#fff 30%,hsl(212 100% 75%));-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand-grad-blue{background:linear-gradient(180deg,hsl(205 100% 70%),hsl(220 100% 55%));-webkit-background-clip:text;background-clip:text;color:transparent}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.rise{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+@keyframes pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}.pop{animation:pop .6s cubic-bezier(.2,.8,.2,1) both}
+.cl-formFieldInput::placeholder{color:hsl(218 30% 60%);opacity:1}
+.cl-formButtonPrimary:hover{filter:brightness(1.1)}
+.cl-socialButtonsBlockButton:hover{background:hsl(222 55% 22%)!important}

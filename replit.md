@@ -1,6 +1,6 @@
-# [Project name]
+# ProBet Tips
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Football-tip packages, a top-up-only wallet, ChatBase, and transaction history, based on the user's supplied reference.
 
 ## Run & Operate
 
@@ -26,11 +26,17 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Signed-out visitors can explore a clearly labeled $25 demo wallet. Demo credits are not money and never transfer into real accounts.
+- Real accounts start at $0. Sample tip packages are never sold for real money.
+- Cashia is the chosen provider. Do not replace it with Stripe or Whop. Wallet funding remains disabled until checkout responses and authenticated settlement are documented.
+- The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
+- Browser success redirects are never proof of settlement; require authenticated server verification and idempotency before crediting a wallet.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Responsive dashboard, Clerk signup/login, package purchase confirmation and success, unlocked sample tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
+ChatBase requires `OPENAI_API_KEY` in workspace Secrets. The user chose to supply their own key; do not retry Replit AI provisioning.
+No live sports feed is connected; supplied football matches are labeled as samples.
 
 ## User preferences
 
