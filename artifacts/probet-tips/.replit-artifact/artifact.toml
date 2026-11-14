@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "ProBet Tips"
+description = "Premium football tips with ChatBase AI, a top-up-only wallet, purchases and transaction history, matching the supplied ProBet Tips reference."
+version = "1.0.0"
+id = "artifacts/probet-tips"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19909
+
+[services.development]
+run = "pnpm --filter @workspace/probet-tips run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/probet-tips", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/probet-tips/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19909"
+BASE_PATH = "/"
