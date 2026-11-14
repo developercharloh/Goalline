@@ -70,7 +70,7 @@ router.get("/probet/tips", async (req, res): Promise<void> => {
 router.get("/probet/dashboard", async (req, res): Promise<void> => {
   const { owner, isDemo } = await identity(req, res);
   const [wallet, packages, recentTransactions] = await Promise.all([walletFor(owner), tipsFor(owner), transactionsFor(owner, isDemo)]);
-  res.json(GetDashboardResponse.parse({ wallet, packages, recentTransactions: recentTransactions.slice(0, 3), purchasedCount: packages.filter(p => p.purchased).length, aiEnabled: Boolean(process.env.OPENAI_API_KEY) }));
+  res.json(GetDashboardResponse.parse({ wallet, packages, recentTransactions: recentTransactions.slice(0, 3), purchasedCount: packages.filter(p => p.purchased).length, aiEnabled: Boolean(process.env.AI_INTEGRATIONS_OPENAI_BASE_URL && process.env.AI_INTEGRATIONS_OPENAI_API_KEY) }));
 });
 router.post("/probet/purchases", async (req, res): Promise<void> => {
   const input = PurchaseTipsBody.safeParse(req.body);
@@ -104,11 +104,13 @@ router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: f
   const input = SendChatBody.safeParse(req.body);
   if (!input.success || !input.data.content.trim()) { res.status(400).json({ error: "Enter a question of up to 2,000 characters." }); return; }
   const { owner } = await identity(req, res);
-  if (!process.env.OPENAI_API_KEY) { res.status(503).json({ error: "ChatBase AI is not connected yet. Add the OpenAI API key securely to enable answers. You can still explore the tip packages." }); return; }
+  const aiBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const aiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!aiBaseUrl || !aiApiKey) { res.status(503).json({ error: "ChatBase is waiting for Replit's managed AI connection. No personal API key is needed. You can still explore the sample tip packages." }); return; }
   const previous = await db.select().from(chatMessages).where(eq(chatMessages.owner, owner)).orderBy(desc(chatMessages.createdAt)).limit(20);
   const available = await tipsFor(owner);
   try {
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY, timeout: 45000, maxRetries: 1 });
+    const openai = new OpenAI({ apiKey: aiApiKey, baseURL: aiBaseUrl, timeout: 45000, maxRetries: 1 });
     const response = await openai.chat.completions.create({
       model: "gpt-5.4-mini",
       max_completion_tokens: 8192,
@@ -126,7 +128,7 @@ router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: f
     res.json(SendChatResponse.parse({ ...assistant, createdAt: assistant.createdAt.toISOString() }));
   } catch {
     req.log.warn("ChatBase provider request failed");
-    res.status(502).json({ error: "ChatBase could not connect to the AI provider. Check the API key and provider account, then retry." });
+    res.status(502).json({ error: "ChatBase could not connect to Replit's managed AI service. Please try again shortly." });
   }
 });
 export default router;

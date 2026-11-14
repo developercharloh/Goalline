@@ -31,11 +31,12 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 - Cashia is the chosen provider. Do not replace it with Stripe or Whop. Wallet funding remains disabled until checkout responses and authenticated settlement are documented.
 - The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
 - Browser success redirects are never proof of settlement; require authenticated server verification and idempotency before crediting a wallet.
+- The user does not want Replit-managed AI. An external AI provider alone does not move hosting, authentication, or the database away from Replit; confirm hosting scope before proposing a migration.
 
 ## Product
 
 Responsive dashboard, Clerk signup/login, package purchase confirmation and success, unlocked sample tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
-ChatBase requires `OPENAI_API_KEY` in workspace Secrets. The user chose to supply their own key; do not retry Replit AI provisioning.
+Do not configure Replit AI Integrations. Select an external AI provider with the user before enabling ChatBase. The user does not have an OpenAI API key; do not ask for one.
 No live sports feed is connected; supplied football matches are labeled as samples.
 
 ## User preferences
