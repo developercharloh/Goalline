@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto";
 
 const STAGING_SIGNING_HOST = "https://staging.cashia.com";
-const STAGING_API_BASE = `${STAGING_SIGNING_HOST}/api`;
+const STAGING_API_BASE = "https://merchant-api.staging.cashia.com/api";
 
 type CashiaCredentials = {
   keyId: string;
@@ -24,18 +24,6 @@ export type CashiaCheckoutSession = {
   requestId: string;
 };
 
-export type CashiaTransaction = {
-  id?: string;
-  status?: string;
-  requestIdentifier?: string;
-  requestStatus?: string;
-  externalSourceAmount?: number;
-  internalSourceAmount?: number;
-  sourceCurrency?: { code?: string; sn?: string };
-  destinationCurrency?: { code?: string; sn?: string };
-  underInvestigation?: boolean;
-};
-
 export class CashiaApiError extends Error {
   constructor(
     message: string,
@@ -48,6 +36,13 @@ export class CashiaApiError extends Error {
 
 export function hasCashiaStagingCredentials(): boolean {
   return Boolean(process.env.CASHIA_STAGING_KEY_ID && process.env.CASHIA_STAGING_SECRET);
+}
+
+export function cashiaStagingCheckoutEnabled(): boolean {
+  // Staging must never be silently presented as a live-money deposit service.
+  return process.env.NODE_ENV !== "production"
+    && hasCashiaStagingCredentials()
+    && Boolean(process.env.CASHIA_STAGING_COIN_SERIAL);
 }
 
 function credentials(): CashiaCredentials {
@@ -79,11 +74,16 @@ function signedHeaders(method: "GET" | "POST", body: string): Record<string, str
 }
 
 export async function createCashiaStagingSession(input: CashiaCheckoutInput): Promise<CashiaCheckoutSession> {
-  if (!Number.isFinite(input.amount) || input.amount < 1 || Math.round(input.amount * 100) !== input.amount * 100) {
+  const coinSerial = process.env.CASHIA_STAGING_COIN_SERIAL;
+  if (!cashiaStagingCheckoutEnabled() || !coinSerial) {
+    throw new CashiaApiError("Cashia test checkout is not ready. The merchant KES wallet coin serial is required; live deposits remain disabled.", 503);
+  }
+  if (!Number.isFinite(input.amount) || input.amount < 1 || input.amount > 100000 || Math.abs(Math.round(input.amount * 100) - input.amount * 100) > 1e-7) {
     throw new CashiaApiError("Enter a valid KES deposit amount.", 400);
   }
   const body = JSON.stringify({
     requestId: input.requestId,
+    coinSerial,
     currency: "KES",
     amount: input.amount,
     successRedirectUrl: input.successRedirectUrl,
@@ -101,10 +101,11 @@ export async function createCashiaStagingSession(input: CashiaCheckoutInput): Pr
 
   let response: Response;
   try {
-    response = await fetch(`${STAGING_API_BASE}/v1/hosted-checkout`, {
+    response = await fetch(`${STAGING_API_BASE}/v1/hosted-checkout/new`, {
       method: "POST",
       headers: signedHeaders("POST", body),
       body,
+      redirect: "error",
       signal: AbortSignal.timeout(15_000),
     });
   } catch {
@@ -114,7 +115,7 @@ export async function createCashiaStagingSession(input: CashiaCheckoutInput): Pr
   const data = await response.json().catch(() => null) as Partial<CashiaCheckoutSession> | null;
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
-      throw new CashiaApiError("Cashia rejected the staging credentials. Check the API key ID and secret.", 502);
+      throw new CashiaApiError("Cashia denied access to its staging API. The merchant credentials or API access need confirmation.", 502);
     }
     throw new CashiaApiError("Cashia could not create a checkout session.", 502);
   }
@@ -136,7 +137,7 @@ export async function createCashiaStagingSession(input: CashiaCheckoutInput): Pr
   } catch {
     throw new CashiaApiError("Cashia returned an invalid checkout URL.", 502);
   }
-  if (checkoutUrl.protocol !== "https:" || !checkoutUrl.hostname.endsWith(".cashia.com")) {
+  if (checkoutUrl.protocol !== "https:" || checkoutUrl.hostname !== "staging.cashia.com" || checkoutUrl.username || checkoutUrl.password) {
     throw new CashiaApiError("Cashia returned an untrusted checkout URL.", 502);
   }
 
@@ -147,50 +148,4 @@ export async function createCashiaStagingSession(input: CashiaCheckoutInput): Pr
     currency: "KES",
     requestId: input.requestId,
   };
-}
-
-export async function getCashiaStagingTransaction(transactionId: string): Promise<CashiaTransaction> {
-  if (!/^[A-Za-z0-9._-]{1,180}$/.test(transactionId)) {
-    throw new CashiaApiError("Invalid Cashia transaction identifier.", 400);
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(`${STAGING_API_BASE}/v1/transactions/${encodeURIComponent(transactionId)}`, {
-      method: "GET",
-      headers: signedHeaders("GET", ""),
-      signal: AbortSignal.timeout(15_000),
-    });
-  } catch {
-    throw new CashiaApiError("Cashia status could not be checked. Try again shortly.", 502);
-  }
-
-  const data = await response.json().catch(() => null) as { process?: CashiaTransaction } | null;
-  if (!response.ok || !data?.process) {
-    if (response.status === 401 || response.status === 403) {
-      throw new CashiaApiError("Cashia rejected the staging credentials. Check the API key ID and secret.", 502);
-    }
-    throw new CashiaApiError("Cashia has not returned a verifiable transaction yet.", 502);
-  }
-  return data.process;
-}
-
-export function isCashiaStagingPaymentVerified(
-  process: CashiaTransaction,
-  expected: { requestId: string; sessionId: string; amount: number },
-): boolean {
-  const successfulStatuses = new Set(["success", "successful", "complete", "completed", "paid", "settled"]);
-  const status = String(process.requestStatus ?? "").toLowerCase();
-  const sourceCurrency = String(process.sourceCurrency?.code ?? process.sourceCurrency?.sn ?? "").toUpperCase();
-  const sourceAmount = process.externalSourceAmount ?? process.internalSourceAmount;
-
-  return (
-    process.id === expected.sessionId &&
-    process.requestIdentifier === expected.requestId &&
-    successfulStatuses.has(status) &&
-    process.underInvestigation === false &&
-    sourceCurrency === "KES" &&
-    typeof sourceAmount === "number" &&
-    Math.round(sourceAmount * 100) === Math.round(expected.amount * 100)
-  );
 }

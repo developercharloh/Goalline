@@ -3,7 +3,7 @@ import { Link, Redirect, useLocation, useParams } from "wouter";
 import { useClerk, useUser, Show } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
+  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey, useGetCashiaDepositStatus,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
 import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Crown, LogIn, Users } from "lucide-react";
@@ -18,9 +18,17 @@ export function WalletPage() {
   const w = useGetWallet();
   const tx = useGetTransactions();
   const [open, setOpen] = useState(false);
+  const reference = new URLSearchParams(window.location.search).get("deposit") ?? "";
+  const validReference = /^[a-f0-9-]{36}$/.test(reference);
+  const deposit = useGetCashiaDepositStatus(reference, { query: { enabled: validReference, retry: false } });
   return (
     <AppShell>
       <PageHeader title="My Wallet" subtitle="Top up only. Wallet funds are used for premium tips and cannot be withdrawn." />
+      {validReference && (
+        <div className="glass rounded-xl p-4 mb-4 text-sm" role="status" data-testid="status-deposit-result">
+          {deposit.isLoading ? "Checking your deposit reference..." : deposit.error ? errMsg(deposit.error) : deposit.data?.message}
+        </div>
+      )}
       {w.isLoading ? <Sk className="h-56" /> : w.error || !w.data ? <ErrorCard message={errMsg(w.error)} onRetry={() => w.refetch()} /> : (
         <div className="glass rounded-3xl p-8 text-center relative overflow-hidden rise">
           <div className="absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-[hsl(217_100%_55%/.3)] blur-3xl" />

@@ -2,10 +2,12 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { getAuth } from "@clerk/express";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages } from "@workspace/db";
+import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits } from "@workspace/db";
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import { tipCatalog } from "../lib/tip-catalog.js";
+import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
+import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
@@ -46,7 +48,7 @@ async function identity(req: Request, res: Response) {
 
 async function walletFor(owner: string) {
   const [wallet] = await db.select().from(wallets).where(eq(wallets.owner, owner));
-  return { balance: wallet.balanceCents / 100, currency: "USD", isDemo: wallet.isDemo, paymentsEnabled: false, provider: "Cashia" };
+  return { balance: wallet.balanceCents / 100, currency: "KES", isDemo: wallet.isDemo, paymentsEnabled: false, provider: "Cashia", stagingCheckoutEnabled: cashiaStagingCheckoutEnabled() };
 }
 async function transactionsFor(owner: string, isDemo: boolean) {
   const rows = await db.select().from(transactions).where(eq(transactions.owner, owner)).orderBy(desc(transactions.createdAt));
@@ -72,6 +74,69 @@ router.get("/probet/dashboard", async (req, res): Promise<void> => {
   const { owner, isDemo } = await identity(req, res);
   const [wallet, packages, recentTransactions] = await Promise.all([walletFor(owner), tipsFor(owner), transactionsFor(owner, isDemo)]);
   res.json(GetDashboardResponse.parse({ wallet, packages, recentTransactions: recentTransactions.slice(0, 3), purchasedCount: packages.filter(p => p.purchased).length }));
+});
+router.post("/probet/deposits", rateLimit({ windowMs: 60_000, limit: 3, validate: false }), async (req, res): Promise<void> => {
+  const input = CreateCashiaDepositBody.safeParse(req.body);
+  if (!input.success) {
+    res.status(400).json({ error: "Enter a KES amount from 1 to 100,000 with at most two decimal places." });
+    return;
+  }
+  if (!cashiaStagingCheckoutEnabled()) {
+    res.status(503).json({ error: "Cashia deposits are not enabled. Test checkout requires the merchant KES wallet coin serial and API access; live settlement verification is still pending." });
+    return;
+  }
+  const { owner } = await identity(req, res);
+  const requestId = randomUUID();
+  const host = req.get("host");
+  if (!host || !/^[a-zA-Z0-9.:[\]-]+$/.test(host)) {
+    res.status(400).json({ error: "Invalid callback host." });
+    return;
+  }
+  const origin = `${req.get("x-forwarded-proto") === "https" || req.secure ? "https" : "http"}://${host}`;
+  const callback = `${origin}/wallet?deposit=${requestId}`;
+  await db.insert(cashiaDeposits).values({ id: requestId, owner, amountCents: Math.round(input.data.amount * 100) });
+  try {
+    const session = await createCashiaStagingSession({
+      requestId,
+      amount: input.data.amount,
+      successRedirectUrl: callback,
+      errorRedirectUrl: callback,
+      webhookUrl: `${origin}/api/webhooks/cashia`,
+    });
+    await db.update(cashiaDeposits).set({ sessionId: session.sessionId, checkoutUrl: session.url, updatedAt: new Date() }).where(eq(cashiaDeposits.id, requestId));
+    res.status(201).json(CreateCashiaDepositResponse.parse({ requestId, checkoutUrl: session.url, amount: session.amount, currency: "KES", isTest: true }));
+  } catch (error) {
+    await db.update(cashiaDeposits).set({ status: "failed", updatedAt: new Date() }).where(eq(cashiaDeposits.id, requestId));
+    if (!(error instanceof CashiaApiError)) throw error;
+    res.status(error.statusCode).json({ error: error.message });
+  }
+});
+router.get("/probet/deposits/:requestId", async (req, res): Promise<void> => {
+  const params = GetCashiaDepositStatusParams.safeParse(req.params);
+  if (!params.success || !/^[a-f0-9-]{36}$/.test(params.data.requestId)) {
+    res.status(400).json({ error: "Invalid deposit reference." });
+    return;
+  }
+  const { owner } = await identity(req, res);
+  const [deposit] = await db.select().from(cashiaDeposits).where(and(eq(cashiaDeposits.id, params.data.requestId), eq(cashiaDeposits.owner, owner)));
+  if (!deposit) { res.status(404).json({ error: "Deposit not found for this wallet." }); return; }
+  // A redirect or unsigned callback is never proof of settlement. Until Cashia
+  // supplies its authenticated settlement contract, requests stay uncredited.
+  res.json(GetCashiaDepositStatusResponse.parse({
+    requestId: deposit.id,
+    status: deposit.status,
+    amount: deposit.amountCents / 100,
+    currency: "KES",
+    message: deposit.status === "failed"
+      ? "Cashia checkout could not be created. No wallet credit was added."
+      : "Test checkout is awaiting verified settlement. No funds have been added.",
+    balance: null,
+  }));
+});
+router.post("/webhooks/cashia", (_req, res): void => {
+  // Fail explicitly: acknowledging an unverified notification would suppress
+  // provider retries and could make an unpaid deposit appear settled.
+  res.status(503).json({ error: "Cashia settlement verification is not configured. No funds were credited." });
 });
 router.post("/probet/purchases", async (req, res): Promise<void> => {
   const input = PurchaseTipsBody.safeParse(req.body);

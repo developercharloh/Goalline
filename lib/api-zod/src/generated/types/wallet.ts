@@ -12,4 +12,5 @@ export interface Wallet {
   isDemo: boolean;
   paymentsEnabled: boolean;
   provider: string;
+  stagingCheckoutEnabled?: boolean;
 }

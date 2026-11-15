@@ -141,6 +141,7 @@ components:
         isDemo: { type: boolean }
         paymentsEnabled: { type: boolean }
         provider: { type: string }
+        stagingCheckoutEnabled: { type: boolean }
     Transaction:
       type: object
       required: [id, title, amount, type, createdAt, isDemo]
@@ -208,6 +209,7 @@ components:
       properties:
         requestId: { type: string }
         checkoutUrl: { type: string, format: uri }
+        isTest: { type: boolean }
         amount: { type: number }
         currency: { type: string, enum: [KES] }
     DepositStatus:

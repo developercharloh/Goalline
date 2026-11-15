@@ -14,7 +14,8 @@ export const GetDashboardResponse = zod.object({
   "currency": zod.string(),
   "isDemo": zod.boolean(),
   "paymentsEnabled": zod.boolean(),
-  "provider": zod.string()
+  "provider": zod.string(),
+  "stagingCheckoutEnabled": zod.boolean().optional()
 }),
   "packages": zod.array(zod.object({
   "id": zod.string(),
@@ -47,7 +48,8 @@ export const GetWalletResponse = zod.object({
   "currency": zod.string(),
   "isDemo": zod.boolean(),
   "paymentsEnabled": zod.boolean(),
-  "provider": zod.string()
+  "provider": zod.string(),
+  "stagingCheckoutEnabled": zod.boolean().optional()
 })
 
 
@@ -106,6 +108,7 @@ export const CreateCashiaDepositBody = zod.object({
 export const CreateCashiaDepositResponse = zod.object({
   "requestId": zod.string(),
   "checkoutUrl": zod.string().url(),
+  "isTest": zod.boolean().optional(),
   "amount": zod.number(),
   "currency": zod.enum(['KES'])
 })

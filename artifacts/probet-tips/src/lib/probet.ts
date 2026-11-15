@@ -8,9 +8,9 @@ import {
 
 export const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 
-export function money(n: number | undefined | null, currency = "USD") {
+export function money(n: number | undefined | null, currency = "KES") {
   const v = typeof n === "number" ? n : 0;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "USD" }).format(v);
+  return new Intl.NumberFormat("en-KE", { style: "currency", currency: currency || "KES" }).format(v);
 }
 
 export function errMsg(e: unknown): string {

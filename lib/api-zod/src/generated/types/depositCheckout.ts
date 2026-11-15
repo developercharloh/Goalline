@@ -10,6 +10,7 @@ import type { DepositCheckoutCurrency } from './depositCheckoutCurrency';
 export interface DepositCheckout {
   requestId: string;
   checkoutUrl: string;
+  isTest?: boolean;
   amount: number;
   currency: DepositCheckoutCurrency;
 }

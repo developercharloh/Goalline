@@ -11,6 +11,7 @@ export interface Wallet {
   isDemo: boolean;
   paymentsEnabled: boolean;
   provider: string;
+  stagingCheckoutEnabled?: boolean;
 }
 
 export type TransactionType = typeof TransactionType[keyof typeof TransactionType];
@@ -84,6 +85,7 @@ export const DepositCheckoutCurrency = {
 export interface DepositCheckout {
   requestId: string;
   checkoutUrl: string;
+  isTest?: boolean;
   amount: number;
   currency: DepositCheckoutCurrency;
 }
