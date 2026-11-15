@@ -11,6 +11,8 @@ const NAV = [
   { href: "/wallet", label: "Wallet", icon: Wallet },
 ];
 
+const MOBILE_NAV = NAV.filter((item) => item.href !== "/wallet");
+
 function useActive() {
   const [loc] = useLocation();
   return (href: string) => (href === "/dashboard" ? loc === "/dashboard" || loc === "/" : loc.startsWith(href));
@@ -70,26 +72,28 @@ function AppShellFrame({
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 pb-24 md:pb-10">
-        <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur border-b border-border/50">
+      <div className="flex-1 min-w-0 pb-10">
+        <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b border-border/50">
           <Link href="/dashboard" className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
           {!guestPreview && <Show when="signed-out"><Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link></Show>}
         </header>
+        <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
+          className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-[hsl(225_70%_8%/.95)] px-2 py-1.5 backdrop-blur">
+          {MOBILE_NAV.map((n) => {
+            const a = isActive(n.href);
+            return (
+              <Link key={n.href} href={n.href} aria-current={a ? "page" : undefined}
+                data-testid={`link-tab-${n.label.toLowerCase()}`}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-semibold transition-colors ${a ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-sidebar-accent hover:text-foreground"}`}>
+                <n.icon className="h-4 w-4" />{n.label}
+              </Link>
+            );
+          })}
+        </nav>
         {title && <h1 className="sr-only">{title}</h1>}
         <main className="mx-auto max-w-5xl px-4 md:px-8 pt-5 md:pt-10">{children}</main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-4 border-t border-border bg-[hsl(225_70%_8%/.95)] backdrop-blur pb-[env(safe-area-inset-bottom)]">
-        {NAV.map((n) => {
-          const a = isActive(n.href);
-          return (
-            <Link key={n.href} href={n.href} data-testid={`link-tab-${n.label.toLowerCase()}`}
-              className={`flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold transition-colors ${a ? "text-primary" : "text-muted-foreground"}`}>
-              <n.icon className={`h-5 w-5 transition-transform ${a ? "scale-110" : ""}`} />{n.label}
-            </Link>
-          );
-        })}
-      </nav>
     </div>
   );
 }
