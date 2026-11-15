@@ -1,1 +1,3 @@
 - [Cashia payments](cashia-payments.md) — Cashia is the chosen provider; uploaded checkout examples lack settlement verification and use KES.
+- [Community direction](community-direction.md) — ChatBase is people-to-people chat, not AI; defer account gates until the app is confirmed working.
+- [Vercel guest sessions](vercel-guest-sessions.md) — Vercel pre-parses cookies, which can prevent cookie-parser from configuring signed guest sessions.
