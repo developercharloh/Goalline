@@ -6,7 +6,7 @@ import {
   useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
-import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Info, Crown, LogIn, Users } from "lucide-react";
+import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Crown, LogIn, Users } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { DemoBadge, Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -26,12 +26,11 @@ export function WalletPage() {
           <div className="absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-[hsl(217_100%_55%/.3)] blur-3xl" />
           <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-8 w-8 text-[hsl(43_96%_70%)]" /></div>
           <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-wallet-balance">{money(w.data.balance, w.data.currency)}</div>
-          <div className="relative text-muted-foreground flex items-center justify-center gap-2 mt-1">{w.data.isDemo ? "Demo balance" : "Current Balance"}{w.data.isDemo && <DemoBadge />}</div>
+          <div className="relative text-muted-foreground flex items-center justify-center gap-2 mt-1">Current Balance</div>
           <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Top Up Wallet</button>
           <div className="relative mt-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />Provider: {w.data.provider}</span>
             <span className="flex items-center gap-1"><Ban className="h-4 w-4" />No withdrawals</span>
-            {!w.data.paymentsEnabled && <span className="flex items-center gap-1 text-gold"><Info className="h-4 w-4" />Checkout not connected yet</span>}
           </div>
         </div>
       )}
