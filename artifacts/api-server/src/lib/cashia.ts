@@ -42,7 +42,7 @@ export function cashiaStagingCheckoutEnabled(): boolean {
   // Staging must never be silently presented as a live-money deposit service.
   return process.env.NODE_ENV !== "production"
     && hasCashiaStagingCredentials()
-    && Boolean(process.env.CASHIA_STAGING_COIN_SERIAL);
+    && process.env.CASHIA_STAGING_CHECKOUT_ENABLED === "true";
 }
 
 function credentials(): CashiaCredentials {
@@ -64,6 +64,7 @@ function signedHeaders(method: "GET" | "POST", body: string): Record<string, str
   const nonce = randomBytes(16).toString("hex");
   const signingString = `${STAGING_SIGNING_HOST}${method}${timestamp}${nonce}${keyId}`;
   return {
+    Accept: "application/json",
     "X-Cashia-Key-ID": keyId,
     "X-Cashia-Nonce": nonce,
     "X-Cashia-Timestamp": timestamp,
@@ -73,14 +74,81 @@ function signedHeaders(method: "GET" | "POST", body: string): Record<string, str
   };
 }
 
+type CashiaCoin = {
+  serial: string;
+  currency: { code?: string; sn?: string };
+  active: boolean;
+  accounting: boolean;
+  type: string;
+  main?: boolean;
+};
+
+function isMerchantKesCoin(value: unknown): value is CashiaCoin {
+  if (!value || typeof value !== "object") return false;
+  const coin = value as Partial<CashiaCoin>;
+  if (!coin.currency || typeof coin.currency !== "object") return false;
+  return typeof coin.serial === "string"
+    && /^[A-Za-z0-9._-]{1,180}$/.test(coin.serial)
+    && coin.active === true
+    && coin.accounting === false
+    && coin.type === "client"
+    && String(coin.currency.code ?? coin.currency.sn ?? "").toUpperCase() === "KES";
+}
+
+/** Select only wallets returned by the authenticated merchant wallet API.
+ * Never invent a serial or substitute a wallet from another currency. */
+export function selectCashiaKesCoin(data: unknown, preferredSerial?: string): string {
+  if (!data || typeof data !== "object" || !Array.isArray((data as { coins?: unknown }).coins)) {
+    throw new CashiaApiError("Cashia returned an invalid merchant wallet list.", 502);
+  }
+  const coins = ((data as { coins: unknown[] }).coins).filter(isMerchantKesCoin);
+  if (preferredSerial) {
+    if (coins.some(coin => coin.serial === preferredSerial)) return preferredSerial;
+    throw new CashiaApiError("The configured Cashia wallet is not an active KES merchant wallet for these credentials.", 502);
+  }
+  if (coins.length === 1) return coins[0].serial;
+  if (!coins.length) {
+    throw new CashiaApiError("Cashia did not return an active KES merchant wallet. Deposits remain unavailable.", 502);
+  }
+  const mainCoins = coins.filter(coin => coin.main === true);
+  if (mainCoins.length === 1) return mainCoins[0].serial;
+  throw new CashiaApiError("Cashia returned multiple KES wallets without a unique main wallet. Merchant wallet selection needs configuration.", 502);
+}
+
+export async function resolveCashiaKesCoin(): Promise<string> {
+  let response: Response;
+  try {
+    response = await fetch(`${STAGING_API_BASE}/v1/coins`, {
+      method: "GET",
+      headers: signedHeaders("GET", ""),
+      redirect: "error",
+      signal: AbortSignal.timeout(15_000),
+    });
+  } catch (error) {
+    if (error instanceof CashiaApiError) throw error;
+    throw new CashiaApiError("Cashia merchant wallets could not be reached. No checkout was created.", 502);
+  }
+  if (response.status === 403 && !(response.headers.get("content-type") ?? "").includes("application/json")) {
+    throw new CashiaApiError("Cashia's security gateway blocked the merchant wallet API. API access must be restored before deposits can start.", 502);
+  }
+  if (response.status === 401 || response.status === 403) {
+    throw new CashiaApiError("Cashia denied the merchant wallet lookup. API access or credential permissions need confirmation.", 502);
+  }
+  if (!response.ok) {
+    throw new CashiaApiError("Cashia could not list the merchant wallets. No checkout was created.", 502);
+  }
+  const data: unknown = await response.json().catch(() => null);
+  return selectCashiaKesCoin(data, process.env.CASHIA_STAGING_COIN_SERIAL);
+}
+
 export async function createCashiaStagingSession(input: CashiaCheckoutInput): Promise<CashiaCheckoutSession> {
-  const coinSerial = process.env.CASHIA_STAGING_COIN_SERIAL;
-  if (!cashiaStagingCheckoutEnabled() || !coinSerial) {
-    throw new CashiaApiError("Cashia test checkout is not ready. The merchant KES wallet coin serial is required; live deposits remain disabled.", 503);
+  if (!cashiaStagingCheckoutEnabled()) {
+    throw new CashiaApiError("Cashia test checkout has not been enabled. Live deposits remain disabled.", 503);
   }
   if (!Number.isFinite(input.amount) || input.amount < 1 || input.amount > 100000 || Math.abs(Math.round(input.amount * 100) - input.amount * 100) > 1e-7) {
     throw new CashiaApiError("Enter a valid KES deposit amount.", 400);
   }
+  const coinSerial = await resolveCashiaKesCoin();
   const body = JSON.stringify({
     requestId: input.requestId,
     coinSerial,

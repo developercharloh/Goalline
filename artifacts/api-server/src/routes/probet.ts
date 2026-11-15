@@ -82,7 +82,7 @@ router.post("/probet/deposits", rateLimit({ windowMs: 60_000, limit: 3, validate
     return;
   }
   if (!cashiaStagingCheckoutEnabled()) {
-    res.status(503).json({ error: "Cashia deposits are not enabled. Test checkout requires the merchant KES wallet coin serial and API access; live settlement verification is still pending." });
+    res.status(503).json({ error: "Cashia deposits are not enabled. Test checkout needs working merchant API access and explicit test-mode activation; live settlement verification is still pending." });
     return;
   }
   const { owner } = await identity(req, res);

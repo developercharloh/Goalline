@@ -14,3 +14,15 @@ The user chose KES for the wallet and Cashia deposits. The supplied Postman file
 **Why:** A session request is not proof of payment; mixing KES and USD would credit incorrect amounts.
 
 **How to apply:** Keep deposits and wallet balances in KES. Require a Cashia status response that matches the merchant request, amount, and currency before crediting funds; get the missing ID mapping and production endpoint before enabling live deposits.
+
+The user reports that their Cashia account does not display a coin serial. Do not repeatedly send them back to the dashboard to find one.
+
+**Why:** The user explicitly checked and could not find this identifier.
+
+**How to apply:** Retrieve the merchant's KES wallet identifier through the authenticated wallet-list API when accessible. Never substitute a documentation example or another currency's wallet.
+
+Cashia's merchant staging API can return an HTML Cloudflare denial instead of a JSON API response.
+
+**Why:** This external access restriction prevented wallet discovery and checkout testing; it did not establish whether the supplied credentials were valid.
+
+**How to apply:** Distinguish gateway access failures from API authentication errors. Do not repeatedly request replacement credentials or bypass the provider's access controls.
