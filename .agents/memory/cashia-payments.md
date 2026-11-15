@@ -26,3 +26,9 @@ Cashia's merchant staging API can return an HTML Cloudflare denial instead of a 
 **Why:** This external access restriction prevented wallet discovery and checkout testing; it did not establish whether the supplied credentials were valid.
 
 **How to apply:** Distinguish gateway access failures from API authentication errors. Do not repeatedly request replacement credentials or bypass the provider's access controls.
+
+The user wants two deposit choices: Safaricom M-Pesa Express marked “Coming soon”, and Manual M-Pesa Deposit marked “Recommended”. Manual payment goes to a Till; the payer submits the M-Pesa message, amount, first and last names for review, and credit is added only after approval.
+
+**Why:** The user requested a manual payment alternative while Cashia access is unresolved.
+
+**How to apply:** Never auto-approve from pasted SMS. Keep the merchant's actual Till configurable and require an authorised reviewer to verify the merchant statement before crediting.

@@ -93,6 +93,69 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DepositStatus" }
+  /probet/manual-deposits/config:
+    get:
+      operationId: getManualDepositConfig
+      responses:
+        "200":
+          description: Manual M-Pesa availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManualDepositConfig" }
+  /probet/manual-deposits:
+    get:
+      operationId: getManualDeposits
+      responses:
+        "200":
+          description: This wallet's deposit requests
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ManualDeposit" }
+    post:
+      operationId: submitManualDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ManualDepositInput" }
+      responses:
+        "201":
+          description: Submitted for review without crediting the wallet
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManualDeposit" }
+  /probet/manual-deposits/reviews:
+    get:
+      operationId: getManualDepositReviews
+      responses:
+        "200":
+          description: Authorised review queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ManualDeposit" }
+  /probet/manual-deposits/{id}/review:
+    post:
+      operationId: reviewManualDeposit
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ManualDepositReview" }
+      responses:
+        "200":
+          description: Recorded decision and credited once if approved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ManualDeposit" }
   /probet/chat:
     get:
       operationId: getChat
@@ -142,6 +205,7 @@ components:
         paymentsEnabled: { type: boolean }
         provider: { type: string }
         stagingCheckoutEnabled: { type: boolean }
+        depositedBalance: { type: number }
     Transaction:
       type: object
       required: [id, title, amount, type, createdAt, isDemo]
@@ -222,6 +286,45 @@ components:
         currency: { type: string, enum: [KES] }
         message: { type: string }
         balance: { type: ["number", "null"] }
+    ManualDepositConfig:
+      type: object
+      required: [enabled, tillNumber, businessName, message]
+      properties:
+        enabled: { type: boolean }
+        tillNumber: { type: ["string", "null"] }
+        businessName: { type: ["string", "null"] }
+        message: { type: string }
+    ManualDepositInput:
+      type: object
+      required: [amount, firstName, lastName, mpesaMessage]
+      properties:
+        amount: { type: number, minimum: 1, maximum: 100000, multipleOf: 0.01 }
+        firstName: { type: string, minLength: 1, maxLength: 80 }
+        lastName: { type: string, minLength: 1, maxLength: 80 }
+        mpesaMessage: { type: string, minLength: 20, maxLength: 3000 }
+    ManualDepositReview:
+      type: object
+      required: [decision, note, verified]
+      properties:
+        decision: { type: string, enum: [approved, rejected] }
+        note: { type: string, minLength: 3, maxLength: 500 }
+        verified: { type: boolean }
+    ManualDeposit:
+      type: object
+      required: [id, amount, firstName, lastName, mpesaMessage, receiptCode, tillNumber, businessName, status, note, createdAt, reviewedAt]
+      properties:
+        id: { type: string }
+        amount: { type: number }
+        firstName: { type: string }
+        lastName: { type: string }
+        mpesaMessage: { type: string }
+        receiptCode: { type: string }
+        tillNumber: { type: string }
+        businessName: { type: string }
+        status: { type: string, enum: [pending, approved, rejected] }
+        note: { type: ["string", "null"] }
+        createdAt: { type: string }
+        reviewedAt: { type: ["string", "null"] }
     ChatInput:
       type: object
       required: [displayName, content]

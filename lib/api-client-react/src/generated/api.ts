@@ -32,6 +32,10 @@ import type {
   DepositInput,
   DepositStatus,
   HealthStatus,
+  ManualDeposit,
+  ManualDepositConfig,
+  ManualDepositInput,
+  ManualDepositReview,
   PurchaseInput,
   PurchaseResult,
   TipPackage,
@@ -704,6 +708,456 @@ export function useGetCashiaDepositStatus<TData = Awaited<ReturnType<typeof getC
 
 
 
+
+export const getGetManualDepositConfigUrl = () => {
+
+
+
+
+  return `/api/probet/manual-deposits/config`
+}
+
+export const getManualDepositConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<ManualDepositConfig> => {
+
+  return customFetch<ManualDepositConfig>(getGetManualDepositConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetManualDepositConfigQueryKey = () => {
+    return [
+    `/api/probet/manual-deposits/config`
+    ] as const;
+    }
+
+
+export const getGetManualDepositConfigQueryOptions = <TData = Awaited<ReturnType<typeof getManualDepositConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetManualDepositConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getManualDepositConfig>>> = ({ signal }) => getManualDepositConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetManualDepositConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getManualDepositConfig>>>
+export type GetManualDepositConfigQueryError = ErrorType<unknown>
+
+
+export function useGetManualDepositConfig<TData = Awaited<ReturnType<typeof getManualDepositConfig>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDepositConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDepositConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDepositConfig<TData = Awaited<ReturnType<typeof getManualDepositConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDepositConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDepositConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDepositConfig<TData = Awaited<ReturnType<typeof getManualDepositConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetManualDepositConfig<TData = Awaited<ReturnType<typeof getManualDepositConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetManualDepositConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetManualDepositsUrl = () => {
+
+
+
+
+  return `/api/probet/manual-deposits`
+}
+
+export const getManualDeposits = async ( options?: Parameters<typeof customFetch>[1]): Promise<ManualDeposit[]> => {
+
+  return customFetch<ManualDeposit[]>(getGetManualDepositsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetManualDepositsQueryKey = () => {
+    return [
+    `/api/probet/manual-deposits`
+    ] as const;
+    }
+
+
+export const getGetManualDepositsQueryOptions = <TData = Awaited<ReturnType<typeof getManualDeposits>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetManualDepositsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getManualDeposits>>> = ({ signal }) => getManualDeposits({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetManualDepositsQueryResult = NonNullable<Awaited<ReturnType<typeof getManualDeposits>>>
+export type GetManualDepositsQueryError = ErrorType<unknown>
+
+
+export function useGetManualDeposits<TData = Awaited<ReturnType<typeof getManualDeposits>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDeposits>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDeposits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDeposits<TData = Awaited<ReturnType<typeof getManualDeposits>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDeposits>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDeposits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDeposits<TData = Awaited<ReturnType<typeof getManualDeposits>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetManualDeposits<TData = Awaited<ReturnType<typeof getManualDeposits>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDeposits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetManualDepositsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSubmitManualDepositUrl = () => {
+
+
+
+
+  return `/api/probet/manual-deposits`
+}
+
+export const submitManualDeposit = async (manualDepositInput: ManualDepositInput, options?: Parameters<typeof customFetch>[1]): Promise<ManualDeposit> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ManualDeposit>(getSubmitManualDepositUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(manualDepositInput)
+  }
+);}
+
+
+
+
+
+export const getSubmitManualDepositMutationKey = () => ['submitManualDeposit'] as const;
+
+export const getSubmitManualDepositMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitManualDeposit>>, TError,SubmitManualDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof submitManualDeposit>>, TError,SubmitManualDepositMutationVariables, TContext> => {
+
+const mutationKey = getSubmitManualDepositMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof submitManualDeposit>>, SubmitManualDepositMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  submitManualDeposit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SubmitManualDepositMutationResult = NonNullable<Awaited<ReturnType<typeof submitManualDeposit>>>
+    export type SubmitManualDepositMutationBody = BodyType<ManualDepositInput>
+    export type SubmitManualDepositMutationError = ErrorType<unknown>
+    export type SubmitManualDepositMutationVariables = {data: BodyType<ManualDepositInput>}
+
+    export const useSubmitManualDeposit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof submitManualDeposit>>, TError,SubmitManualDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof submitManualDeposit>>,
+        TError,
+        SubmitManualDepositMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSubmitManualDepositMutationOptions(options), queryClient);
+    }
+
+export const getGetManualDepositReviewsUrl = () => {
+
+
+
+
+  return `/api/probet/manual-deposits/reviews`
+}
+
+export const getManualDepositReviews = async ( options?: Parameters<typeof customFetch>[1]): Promise<ManualDeposit[]> => {
+
+  return customFetch<ManualDeposit[]>(getGetManualDepositReviewsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetManualDepositReviewsQueryKey = () => {
+    return [
+    `/api/probet/manual-deposits/reviews`
+    ] as const;
+    }
+
+
+export const getGetManualDepositReviewsQueryOptions = <TData = Awaited<ReturnType<typeof getManualDepositReviews>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetManualDepositReviewsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getManualDepositReviews>>> = ({ signal }) => getManualDepositReviews({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetManualDepositReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof getManualDepositReviews>>>
+export type GetManualDepositReviewsQueryError = ErrorType<unknown>
+
+
+export function useGetManualDepositReviews<TData = Awaited<ReturnType<typeof getManualDepositReviews>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDepositReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDepositReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDepositReviews<TData = Awaited<ReturnType<typeof getManualDepositReviews>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getManualDepositReviews>>,
+          TError,
+          Awaited<ReturnType<typeof getManualDepositReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetManualDepositReviews<TData = Awaited<ReturnType<typeof getManualDepositReviews>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetManualDepositReviews<TData = Awaited<ReturnType<typeof getManualDepositReviews>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getManualDepositReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetManualDepositReviewsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReviewManualDepositUrl = (id: string,) => {
+
+
+
+
+  return `/api/probet/manual-deposits/${id}/review`
+}
+
+export const reviewManualDeposit = async (id: string,
+    manualDepositReview: ManualDepositReview, options?: Parameters<typeof customFetch>[1]): Promise<ManualDeposit> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ManualDeposit>(getReviewManualDepositUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(manualDepositReview)
+  }
+);}
+
+
+
+
+
+export const getReviewManualDepositMutationKey = () => ['reviewManualDeposit'] as const;
+
+export const getReviewManualDepositMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewManualDeposit>>, TError,ReviewManualDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reviewManualDeposit>>, TError,ReviewManualDepositMutationVariables, TContext> => {
+
+const mutationKey = getReviewManualDepositMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reviewManualDeposit>>, ReviewManualDepositMutationVariables> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reviewManualDeposit(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReviewManualDepositMutationResult = NonNullable<Awaited<ReturnType<typeof reviewManualDeposit>>>
+    export type ReviewManualDepositMutationBody = BodyType<ManualDepositReview>
+    export type ReviewManualDepositMutationError = ErrorType<unknown>
+    export type ReviewManualDepositMutationVariables = {id: string;data: BodyType<ManualDepositReview>}
+
+    export const useReviewManualDeposit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reviewManualDeposit>>, TError,ReviewManualDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reviewManualDeposit>>,
+        TError,
+        ReviewManualDepositMutationVariables,
+        TContext
+      > => {
+      return useMutation(getReviewManualDepositMutationOptions(options), queryClient);
+    }
 
 export const getGetChatUrl = () => {
 

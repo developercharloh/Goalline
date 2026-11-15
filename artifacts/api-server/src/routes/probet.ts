@@ -1,13 +1,14 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
-import { getAuth } from "@clerk/express";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits } from "@workspace/db";
+import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits } from "@workspace/db";
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import { tipCatalog } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
+import { identity } from "../lib/wallet-identity.js";
+import manualDepositRouter from "./manual-deposits.js";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
@@ -26,33 +27,20 @@ router.use("/probet", (req, res, next) => {
   next();
 });
 
-async function identity(req: Request, res: Response) {
-  const userId = process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY
-    ? getAuth(req).userId
-    : null;
-  let guest = req.signedCookies?.probet_demo;
-  if (!userId && (typeof guest !== "string" || !/^[a-f0-9-]{36}$/.test(guest))) {
-    guest = randomUUID();
-    res.cookie("probet_demo", guest, { signed: true, httpOnly: true, sameSite: "lax", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: 30 * 86400_000, path: "/" });
-  }
-  const owner = userId ? `user:${userId}` : `demo:${guest}`;
-  const isDemo = !userId;
-  await db.transaction(async tx => {
-    const inserted = await tx.insert(wallets).values({ owner, balanceCents: isDemo ? 2500 : 0, isDemo }).onConflictDoNothing().returning();
-    if (inserted.length && isDemo) {
-      await tx.insert(transactions).values({ id: randomUUID(), owner, title: "Demo starting credit", type: "topup", amountCents: 2500 });
-    }
-  });
-  return { owner, isDemo };
-}
+router.use(manualDepositRouter);
 
 async function walletFor(owner: string) {
   const [wallet] = await db.select().from(wallets).where(eq(wallets.owner, owner));
-  return { balance: wallet.balanceCents / 100, currency: "KES", isDemo: wallet.isDemo, paymentsEnabled: false, provider: "Cashia", stagingCheckoutEnabled: cashiaStagingCheckoutEnabled() };
+  const [credits] = await db.select({ total: sql<string>`coalesce(sum(${depositCredits.amountCents}), 0)` }).from(depositCredits).where(eq(depositCredits.owner, owner));
+  return { balance: wallet.balanceCents / 100, depositedBalance: Number(credits.total) / 100, currency: "KES", isDemo: wallet.isDemo, paymentsEnabled: false, provider: "Safaricom M-Pesa", stagingCheckoutEnabled: cashiaStagingCheckoutEnabled() };
 }
 async function transactionsFor(owner: string, isDemo: boolean) {
   const rows = await db.select().from(transactions).where(eq(transactions.owner, owner)).orderBy(desc(transactions.createdAt));
-  return rows.map(row => ({ id: row.id, title: row.title, amount: row.amountCents / 100, type: row.type, createdAt: row.createdAt.toISOString(), isDemo }));
+  const credits = await db.select().from(depositCredits).where(eq(depositCredits.owner, owner));
+  return [
+    ...rows.map(row => ({ id: row.id, title: row.title, amount: row.amountCents / 100, type: row.type, createdAt: row.createdAt.toISOString(), isDemo })),
+    ...credits.map(row => ({ id: row.depositId, title: "M-Pesa deposit approved", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
+  ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 async function tipsFor(owner: string) {
   const owned = await db.select().from(purchases).where(eq(purchases.owner, owner));

@@ -13,4 +13,5 @@ export interface Wallet {
   paymentsEnabled: boolean;
   provider: string;
   stagingCheckoutEnabled?: boolean;
+  depositedBalance?: number;
 }

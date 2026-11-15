@@ -3,7 +3,7 @@ import { Link, Redirect, useLocation, useParams } from "wouter";
 import { useClerk, useUser, Show } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey, useGetCashiaDepositStatus,
+  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
 import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Crown, LogIn, Users } from "lucide-react";
@@ -11,37 +11,48 @@ import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { DemoBadge, Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
 import { TopUpDialog } from "@/components/topup-dialog";
+import { ManualDepositHistory } from "@/components/manual-deposits";
 import { TxList } from "@/pages/dashboard";
 import { basePath, errMsg, invalidateMoney, money } from "@/lib/probet";
 
 export function WalletPage() {
-  const w = useGetWallet();
-  const tx = useGetTransactions();
+  const w = useGetWallet({ query: { refetchInterval: 15000 } });
+  const tx = useGetTransactions({ query: { refetchInterval: 15000 } });
   const [open, setOpen] = useState(false);
-  const reference = new URLSearchParams(window.location.search).get("deposit") ?? "";
-  const validReference = /^[a-f0-9-]{36}$/.test(reference);
-  const deposit = useGetCashiaDepositStatus(reference, { query: { enabled: validReference, retry: false } });
+  const guest = w.data?.isDemo === true;
   return (
     <AppShell>
       <PageHeader title="My Wallet" subtitle="Top up only. Wallet funds are used for premium tips and cannot be withdrawn." />
-      {validReference && (
-        <div className="glass rounded-xl p-4 mb-4 text-sm" role="status" data-testid="status-deposit-result">
-          {deposit.isLoading ? "Checking your deposit reference..." : deposit.error ? errMsg(deposit.error) : deposit.data?.message}
-        </div>
-      )}
       {w.isLoading ? <Sk className="h-56" /> : w.error || !w.data ? <ErrorCard message={errMsg(w.error)} onRetry={() => w.refetch()} /> : (
-        <div className="glass rounded-3xl p-8 text-center relative overflow-hidden rise">
+        <div className="glass rounded-3xl p-6 md:p-8 text-center relative overflow-hidden rise">
           <div className="absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-[hsl(217_100%_55%/.3)] blur-3xl" />
           <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-8 w-8 text-[hsl(43_96%_70%)]" /></div>
-          <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-wallet-balance">{money(w.data.balance, w.data.currency)}</div>
-          <div className="relative text-muted-foreground flex items-center justify-center gap-2 mt-1">Current Balance</div>
-          <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Top Up Wallet</button>
+          <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-deposited-balance">{money(w.data.depositedBalance ?? 0, w.data.currency)}</div>
+          <div className="relative text-muted-foreground mt-1">Deposited balance</div>
+          {w.data.isDemo && (
+            <div className="relative mx-auto mt-4 max-w-sm flex items-center justify-between rounded-xl border border-border bg-[hsl(224_60%_9%)] px-4 py-2.5 text-sm">
+              <span className="flex items-center gap-2 text-muted-foreground">Preview balance<DemoBadge /></span>
+              <span className="font-bold" data-testid="text-wallet-balance">{money(w.data.balance, w.data.currency)}</span>
+            </div>
+          )}
+          {!w.data.isDemo && w.data.depositedBalance === undefined && <div className="relative text-sm mt-2" data-testid="text-wallet-balance">Balance {money(w.data.balance, w.data.currency)}</div>}
+          {w.data.isDemo && <p className="relative text-xs text-muted-foreground mt-2">Preview money is for exploring only and is never mixed with real deposits.</p>}
+          <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Deposit with M-Pesa</button>
+          <p className="relative mt-2 text-xs text-muted-foreground">Real tip purchases are not available yet.</p>
           <div className="relative mt-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />Provider: {w.data.provider}</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />Manually verified deposits</span>
             <span className="flex items-center gap-1"><Ban className="h-4 w-4" />No withdrawals</span>
           </div>
         </div>
       )}
+      {guest && (
+        <div className="mt-4 flex gap-3 rounded-2xl border border-[hsl(43_96%_56%/.4)] bg-[hsl(43_96%_56%/.07)] p-4 text-sm" role="note" data-testid="status-guest-wallet">
+          <ShieldCheck className="h-5 w-5 shrink-0 text-gold" />
+          <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Do not clear your browser data or switch devices until it is linked to an account, or you may lose access to your deposits.</span></p>
+        </div>
+      )}
+      <h2 className="font-display text-xl font-extrabold mt-8 mb-3">Deposit Requests</h2>
+      <ManualDepositHistory />
       <div className="flex items-center justify-between mt-8 mb-3">
         <h2 className="font-display text-xl font-extrabold">Recent Transactions</h2>
         <Link href="/history" className="text-sm text-primary font-semibold" data-testid="link-wallet-history">View All</Link>
@@ -53,7 +64,7 @@ export function WalletPage() {
 }
 
 export function HistoryPage() {
-  const tx = useGetTransactions();
+  const tx = useGetTransactions({ query: { refetchInterval: 15000 } });
   return (
     <AppShell>
       <PageHeader title="Transaction History" subtitle="Every top up and tip purchase on your account." />

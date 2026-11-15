@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DashboardPage, { DashboardView } from "@/pages/dashboard";
 import { WalletPage, HistoryPage, TipsPage, PurchasePage, SuccessPage, ChatPage, ProfilePage } from "@/pages/pages";
+import DepositReviewsPage from "@/pages/deposit-reviews";
 import { AppShell } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
 
@@ -217,6 +218,7 @@ function ClerkProviderWithRoutes() {
                 <Route path="/purchase/:id" component={PurchasePage} />
                 <Route path="/success" component={SuccessPage} />
                 <Route path="/profile" component={ProfilePage} />
+                <Route path="/deposit-reviews" component={DepositReviewsPage} />
                 <Route component={NotFound} />
               </Switch>
             </RoutedErrorBoundary>
@@ -263,6 +265,7 @@ function GuestPreviewRoutes() {
               <Route path="/purchase/:id" component={PurchasePage} />
               <Route path="/success" component={SuccessPage} />
               <Route path="/profile" component={ProfilePage} />
+                <Route path="/deposit-reviews" component={DepositReviewsPage} />
               <Route component={NotFound} />
             </Switch>
           </RoutedErrorBoundary>

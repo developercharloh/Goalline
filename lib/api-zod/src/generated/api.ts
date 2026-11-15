@@ -15,7 +15,8 @@ export const GetDashboardResponse = zod.object({
   "isDemo": zod.boolean(),
   "paymentsEnabled": zod.boolean(),
   "provider": zod.string(),
-  "stagingCheckoutEnabled": zod.boolean().optional()
+  "stagingCheckoutEnabled": zod.boolean().optional(),
+  "depositedBalance": zod.number().optional()
 }),
   "packages": zod.array(zod.object({
   "id": zod.string(),
@@ -49,7 +50,8 @@ export const GetWalletResponse = zod.object({
   "isDemo": zod.boolean(),
   "paymentsEnabled": zod.boolean(),
   "provider": zod.string(),
-  "stagingCheckoutEnabled": zod.boolean().optional()
+  "stagingCheckoutEnabled": zod.boolean().optional(),
+  "depositedBalance": zod.number().optional()
 })
 
 
@@ -130,6 +132,114 @@ export const GetCashiaDepositStatusResponse = zod.object({
   "currency": zod.enum(['KES']),
   "message": zod.string(),
   "balance": zod.number().nullable()
+})
+
+
+export const GetManualDepositConfigResponse = zod.object({
+  "enabled": zod.boolean(),
+  "tillNumber": zod.string().nullable(),
+  "businessName": zod.string().nullable(),
+  "message": zod.string()
+})
+
+
+export const GetManualDepositsResponseItem = zod.object({
+  "id": zod.string(),
+  "amount": zod.number(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "mpesaMessage": zod.string(),
+  "receiptCode": zod.string(),
+  "tillNumber": zod.string(),
+  "businessName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "note": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+export const GetManualDepositsResponse = zod.array(GetManualDepositsResponseItem)
+
+
+export const submitManualDepositBodyAmountMax = 100000;
+export const submitManualDepositBodyAmountMultipleOf = 0.01;
+
+export const submitManualDepositBodyFirstNameMax = 80;
+
+export const submitManualDepositBodyLastNameMax = 80;
+
+export const submitManualDepositBodyMpesaMessageMin = 20;
+export const submitManualDepositBodyMpesaMessageMax = 3000;
+
+
+
+export const SubmitManualDepositBody = zod.object({
+  "amount": zod.number().min(1).max(submitManualDepositBodyAmountMax).multipleOf(submitManualDepositBodyAmountMultipleOf),
+  "firstName": zod.string().min(1).max(submitManualDepositBodyFirstNameMax),
+  "lastName": zod.string().min(1).max(submitManualDepositBodyLastNameMax),
+  "mpesaMessage": zod.string().min(submitManualDepositBodyMpesaMessageMin).max(submitManualDepositBodyMpesaMessageMax)
+})
+
+export const SubmitManualDepositResponse = zod.object({
+  "id": zod.string(),
+  "amount": zod.number(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "mpesaMessage": zod.string(),
+  "receiptCode": zod.string(),
+  "tillNumber": zod.string(),
+  "businessName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "note": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+
+
+export const GetManualDepositReviewsResponseItem = zod.object({
+  "id": zod.string(),
+  "amount": zod.number(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "mpesaMessage": zod.string(),
+  "receiptCode": zod.string(),
+  "tillNumber": zod.string(),
+  "businessName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "note": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+export const GetManualDepositReviewsResponse = zod.array(GetManualDepositReviewsResponseItem)
+
+
+export const ReviewManualDepositParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const reviewManualDepositBodyNoteMin = 3;
+export const reviewManualDepositBodyNoteMax = 500;
+
+
+
+export const ReviewManualDepositBody = zod.object({
+  "decision": zod.enum(['approved', 'rejected']),
+  "note": zod.string().min(reviewManualDepositBodyNoteMin).max(reviewManualDepositBodyNoteMax),
+  "verified": zod.boolean()
+})
+
+export const ReviewManualDepositResponse = zod.object({
+  "id": zod.string(),
+  "amount": zod.number(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "mpesaMessage": zod.string(),
+  "receiptCode": zod.string(),
+  "tillNumber": zod.string(),
+  "businessName": zod.string(),
+  "status": zod.enum(['pending', 'approved', 'rejected']),
+  "note": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
 })
 
 

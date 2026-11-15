@@ -12,6 +12,7 @@ export interface Wallet {
   paymentsEnabled: boolean;
   provider: string;
   stagingCheckoutEnabled?: boolean;
+  depositedBalance?: number;
 }
 
 export type TransactionType = typeof TransactionType[keyof typeof TransactionType];
@@ -114,6 +115,82 @@ export interface DepositStatus {
   message: string;
   /** @nullable */
   balance: number | null;
+}
+
+export interface ManualDepositConfig {
+  enabled: boolean;
+  /** @nullable */
+  tillNumber: string | null;
+  /** @nullable */
+  businessName: string | null;
+  message: string;
+}
+
+export interface ManualDepositInput {
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  amount: number;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  firstName: string;
+  /**
+     * @minLength 1
+     * @maxLength 80
+     */
+  lastName: string;
+  /**
+     * @minLength 20
+     * @maxLength 3000
+     */
+  mpesaMessage: string;
+}
+
+export type ManualDepositReviewDecision = typeof ManualDepositReviewDecision[keyof typeof ManualDepositReviewDecision];
+
+
+export const ManualDepositReviewDecision = {
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface ManualDepositReview {
+  decision: ManualDepositReviewDecision;
+  /**
+     * @minLength 3
+     * @maxLength 500
+     */
+  note: string;
+  verified: boolean;
+}
+
+export type ManualDepositStatus = typeof ManualDepositStatus[keyof typeof ManualDepositStatus];
+
+
+export const ManualDepositStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+} as const;
+
+export interface ManualDeposit {
+  id: string;
+  amount: number;
+  firstName: string;
+  lastName: string;
+  mpesaMessage: string;
+  receiptCode: string;
+  tillNumber: string;
+  businessName: string;
+  status: ManualDepositStatus;
+  /** @nullable */
+  note: string | null;
+  createdAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
 }
 
 export interface ChatInput {
