@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import { Show, useUser } from "@clerk/react";
-import { Home, MessageSquare, Wallet, History, User, Gem, LogIn } from "lucide-react";
+import { Home, MessageSquare, Wallet, Gem, LogIn } from "lucide-react";
 import { Logo, Wordmark } from "@/components/brand";
 
 const NAV = [
@@ -9,8 +9,6 @@ const NAV = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/tips", label: "Tips", icon: Gem },
   { href: "/wallet", label: "Wallet", icon: Wallet },
-  { href: "/history", label: "History", icon: History },
-  { href: "/profile", label: "Profile", icon: User },
 ];
 
 function useActive() {
@@ -54,7 +52,7 @@ function AppShellFrame({
           {guestPreview ? (
             <>
               <div className="font-bold">Guest preview</div>
-              <p className="text-xs text-muted-foreground mt-1">Demo wallet and sample matches. Account access is not enabled on this deployment.</p>
+              <p className="text-xs text-muted-foreground mt-1">Sample matches. Account access is not enabled on this deployment.</p>
             </>
           ) : (
             <>
@@ -64,7 +62,7 @@ function AppShellFrame({
               </Show>
               <Show when="signed-out">
             <div className="font-bold">Guest preview</div>
-            <p className="text-xs text-muted-foreground mb-3">Demo wallet & sample matches</p>
+            <p className="text-xs text-muted-foreground mb-3">Sample matches</p>
             <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 font-bold" data-testid="link-sidebar-signup">Create account</Link>
               </Show>
             </>
@@ -81,7 +79,7 @@ function AppShellFrame({
         <main className="mx-auto max-w-5xl px-4 md:px-8 pt-5 md:pt-10">{children}</main>
       </div>
 
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-6 border-t border-border bg-[hsl(225_70%_8%/.95)] backdrop-blur pb-[env(safe-area-inset-bottom)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 grid grid-cols-4 border-t border-border bg-[hsl(225_70%_8%/.95)] backdrop-blur pb-[env(safe-area-inset-bottom)]">
         {NAV.map((n) => {
           const a = isActive(n.href);
           return (

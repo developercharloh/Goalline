@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useUser } from "@clerk/react";
 import { useGetDashboard } from "@workspace/api-client-react";
-import { MessageCircle, Gem, Wallet, ShieldCheck, ArrowUpRight, ArrowDownLeft, Info } from "lucide-react";
+import { MessageCircle, Gem, Wallet, ShieldCheck, Info } from "lucide-react";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
-import { DemoBadge, Logo, Wordmark } from "@/components/brand";
+import { Logo, Wordmark } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
 import { TopUpDialog } from "@/components/topup-dialog";
-import { errMsg, money, fmtDate } from "@/lib/probet";
+import { errMsg, money } from "@/lib/probet";
 
 export function DashboardView({ guest = false, name }: { guest?: boolean; name?: string }) {
   const { data, isLoading, error, refetch } = useGetDashboard();
@@ -24,7 +24,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
               <Wordmark size="lg" tagline />
-              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and the ChatBase community. You are viewing a guest preview with a demo balance and sample matches.</p>
+              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and the ChatBase community. You are viewing a guest preview with sample matches.</p>
               {authAvailable ? (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
@@ -63,7 +63,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <div className="glass rounded-2xl p-5 flex items-center gap-4 rise" style={{ animationDelay: "60ms" }}>
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-7 w-7 text-[hsl(43_96%_70%)]" /></div>
               <div className="flex-1">
-                <div className="text-sm text-muted-foreground flex items-center gap-2">{data.wallet.isDemo ? "Demo balance" : "Wallet Balance"}{data.wallet.isDemo && <DemoBadge />}</div>
+                <div className="text-sm text-muted-foreground">Wallet Balance</div>
                 <div className="font-display text-3xl font-extrabold" data-testid="text-balance">{money(data.wallet.balance, data.wallet.currency)}</div>
               </div>
               <button type="button" onClick={() => setTopup(true)} className="btn-blue rounded-xl px-5 py-2.5 font-bold" data-testid="button-topup">Top Up</button>
@@ -96,48 +96,11 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
                 </Link>
               </div>
             </div>
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-xl font-extrabold">Recent Transactions</h3>
-                <Link href="/history" className="text-sm text-primary font-semibold" data-testid="link-view-history">View All</Link>
-              </div>
-              <TxList items={data.recentTransactions} />
-            </div>
           </div>
         </div>
       )}
       <TopUpDialog open={topup} onOpenChange={setTopup} provider={data?.wallet.provider} />
     </>
-  );
-}
-
-export function TxList({ items }: { items: { id: string; title: string; amount: number; type: string; createdAt: string; isDemo: boolean }[] }) {
-  if (!items.length)
-    return (
-      <div className="glass rounded-2xl p-6 text-center" data-testid="status-empty-transactions">
-        <Wallet className="h-8 w-8 mx-auto text-muted-foreground" />
-        <p className="font-semibold mt-2">No transactions yet</p>
-        <p className="text-sm text-muted-foreground">Purchases and top ups will appear here.</p>
-      </div>
-    );
-  return (
-    <ul className="space-y-2">
-      {items.map((t, i) => {
-        const purchase = t.type === "purchase";
-        return (
-          <li key={t.id} className="glass rounded-xl p-3 flex items-center gap-3 rise" style={{ animationDelay: `${i * 50}ms` }} data-testid={`row-transaction-${t.id}`}>
-            <div className={`grid h-10 w-10 place-items-center rounded-full ${purchase ? "bg-[hsl(217_100%_55%/.18)]" : "bg-[hsl(142_72%_45%/.2)]"}`}>
-              {purchase ? <ArrowUpRight className="h-5 w-5 text-primary" /> : <ArrowDownLeft className="h-5 w-5 text-win" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-bold truncate flex items-center gap-2">{t.title}{t.isDemo && <DemoBadge />}</div>
-              <div className="text-xs text-muted-foreground">{fmtDate(t.createdAt)}</div>
-            </div>
-            <div className={`font-extrabold ${purchase ? "text-loss" : "text-win"}`}>{purchase ? "-" : "+"}{money(Math.abs(t.amount))}</div>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 

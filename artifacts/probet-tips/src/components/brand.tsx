@@ -22,10 +22,3 @@ export function Wordmark({ size = "md", tagline = false }: { size?: "sm" | "md" 
   );
 }
 
-export function DemoBadge({ label = "Demo" }: { label?: string }) {
-  return (
-    <span className="inline-flex items-center rounded-full border border-[hsl(43_96%_56%/.5)] bg-[hsl(43_96%_56%/.12)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-gold" data-testid="badge-demo">
-      {label}
-    </span>
-  );
-}

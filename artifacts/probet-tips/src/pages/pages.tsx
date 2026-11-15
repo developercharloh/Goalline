@@ -1,23 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Redirect, useLocation, useParams } from "wouter";
-import { useClerk, useUser, Show } from "@clerk/react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
+  useGetWallet, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
-import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Crown, LogIn, Users } from "lucide-react";
+import { MessageCircle, Send, Check, Wallet, Gem, ShieldCheck, Ban, Crown, Users } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
-import { DemoBadge, Logo } from "@/components/brand";
+import { Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
 import { TopUpDialog } from "@/components/topup-dialog";
-import { ManualDepositHistory } from "@/components/manual-deposits";
-import { TxList } from "@/pages/dashboard";
-import { basePath, errMsg, invalidateMoney, money } from "@/lib/probet";
+import { errMsg, invalidateMoney, money } from "@/lib/probet";
 
 export function WalletPage() {
   const w = useGetWallet({ query: { refetchInterval: 15000 } });
-  const tx = useGetTransactions({ query: { refetchInterval: 15000 } });
   const [open, setOpen] = useState(false);
   const guest = w.data?.isDemo === true;
   return (
@@ -29,14 +25,6 @@ export function WalletPage() {
           <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-8 w-8 text-[hsl(43_96%_70%)]" /></div>
           <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-deposited-balance">{money(w.data.depositedBalance ?? 0, w.data.currency)}</div>
           <div className="relative text-muted-foreground mt-1">Deposited balance</div>
-          {w.data.isDemo && (
-            <div className="relative mx-auto mt-4 max-w-sm flex items-center justify-between rounded-xl border border-border bg-[hsl(224_60%_9%)] px-4 py-2.5 text-sm">
-              <span className="flex items-center gap-2 text-muted-foreground">Preview balance<DemoBadge /></span>
-              <span className="font-bold" data-testid="text-wallet-balance">{money(w.data.balance, w.data.currency)}</span>
-            </div>
-          )}
-          {!w.data.isDemo && w.data.depositedBalance === undefined && <div className="relative text-sm mt-2" data-testid="text-wallet-balance">Balance {money(w.data.balance, w.data.currency)}</div>}
-          {w.data.isDemo && <p className="relative text-xs text-muted-foreground mt-2">Preview money is for exploring only and is never mixed with real deposits.</p>}
           <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Deposit with M-Pesa</button>
           <p className="relative mt-2 text-xs text-muted-foreground">Real tip purchases are not available yet.</p>
           <div className="relative mt-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
@@ -51,25 +39,7 @@ export function WalletPage() {
           <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Do not clear your browser data or switch devices until it is linked to an account, or you may lose access to your deposits.</span></p>
         </div>
       )}
-      <h2 className="font-display text-xl font-extrabold mt-8 mb-3">Deposit Requests</h2>
-      <ManualDepositHistory />
-      <div className="flex items-center justify-between mt-8 mb-3">
-        <h2 className="font-display text-xl font-extrabold">Recent Transactions</h2>
-        <Link href="/history" className="text-sm text-primary font-semibold" data-testid="link-wallet-history">View All</Link>
-      </div>
-      {tx.isLoading ? <Sk className="h-32" /> : tx.error ? <ErrorCard message={errMsg(tx.error)} onRetry={() => tx.refetch()} /> : <TxList items={(tx.data ?? []).slice(0, 4)} />}
       <TopUpDialog open={open} onOpenChange={setOpen} provider={w.data?.provider} />
-    </AppShell>
-  );
-}
-
-export function HistoryPage() {
-  const tx = useGetTransactions({ query: { refetchInterval: 15000 } });
-  return (
-    <AppShell>
-      <PageHeader title="Transaction History" subtitle="Every top up and tip purchase on your account." />
-      {tx.isLoading ? <div className="space-y-2">{[0, 1, 2].map((i) => <Sk key={i} className="h-16" />)}</div>
-        : tx.error ? <ErrorCard message={errMsg(tx.error)} onRetry={() => tx.refetch()} /> : <TxList items={tx.data ?? []} />}
     </AppShell>
   );
 }
@@ -142,7 +112,7 @@ export function PurchasePage() {
               <>
                 <dl className="mt-6 rounded-2xl bg-[hsl(224_60%_9%)] border border-border p-4 space-y-2 text-sm">
                   <div className="flex justify-between"><dt>Ticket Price</dt><dd className="font-bold" data-testid="text-ticket-price">{money(pkg.price)}</dd></div>
-                  <div className="flex justify-between"><dt className="flex items-center gap-2">Your Balance{w.data?.isDemo && <DemoBadge />}</dt><dd className="font-bold">{money(bal)}</dd></div>
+                  <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
                 </dl>
                 {pkg.isSample && <p className="text-xs text-muted-foreground mt-3">This package contains sample matches for demonstration.</p>}
@@ -310,64 +280,3 @@ function PendingBubble({ displayName, content }: { displayName: string; content:
   );
 }
 
-export function ProfilePage() {
-  if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
-    return <GuestProfilePage />;
-  }
-  return <AuthenticatedProfilePage />;
-}
-
-function GuestProfilePage() {
-  return (
-    <AppShell>
-      <PageHeader title="Profile" />
-      <div className="glass rounded-3xl p-8 max-w-lg text-center">
-        <Logo className="h-16 w-16 mx-auto" />
-        <p className="font-bold mt-3">Guest demo</p>
-        <p className="text-sm text-muted-foreground mt-1">Account sign-in is not enabled on this deployment. Your demo wallet and sample activity are still available.</p>
-        <div className="grid gap-2 mt-5 text-left">
-          <Link href="/wallet" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Wallet className="h-4 w-4" />Wallet</Link>
-          <Link href="/history" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Gem className="h-4 w-4" />Transaction history</Link>
-        </div>
-      </div>
-    </AppShell>
-  );
-}
-
-function AuthenticatedProfilePage() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const initials = (user?.firstName?.[0] ?? user?.primaryEmailAddress?.emailAddress?.[0] ?? "P").toUpperCase();
-  return (
-    <AppShell>
-      <PageHeader title="Profile" />
-      <Show when="signed-in">
-        <div className="glass rounded-3xl p-6 max-w-lg rise">
-          <div className="flex items-center gap-4">
-            <div className="grid h-16 w-16 place-items-center rounded-full btn-gold font-display text-2xl font-black">{initials}</div>
-            <div className="min-w-0">
-              <div className="font-display text-xl font-extrabold truncate" data-testid="text-profile-name">{user?.fullName || "Member"}</div>
-              <div className="text-sm text-muted-foreground flex items-center gap-1 truncate"><Mail className="h-4 w-4" />{user?.primaryEmailAddress?.emailAddress}</div>
-            </div>
-          </div>
-          <div className="mt-6 grid gap-2">
-            <Link href="/wallet" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Wallet className="h-4 w-4" />Wallet</Link>
-            <Link href="/history" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Gem className="h-4 w-4" />Transaction history</Link>
-          </div>
-          <button type="button" onClick={() => signOut({ redirectUrl: basePath || "/" })} className="mt-6 w-full rounded-xl border border-[hsl(0_84%_60%/.5)] py-3 font-bold text-loss flex items-center justify-center gap-2 hover:bg-[hsl(0_84%_60%/.1)]" data-testid="button-logout"><LogOut className="h-4 w-4" />Log out</button>
-        </div>
-      </Show>
-      <Show when="signed-out">
-        <div className="glass rounded-3xl p-8 max-w-lg text-center">
-          <Logo className="h-16 w-16 mx-auto" />
-          <p className="font-bold mt-3">You're browsing as a guest</p>
-          <p className="text-sm text-muted-foreground">Create an account to keep your own wallet and picks.</p>
-          <div className="flex gap-3 justify-center mt-5">
-            <Link href="/sign-up" className="btn-blue rounded-xl px-5 py-2.5 font-bold" data-testid="link-profile-signup">Sign Up</Link>
-            <Link href="/sign-in" className="rounded-xl px-5 py-2.5 font-bold border border-border flex items-center gap-1" data-testid="link-profile-signin"><LogIn className="h-4 w-4" />Login</Link>
-          </div>
-        </div>
-      </Show>
-    </AppShell>
-  );
-}

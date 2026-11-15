@@ -11,7 +11,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DashboardPage, { DashboardView } from "@/pages/dashboard";
-import { WalletPage, HistoryPage, TipsPage, PurchasePage, SuccessPage, ChatPage, ProfilePage } from "@/pages/pages";
+import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pages/pages";
 import DepositReviewsPage from "@/pages/deposit-reviews";
 import { AppShell } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
@@ -213,11 +213,9 @@ function ClerkProviderWithRoutes() {
                 <Route path="/dashboard"><Protected><DashboardPage /></Protected></Route>
                 <Route path="/chat" component={ChatPage} />
                 <Route path="/wallet" component={WalletPage} />
-                <Route path="/history" component={HistoryPage} />
                 <Route path="/tips" component={TipsPage} />
                 <Route path="/purchase/:id" component={PurchasePage} />
                 <Route path="/success" component={SuccessPage} />
-                <Route path="/profile" component={ProfilePage} />
                 <Route path="/deposit-reviews" component={DepositReviewsPage} />
                 <Route component={NotFound} />
               </Switch>
@@ -240,8 +238,8 @@ function AccountUnavailablePage() {
       <div className="glass rounded-3xl p-8 max-w-lg text-center mx-auto">
         <Logo className="h-16 w-16 mx-auto" />
         <h2 className="font-display text-2xl font-extrabold mt-4">Sign-in is not enabled yet</h2>
-        <p className="text-sm text-muted-foreground mt-2">You can continue exploring the guest demo while account access is being configured.</p>
-        <a href="/" className="btn-blue inline-block rounded-xl px-5 py-2.5 font-bold mt-5">Return to demo</a>
+        <p className="text-sm text-muted-foreground mt-2">You can continue exploring the guest preview while account access is being configured.</p>
+        <a href="/" className="btn-blue inline-block rounded-xl px-5 py-2.5 font-bold mt-5">Return home</a>
       </div>
     </AppShell>
   );
@@ -260,11 +258,9 @@ function GuestPreviewRoutes() {
               <Route path="/sign-up/*?" component={AccountUnavailablePage} />
               <Route path="/chat" component={ChatPage} />
               <Route path="/wallet" component={WalletPage} />
-              <Route path="/history" component={HistoryPage} />
               <Route path="/tips" component={TipsPage} />
               <Route path="/purchase/:id" component={PurchasePage} />
               <Route path="/success" component={SuccessPage} />
-              <Route path="/profile" component={ProfilePage} />
                 <Route path="/deposit-reviews" component={DepositReviewsPage} />
               <Route component={NotFound} />
             </Switch>

@@ -60,8 +60,8 @@ router.get("/probet/tips", async (req, res): Promise<void> => {
 });
 router.get("/probet/dashboard", async (req, res): Promise<void> => {
   const { owner, isDemo } = await identity(req, res);
-  const [wallet, packages, recentTransactions] = await Promise.all([walletFor(owner), tipsFor(owner), transactionsFor(owner, isDemo)]);
-  res.json(GetDashboardResponse.parse({ wallet, packages, recentTransactions: recentTransactions.slice(0, 3), purchasedCount: packages.filter(p => p.purchased).length }));
+  const [wallet, packages] = await Promise.all([walletFor(owner), tipsFor(owner)]);
+  res.json(GetDashboardResponse.parse({ wallet, packages, recentTransactions: [], purchasedCount: packages.filter(p => p.purchased).length }));
 });
 router.post("/probet/deposits", rateLimit({ windowMs: 60_000, limit: 3, validate: false }), async (req, res): Promise<void> => {
   const input = CreateCashiaDepositBody.safeParse(req.body);
