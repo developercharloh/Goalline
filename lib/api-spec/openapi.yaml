@@ -65,6 +65,34 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PurchaseResult" }
+  /probet/deposits:
+    post:
+      operationId: createCashiaDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DepositInput" }
+      responses:
+        "201":
+          description: Cashia staging checkout session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DepositCheckout" }
+  /probet/deposits/{requestId}:
+    get:
+      operationId: getCashiaDepositStatus
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, minLength: 36, maxLength: 36 }
+      responses:
+        "200":
+          description: Current Cashia deposit status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DepositStatus" }
   /probet/chat:
     get:
       operationId: getChat
@@ -169,6 +197,29 @@ components:
         balance: { type: number }
         packageId: { type: string }
         isDemo: { type: boolean }
+    DepositInput:
+      type: object
+      required: [amount]
+      properties:
+        amount: { type: number, minimum: 1, maximum: 100000, multipleOf: 0.01 }
+    DepositCheckout:
+      type: object
+      required: [requestId, checkoutUrl, amount, currency]
+      properties:
+        requestId: { type: string }
+        checkoutUrl: { type: string, format: uri }
+        amount: { type: number }
+        currency: { type: string, enum: [KES] }
+    DepositStatus:
+      type: object
+      required: [requestId, status, amount, currency, message, balance]
+      properties:
+        requestId: { type: string }
+        status: { type: string, enum: [pending, credited, failed] }
+        amount: { type: number }
+        currency: { type: string, enum: [KES] }
+        message: { type: string }
+        balance: { type: ["number", "null"] }
     ChatInput:
       type: object
       required: [displayName, content]

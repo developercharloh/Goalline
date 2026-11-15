@@ -94,6 +94,42 @@ export const PurchaseTipsResponse = zod.object({
 })
 
 
+export const createCashiaDepositBodyAmountMax = 100000;
+export const createCashiaDepositBodyAmountMultipleOf = 0.01;
+
+
+
+export const CreateCashiaDepositBody = zod.object({
+  "amount": zod.number().min(1).max(createCashiaDepositBodyAmountMax).multipleOf(createCashiaDepositBodyAmountMultipleOf)
+})
+
+export const CreateCashiaDepositResponse = zod.object({
+  "requestId": zod.string(),
+  "checkoutUrl": zod.string().url(),
+  "amount": zod.number(),
+  "currency": zod.enum(['KES'])
+})
+
+
+export const getCashiaDepositStatusPathRequestIdMin = 36;
+export const getCashiaDepositStatusPathRequestIdMax = 36;
+
+
+
+export const GetCashiaDepositStatusParams = zod.object({
+  "requestId": zod.coerce.string().min(getCashiaDepositStatusPathRequestIdMin).max(getCashiaDepositStatusPathRequestIdMax)
+})
+
+export const GetCashiaDepositStatusResponse = zod.object({
+  "requestId": zod.string(),
+  "status": zod.enum(['pending', 'credited', 'failed']),
+  "amount": zod.number(),
+  "currency": zod.enum(['KES']),
+  "message": zod.string(),
+  "balance": zod.number().nullable()
+})
+
+
 export const GetChatResponseItem = zod.object({
   "id": zod.string(),
   "displayName": zod.string(),

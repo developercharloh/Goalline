@@ -22,3 +22,4 @@ export * from "./transactions";
 export * from "./purchases";
 export * from "./chat";
 export * from "./community-chat";
+export * from "./cashia-deposits";

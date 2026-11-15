@@ -66,6 +66,54 @@ export interface PurchaseResult {
   isDemo: boolean;
 }
 
+export interface DepositInput {
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  amount: number;
+}
+
+export type DepositCheckoutCurrency = typeof DepositCheckoutCurrency[keyof typeof DepositCheckoutCurrency];
+
+
+export const DepositCheckoutCurrency = {
+  KES: 'KES',
+} as const;
+
+export interface DepositCheckout {
+  requestId: string;
+  checkoutUrl: string;
+  amount: number;
+  currency: DepositCheckoutCurrency;
+}
+
+export type DepositStatusStatus = typeof DepositStatusStatus[keyof typeof DepositStatusStatus];
+
+
+export const DepositStatusStatus = {
+  pending: 'pending',
+  credited: 'credited',
+  failed: 'failed',
+} as const;
+
+export type DepositStatusCurrency = typeof DepositStatusCurrency[keyof typeof DepositStatusCurrency];
+
+
+export const DepositStatusCurrency = {
+  KES: 'KES',
+} as const;
+
+export interface DepositStatus {
+  requestId: string;
+  status: DepositStatusStatus;
+  amount: number;
+  currency: DepositStatusCurrency;
+  message: string;
+  /** @nullable */
+  balance: number | null;
+}
+
 export interface ChatInput {
   /**
      * @minLength 2
