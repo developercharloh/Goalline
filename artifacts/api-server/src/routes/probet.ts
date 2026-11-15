@@ -6,7 +6,7 @@ import { db, wallets, transactions, purchases, chatMessages } from "@workspace/d
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import OpenAI from "openai";
-import { tipCatalog } from "../lib/tip-catalog";
+import { tipCatalog } from "../lib/tip-catalog.js";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
