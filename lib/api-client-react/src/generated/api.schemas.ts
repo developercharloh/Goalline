@@ -52,7 +52,6 @@ export interface Dashboard {
   packages: TipPackage[];
   recentTransactions: Transaction[];
   purchasedCount: number;
-  aiEnabled: boolean;
 }
 
 export interface PurchaseInput {
@@ -69,25 +68,23 @@ export interface PurchaseResult {
 
 export interface ChatInput {
   /**
+     * @minLength 2
+     * @maxLength 24
+     */
+  displayName: string;
+  /**
      * @minLength 1
-     * @maxLength 2000
+     * @maxLength 500
      */
   content: string;
 }
 
-export type ChatMessageRole = typeof ChatMessageRole[keyof typeof ChatMessageRole];
-
-
-export const ChatMessageRole = {
-  user: 'user',
-  assistant: 'assistant',
-} as const;
-
 export interface ChatMessage {
   id: string;
-  role: ChatMessageRole;
+  displayName: string;
   content: string;
   createdAt: string;
+  isMine: boolean;
 }
 
 export interface HealthStatus {

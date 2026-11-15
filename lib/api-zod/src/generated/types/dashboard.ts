@@ -14,5 +14,4 @@ export interface Dashboard {
   packages: TipPackage[];
   recentTransactions: Transaction[];
   purchasedCount: number;
-  aiEnabled: boolean;
 }

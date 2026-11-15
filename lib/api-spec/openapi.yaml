@@ -70,7 +70,7 @@ paths:
       operationId: getChat
       responses:
         "200":
-          description: Chat history
+          description: Recent public community messages
           content:
             application/json:
               schema:
@@ -84,8 +84,8 @@ paths:
           application/json:
             schema: { $ref: "#/components/schemas/ChatInput" }
       responses:
-        "200":
-          description: Assistant response
+        "201":
+          description: Community message posted
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChatMessage" }
@@ -146,7 +146,7 @@ components:
           items: { $ref: "#/components/schemas/Tip" }
     Dashboard:
       type: object
-      required: [wallet, packages, recentTransactions, purchasedCount, aiEnabled]
+      required: [wallet, packages, recentTransactions, purchasedCount]
       properties:
         wallet: { $ref: "#/components/schemas/Wallet" }
         packages:
@@ -156,7 +156,6 @@ components:
           type: array
           items: { $ref: "#/components/schemas/Transaction" }
         purchasedCount: { type: integer }
-        aiEnabled: { type: boolean }
     PurchaseInput:
       type: object
       required: [packageId]
@@ -172,17 +171,19 @@ components:
         isDemo: { type: boolean }
     ChatInput:
       type: object
-      required: [content]
+      required: [displayName, content]
       properties:
-        content: { type: string, minLength: 1, maxLength: 2000 }
+        displayName: { type: string, minLength: 2, maxLength: 24 }
+        content: { type: string, minLength: 1, maxLength: 500 }
     ChatMessage:
       type: object
-      required: [id, role, content, createdAt]
+      required: [id, displayName, content, createdAt, isMine]
       properties:
         id: { type: string }
-        role: { type: string, enum: [user, assistant] }
+        displayName: { type: string }
         content: { type: string }
         createdAt: { type: string }
+        isMine: { type: boolean }
     HealthStatus:
       type: object
       properties:

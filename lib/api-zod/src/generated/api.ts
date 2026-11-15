@@ -38,8 +38,7 @@ export const GetDashboardResponse = zod.object({
   "createdAt": zod.string(),
   "isDemo": zod.boolean()
 })),
-  "purchasedCount": zod.number().int(),
-  "aiEnabled": zod.boolean()
+  "purchasedCount": zod.number().int()
 })
 
 
@@ -97,26 +96,32 @@ export const PurchaseTipsResponse = zod.object({
 
 export const GetChatResponseItem = zod.object({
   "id": zod.string(),
-  "role": zod.enum(['user', 'assistant']),
+  "displayName": zod.string(),
   "content": zod.string(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "isMine": zod.boolean()
 })
 export const GetChatResponse = zod.array(GetChatResponseItem)
 
 
-export const sendChatBodyContentMax = 2000;
+export const sendChatBodyDisplayNameMin = 2;
+export const sendChatBodyDisplayNameMax = 24;
+
+export const sendChatBodyContentMax = 500;
 
 
 
 export const SendChatBody = zod.object({
+  "displayName": zod.string().min(sendChatBodyDisplayNameMin).max(sendChatBodyDisplayNameMax),
   "content": zod.string().min(1).max(sendChatBodyContentMax)
 })
 
 export const SendChatResponse = zod.object({
   "id": zod.string(),
-  "role": zod.enum(['user', 'assistant']),
+  "displayName": zod.string(),
   "content": zod.string(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "isMine": zod.boolean()
 })
 
 

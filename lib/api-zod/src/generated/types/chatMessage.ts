@@ -5,11 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { ChatMessageRole } from './chatMessageRole';
 
 export interface ChatMessage {
   id: string;
-  role: ChatMessageRole;
+  displayName: string;
   content: string;
   createdAt: string;
+  isMine: boolean;
 }

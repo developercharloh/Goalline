@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useUser } from "@clerk/react";
 import { useGetDashboard } from "@workspace/api-client-react";
-import { Bot, Gem, Wallet, ShieldCheck, ArrowUpRight, ArrowDownLeft, Info } from "lucide-react";
+import { MessageCircle, Gem, Wallet, ShieldCheck, ArrowUpRight, ArrowDownLeft, Info } from "lucide-react";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { DemoBadge, Logo, Wordmark } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -24,7 +24,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
               <Wordmark size="lg" tagline />
-              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and a ChatBase assistant. You are viewing a guest preview with a demo balance and sample matches.</p>
+              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and the ChatBase community. You are viewing a guest preview with a demo balance and sample matches.</p>
               {authAvailable ? (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
@@ -35,8 +35,8 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
               )}
             </div>
             <div className="hidden lg:grid grid-cols-2 gap-2 text-sm">
-              {[[Bot, "ChatBase", "AI Assistant"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "Top Up Only", "No Withdrawal"]].map(([I, a, b], i) => {
-                const Icon = I as typeof Bot;
+              {[[MessageCircle, "ChatBase", "Community"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "Top Up Only", "No Withdrawal"]].map(([I, a, b], i) => {
+                const Icon = I as typeof MessageCircle;
                 return (
                   <div key={i} className="glass rounded-xl px-3 py-2.5 flex items-center gap-2">
                     <Icon className="h-6 w-6 text-primary" /><div><div className="font-bold leading-tight">{a as string}</div><div className="text-xs text-muted-foreground">{b as string}</div></div>
@@ -87,8 +87,8 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
               <h3 className="font-display text-xl font-extrabold mb-3">Today's Features</h3>
               <div className="grid grid-cols-2 gap-3">
                 <Link href="/chat" className="glass rounded-2xl p-4 text-center hover:-translate-y-0.5 transition-transform" data-testid="link-feature-chat">
-                  <Bot className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">ChatBase</div>
-                  <div className="text-xs text-muted-foreground">{data.aiEnabled ? "Ask anything about betting tips" : "Assistant not configured"}</div>
+                  <MessageCircle className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">ChatBase</div>
+                  <div className="text-xs text-muted-foreground">Chat with the community</div>
                 </Link>
                 <Link href="/tips" className="glass rounded-2xl p-4 text-center hover:-translate-y-0.5 transition-transform" data-testid="link-feature-tips">
                   <Gem className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">Premium Tips</div>

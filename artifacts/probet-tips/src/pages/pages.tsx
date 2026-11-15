@@ -6,7 +6,7 @@ import {
   useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
-import { Bot, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Info, Crown, LogIn } from "lucide-react";
+import { MessageCircle, Send, Check, Wallet, Gem, LogOut, Mail, ShieldCheck, Ban, Info, Crown, LogIn, Users } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { DemoBadge, Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -172,79 +172,122 @@ export function SuccessPage() {
   );
 }
 
-const PROMPTS = ["Give me today's best tips", "How does the wallet work?", "What's in the Champions League pack?"];
-
 export function ChatPage() {
   const qc = useQueryClient();
-  const chat = useGetChat();
+  const chat = useGetChat({ query: { refetchInterval: 5000, refetchIntervalInBackground: false } });
   const send = useSendChat();
-  const tips = useGetTips();
   const [text, setText] = useState("");
+  const [displayName, setDisplayName] = useState(() => window.localStorage.getItem("probet-community-name") ?? "");
   const [pending, setPending] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const msgs: ChatMessage[] = chat.data ?? [];
-  const firstLocked = tips.data?.find((p) => !p.purchased);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs.length, pending, send.error]);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs.length, pending]);
 
-  function submit(content: string) {
-    const c = content.trim();
-    if (!c || send.isPending) return;
-    setText(""); setPending(c);
-    send.mutate({ data: { content: c } }, {
-      onSettled: () => { setPending(null); qc.invalidateQueries({ queryKey: getGetChatQueryKey() }); },
+  function submit() {
+    const content = text.trim();
+    const name = displayName.trim();
+    if (!content || !name || send.isPending) return;
+    setPending(content);
+    send.mutate({ data: { displayName: name, content } }, {
+      onSuccess: () => {
+        setText("");
+        qc.invalidateQueries({ queryKey: getGetChatQueryKey() });
+      },
+      onSettled: () => setPending(null),
     });
   }
 
   return (
     <AppShell>
       <div className="flex flex-col h-[calc(100dvh-10rem)] md:h-[calc(100dvh-5rem)]">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="grid h-11 w-11 place-items-center rounded-xl btn-blue"><Bot className="h-6 w-6" /></div>
-          <div><h1 className="font-display text-2xl font-extrabold">ChatBase</h1><p className="text-xs text-muted-foreground">Betting tips assistant</p></div>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="grid h-11 w-11 place-items-center rounded-xl btn-blue"><MessageCircle className="h-6 w-6" /></div>
+            <div><h1 className="font-display text-2xl font-extrabold">ChatBase</h1><p className="text-xs text-muted-foreground">ProBet Tips community</p></div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2 rounded-full border border-[hsl(142_72%_50%/.25)] bg-[hsl(142_72%_50%/.08)] px-3 py-1.5 text-xs font-semibold text-win">
+            <span className="h-2 w-2 rounded-full bg-win" /> Public room
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1" data-testid="list-chat">
-          {chat.isLoading ? <><Sk className="h-14 w-2/3" /><Sk className="h-10 w-1/2 ml-auto" /></> : chat.error ? <ErrorCard message={errMsg(chat.error)} onRetry={() => chat.refetch()} /> : (
+        <div className="glass mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary"><Users className="h-5 w-5" /></div>
+          <div className="min-w-[9rem] flex-1">
+            <p className="text-sm font-semibold">One room for everyone</p>
+            <p className="text-xs text-muted-foreground">Messages are public and shared with the community.</p>
+          </div>
+          <label className="flex min-w-40 items-center gap-2 text-xs text-muted-foreground">
+            <span className="shrink-0">Your name</span>
+            <input
+              value={displayName}
+              onChange={(e) => {
+                setDisplayName(e.target.value);
+                window.localStorage.setItem("probet-community-name", e.target.value);
+              }}
+              maxLength={24}
+              minLength={2}
+              placeholder="Choose a name"
+              className="w-full rounded-lg border border-border bg-background/70 px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
+              aria-label="Your display name"
+              data-testid="input-chat-name"
+            />
+          </label>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-3 rounded-2xl border border-border/60 bg-[hsl(225_65%_6%/.45)] p-3 md:p-4" data-testid="list-chat">
+          {chat.isLoading ? <><Sk className="h-16 w-2/3" /><Sk className="h-14 w-1/2 ml-auto" /></> : chat.error ? <ErrorCard message={errMsg(chat.error)} onRetry={() => chat.refetch()} /> : (
             <>
-              <Bubble role="assistant" content="Hello! Ask me anything about betting tips." />
-              {msgs.map((m) => <Bubble key={m.id} role={m.role} content={m.content} />)}
-              {pending && <Bubble role="user" content={pending} />}
-              {send.isPending && <div className="flex gap-2 items-center text-muted-foreground text-sm"><Bot className="h-5 w-5" /><span className="animate-pulse">ChatBase is typing...</span></div>}
-              {send.error && <div className="rounded-xl border border-[hsl(0_84%_60%/.5)] bg-[hsl(0_84%_60%/.1)] p-3 text-sm text-loss" data-testid="text-chat-error">{errMsg(send.error)}</div>}
-              {firstLocked && msgs.length > 0 && (
-                <div className="glass rounded-2xl p-4 max-w-md rise">
-                  <p className="text-sm">Would you like to purchase these premium tips?</p>
-                  <div className="flex gap-2 mt-3">
-                    <Link href={`/purchase/${firstLocked.id}`} className="btn-blue rounded-lg px-4 py-2 text-sm font-bold" data-testid="link-chat-buy">Yes, Buy Now</Link>
-                    <button type="button" onClick={() => submit("Tell me more about the premium package")} className="rounded-lg px-4 py-2 text-sm font-bold border border-border hover:bg-secondary" data-testid="button-chat-ask-more">Ask More</button>
+              {msgs.length === 0 && !pending && (
+                <div className="grid h-full min-h-40 place-items-center text-center">
+                  <div>
+                    <MessageCircle className="mx-auto h-9 w-9 text-primary" />
+                    <p className="mt-2 font-semibold">Start the conversation</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Say hello or talk football with the community.</p>
                   </div>
                 </div>
               )}
+              {msgs.map((m) => <CommunityBubble key={m.id} message={m} />)}
+              {pending && <PendingBubble displayName={displayName.trim()} content={pending} />}
             </>
           )}
           <div ref={endRef} />
         </div>
-        <div className="flex gap-2 overflow-x-auto py-3">
-          {PROMPTS.map((p, i) => (
-            <button key={p} type="button" onClick={() => submit(p)} disabled={send.isPending} className="shrink-0 btn-blue rounded-full px-4 py-1.5 text-sm font-semibold disabled:opacity-60" data-testid={`button-prompt-${i}`}>{p}</button>
-          ))}
-          {firstLocked && <Link href={`/purchase/${firstLocked.id}`} className="shrink-0 btn-gold rounded-full px-4 py-1.5 text-sm font-bold flex items-center gap-1" data-testid="link-prompt-buy"><Crown className="h-4 w-4" />Buy {money(firstLocked.price)} pack</Link>}
-        </div>
-        <form onSubmit={(e) => { e.preventDefault(); submit(text); }} className="flex gap-2 glass rounded-2xl p-2">
-          <input value={text} onChange={(e) => setText(e.target.value)} maxLength={2000} placeholder="Type your question..." className="flex-1 bg-transparent px-3 outline-none" data-testid="input-chat" />
-          <button type="submit" disabled={!text.trim() || send.isPending} aria-label="Send" className="btn-blue grid h-11 w-11 place-items-center rounded-xl disabled:opacity-50" data-testid="button-send-chat"><Send className="h-5 w-5" /></button>
+        {send.error && <div className="mt-2 rounded-xl border border-[hsl(0_84%_60%/.5)] bg-[hsl(0_84%_60%/.1)] p-3 text-sm text-loss" data-testid="text-chat-error">{errMsg(send.error)}</div>}
+        <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="mt-3 flex gap-2 rounded-2xl border border-border glass p-2">
+          <input value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={displayName.trim() ? "Message the community..." : "Choose your name to join the chat"} className="min-w-0 flex-1 bg-transparent px-3 outline-none" data-testid="input-chat" />
+          <button type="submit" disabled={!text.trim() || !displayName.trim() || send.isPending} aria-label="Send message" className="btn-blue grid h-11 w-11 shrink-0 place-items-center rounded-xl disabled:opacity-50" data-testid="button-send-chat">
+            {send.isPending ? <span className="animate-pulse">…</span> : <Send className="h-5 w-5" />}
+          </button>
         </form>
+        <p className="mt-2 text-center text-[11px] text-muted-foreground">Keep it respectful. Public messages are visible to everyone in this room.</p>
       </div>
     </AppShell>
   );
 }
 
-function Bubble({ role, content }: { role: string; content: string }) {
-  const me = role === "user";
+function CommunityBubble({ message }: { message: ChatMessage }) {
+  const me = message.isMine;
+  const time = new Date(message.createdAt);
   return (
-    <div className={`flex gap-2 rise ${me ? "justify-end" : ""}`}>
-      {!me && <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-secondary"><Bot className="h-5 w-5 text-primary" /></div>}
-      <div className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm ${me ? "btn-blue rounded-br-sm" : "glass rounded-tl-sm"}`}>{content}</div>
+    <div className={`flex items-end gap-2 rise ${me ? "justify-end" : ""}`}>
+      {!me && <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-sm font-bold text-primary">{message.displayName.slice(0, 1).toUpperCase()}</div>}
+      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${me ? "btn-blue rounded-br-sm" : "glass rounded-bl-sm"}`}>
+        <div className={`mb-1 flex items-center gap-2 text-[11px] ${me ? "text-white/75" : "text-muted-foreground"}`}>
+          <span className="font-bold">{me ? "You" : message.displayName}</span>
+          <time dateTime={message.createdAt}>{Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
+        </div>
+        <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
+      </div>
+    </div>
+  );
+}
+
+function PendingBubble({ displayName, content }: { displayName: string; content: string }) {
+  return (
+    <div className="flex justify-end">
+      <div className="max-w-[85%] rounded-2xl rounded-br-sm btn-blue px-4 py-2.5 opacity-70">
+        <div className="mb-1 text-[11px] font-bold text-white/75">{displayName} · Sending</div>
+        <p className="whitespace-pre-wrap break-words text-sm">{content}</p>
+      </div>
     </div>
   );
 }

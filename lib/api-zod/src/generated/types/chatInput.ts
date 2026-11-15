@@ -8,8 +8,13 @@
 
 export interface ChatInput {
   /**
+     * @minLength 2
+     * @maxLength 24
+     */
+  displayName: string;
+  /**
      * @minLength 1
-     * @maxLength 2000
+     * @maxLength 500
      */
   content: string;
 }

@@ -8,7 +8,6 @@
 
 export * from './chatInput';
 export * from './chatMessage';
-export * from './chatMessageRole';
 export * from './dashboard';
 export * from './healthStatus';
 export * from './purchaseInput';
