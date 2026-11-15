@@ -38,7 +38,14 @@ app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required for demo sessions.");
-app.use(cookieParser(process.env.SESSION_SECRET));
+const parseCookies = cookieParser(process.env.SESSION_SECRET);
+app.use((req, res, next) => {
+  // Vercel pre-parses cookies; cookie-parser otherwise skips setting the
+  // signing secret and validating signed guest sessions.
+  delete req.cookies;
+  delete req.signedCookies;
+  parseCookies(req, res, next);
+});
 if (clerkConfigured) {
   app.use(clerkMiddleware((req) => ({
     publishableKey: publishableKeyFromHost(
