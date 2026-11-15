@@ -9,11 +9,11 @@ import { TipCard } from "@/components/tip-card";
 import { TopUpDialog } from "@/components/topup-dialog";
 import { errMsg, money, fmtDate } from "@/lib/probet";
 
-export function DashboardView({ guest = false }: { guest?: boolean }) {
+export function DashboardView({ guest = false, name }: { guest?: boolean; name?: string }) {
   const { data, isLoading, error, refetch } = useGetDashboard();
-  const { user } = useUser();
   const [topup, setTopup] = useState(false);
-  const name = guest ? "Guest" : user?.firstName || "Champion";
+  const displayName = guest ? "Guest" : name || "Champion";
+  const authAvailable = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
   return (
     <>
@@ -25,10 +25,14 @@ export function DashboardView({ guest = false }: { guest?: boolean }) {
             <div className="flex-1">
               <Wordmark size="lg" tagline />
               <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and a ChatBase assistant. You are viewing a guest preview with a demo balance and sample matches.</p>
-              <div className="mt-5 flex flex-wrap gap-3">
-                <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
-                <Link href="/sign-in" className="rounded-xl px-6 py-3 font-bold border border-[hsl(217_80%_50%/.5)] hover:bg-secondary transition-colors" data-testid="link-hero-signin">Login</Link>
-              </div>
+              {authAvailable ? (
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
+                  <Link href="/sign-in" className="rounded-xl px-6 py-3 font-bold border border-[hsl(217_80%_50%/.5)] hover:bg-secondary transition-colors" data-testid="link-hero-signin">Login</Link>
+                </div>
+              ) : (
+                <p className="mt-5 text-sm text-muted-foreground">Guest demo is available; account sign-in is not enabled on this preview.</p>
+              )}
             </div>
             <div className="hidden lg:grid grid-cols-2 gap-2 text-sm">
               {[[Bot, "ChatBase", "AI Assistant"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "Top Up Only", "No Withdrawal"]].map(([I, a, b], i) => {
@@ -45,7 +49,7 @@ export function DashboardView({ guest = false }: { guest?: boolean }) {
       )}
 
       <div className="rise">
-        <h2 className="font-display text-3xl font-extrabold" data-testid="text-greeting">Hello, {name}</h2>
+        <h2 className="font-display text-3xl font-extrabold" data-testid="text-greeting">Hello, {displayName}</h2>
         <p className="text-muted-foreground">Bet Smarter with ProBet Tips</p>
       </div>
 
@@ -138,5 +142,6 @@ export function TxList({ items }: { items: { id: string; title: string; amount: 
 }
 
 export default function DashboardPage() {
-  return <AppShell title="Dashboard"><DashboardView /></AppShell>;
+  const { user } = useUser();
+  return <AppShell title="Dashboard"><DashboardView name={user?.firstName || "Champion"} /></AppShell>;
 }

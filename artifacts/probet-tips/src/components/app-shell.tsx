@@ -18,9 +18,20 @@ function useActive() {
   return (href: string) => (href === "/dashboard" ? loc === "/dashboard" || loc === "/" : loc.startsWith(href));
 }
 
-export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+function AppShellFrame({
+  children,
+  title,
+  displayName,
+  email,
+  guestPreview = false,
+}: {
+  children: ReactNode;
+  title?: string;
+  displayName?: string;
+  email?: string;
+  guestPreview?: boolean;
+}) {
   const isActive = useActive();
-  const { user } = useUser();
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur sticky top-0 h-[100dvh] p-5">
@@ -40,22 +51,31 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           })}
         </nav>
         <div className="mt-auto glass rounded-2xl p-4 text-sm">
-          <Show when="signed-in">
-            <div className="font-bold truncate">{user?.firstName || user?.primaryEmailAddress?.emailAddress}</div>
-            <div className="text-xs text-muted-foreground">Member account</div>
-          </Show>
-          <Show when="signed-out">
+          {guestPreview ? (
+            <>
+              <div className="font-bold">Guest preview</div>
+              <p className="text-xs text-muted-foreground mt-1">Demo wallet and sample matches. Account access is not enabled on this deployment.</p>
+            </>
+          ) : (
+            <>
+              <Show when="signed-in">
+                <div className="font-bold truncate">{displayName || email || "Member"}</div>
+                <div className="text-xs text-muted-foreground">Member account</div>
+              </Show>
+              <Show when="signed-out">
             <div className="font-bold">Guest preview</div>
             <p className="text-xs text-muted-foreground mb-3">Demo wallet & sample matches</p>
             <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 font-bold" data-testid="link-sidebar-signup">Create account</Link>
-          </Show>
+              </Show>
+            </>
+          )}
         </div>
       </aside>
 
       <div className="flex-1 min-w-0 pb-24 md:pb-10">
         <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-background/80 backdrop-blur border-b border-border/50">
           <Link href="/dashboard" className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
-          <Show when="signed-out"><Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link></Show>
+          {!guestPreview && <Show when="signed-out"><Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link></Show>}
         </header>
         {title && <h1 className="sr-only">{title}</h1>}
         <main className="mx-auto max-w-5xl px-4 md:px-8 pt-5 md:pt-10">{children}</main>
@@ -74,6 +94,26 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
       </nav>
     </div>
   );
+}
+
+function ClerkAppShell({ children, title }: { children: ReactNode; title?: string }) {
+  const { user } = useUser();
+  return (
+    <AppShellFrame
+      title={title}
+      displayName={user?.firstName || undefined}
+      email={user?.primaryEmailAddress?.emailAddress}
+    >
+      {children}
+    </AppShellFrame>
+  );
+}
+
+export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+  if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+    return <AppShellFrame title={title} guestPreview>{children}</AppShellFrame>;
+  }
+  return <ClerkAppShell title={title}>{children}</ClerkAppShell>;
 }
 
 export function PageHeader({ title, subtitle, back }: { title: string; subtitle?: string; back?: string }) {

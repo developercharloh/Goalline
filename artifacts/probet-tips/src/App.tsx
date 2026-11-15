@@ -17,10 +17,10 @@ import { Logo, Wordmark } from "@/components/brand";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
-const clerkPubKey = publishableKeyFromHost(
-  window.location.hostname,
-  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
-);
+const configuredClerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = configuredClerkPubKey
+  ? publishableKeyFromHost(window.location.hostname, configuredClerkPubKey)
+  : "";
 
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
@@ -30,10 +30,6 @@ function stripBase(path: string): string {
   return basePath && path.startsWith(basePath)
     ? path.slice(basePath.length) || "/"
     : path;
-}
-
-if (!clerkPubKey) {
-  throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY in .env file");
 }
 
 const clerkAppearance = {
@@ -232,10 +228,55 @@ function ClerkProviderWithRoutes() {
   );
 }
 
+function GuestHomePage() {
+  return <AppShell title="Guest preview"><DashboardView guest /></AppShell>;
+}
+
+function AccountUnavailablePage() {
+  return (
+    <AppShell title="Account access">
+      <div className="glass rounded-3xl p-8 max-w-lg text-center mx-auto">
+        <Logo className="h-16 w-16 mx-auto" />
+        <h2 className="font-display text-2xl font-extrabold mt-4">Sign-in is not enabled yet</h2>
+        <p className="text-sm text-muted-foreground mt-2">You can continue exploring the guest demo while account access is being configured.</p>
+        <a href="/" className="btn-blue inline-block rounded-xl px-5 py-2.5 font-bold mt-5">Return to demo</a>
+      </div>
+    </AppShell>
+  );
+}
+
+function GuestPreviewRoutes() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <SessionBootstrap>
+          <RoutedErrorBoundary>
+            <Switch>
+              <Route path="/" component={GuestHomePage} />
+              <Route path="/dashboard" component={GuestHomePage} />
+              <Route path="/sign-in/*?" component={AccountUnavailablePage} />
+              <Route path="/sign-up/*?" component={AccountUnavailablePage} />
+              <Route path="/chat" component={ChatPage} />
+              <Route path="/wallet" component={WalletPage} />
+              <Route path="/history" component={HistoryPage} />
+              <Route path="/tips" component={TipsPage} />
+              <Route path="/purchase/:id" component={PurchasePage} />
+              <Route path="/success" component={SuccessPage} />
+              <Route path="/profile" component={ProfilePage} />
+              <Route component={NotFound} />
+            </Switch>
+          </RoutedErrorBoundary>
+        </SessionBootstrap>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
 function App() {
   return (
     <WouterRouter base={basePath}>
-      <ClerkProviderWithRoutes />
+      {clerkPubKey ? <ClerkProviderWithRoutes /> : <GuestPreviewRoutes />}
     </WouterRouter>
   );
 }

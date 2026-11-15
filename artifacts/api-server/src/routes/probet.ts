@@ -26,7 +26,9 @@ router.use("/probet", (req, res, next) => {
 });
 
 async function identity(req: Request, res: Response) {
-  const userId = getAuth(req).userId;
+  const userId = process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY
+    ? getAuth(req).userId
+    : null;
   let guest = req.signedCookies?.probet_demo;
   if (!userId && (typeof guest !== "string" || !/^[a-f0-9-]{36}$/.test(guest))) {
     guest = randomUUID();
@@ -106,7 +108,7 @@ router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: f
   const { owner } = await identity(req, res);
   const aiBaseUrl = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const aiApiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (!aiBaseUrl || !aiApiKey) { res.status(503).json({ error: "ChatBase is waiting for Replit's managed AI connection. No personal API key is needed. You can still explore the sample tip packages." }); return; }
+  if (!aiBaseUrl || !aiApiKey) { res.status(503).json({ error: "ChatBase is not configured for this deployment. You can still explore the sample tip packages." }); return; }
   const previous = await db.select().from(chatMessages).where(eq(chatMessages.owner, owner)).orderBy(desc(chatMessages.createdAt)).limit(20);
   const available = await tipsFor(owner);
   try {
@@ -128,7 +130,7 @@ router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: f
     res.json(SendChatResponse.parse({ ...assistant, createdAt: assistant.createdAt.toISOString() }));
   } catch {
     req.log.warn("ChatBase provider request failed");
-    res.status(502).json({ error: "ChatBase could not connect to Replit's managed AI service. Please try again shortly." });
+    res.status(502).json({ error: "ChatBase could not connect to its AI provider. Please try again shortly." });
   }
 });
 export default router;

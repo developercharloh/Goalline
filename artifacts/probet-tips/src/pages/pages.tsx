@@ -250,6 +250,30 @@ function Bubble({ role, content }: { role: string; content: string }) {
 }
 
 export function ProfilePage() {
+  if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
+    return <GuestProfilePage />;
+  }
+  return <AuthenticatedProfilePage />;
+}
+
+function GuestProfilePage() {
+  return (
+    <AppShell>
+      <PageHeader title="Profile" />
+      <div className="glass rounded-3xl p-8 max-w-lg text-center">
+        <Logo className="h-16 w-16 mx-auto" />
+        <p className="font-bold mt-3">Guest demo</p>
+        <p className="text-sm text-muted-foreground mt-1">Account sign-in is not enabled on this deployment. Your demo wallet and sample activity are still available.</p>
+        <div className="grid gap-2 mt-5 text-left">
+          <Link href="/wallet" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Wallet className="h-4 w-4" />Wallet</Link>
+          <Link href="/history" className="rounded-xl bg-secondary px-4 py-3 font-semibold flex items-center gap-2 hover:bg-secondary/70"><Gem className="h-4 w-4" />Transaction history</Link>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
+
+function AuthenticatedProfilePage() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const initials = (user?.firstName?.[0] ?? user?.primaryEmailAddress?.emailAddress?.[0] ?? "P").toUpperCase();

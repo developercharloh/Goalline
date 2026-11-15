@@ -9,6 +9,7 @@ import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
 const app: Express = express();
+const clerkConfigured = Boolean(process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY);
 
 app.use(
   pinoHttp({
@@ -30,18 +31,22 @@ app.use(
   }),
 );
 app.set("trust proxy", 1);
-app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+if (clerkConfigured) {
+  app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
+}
 app.use(cors({ credentials: true, origin: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required for demo sessions.");
 app.use(cookieParser(process.env.SESSION_SECRET));
-app.use(clerkMiddleware((req) => ({
-  publishableKey: publishableKeyFromHost(
-    getClerkProxyHost(req) ?? "",
-    process.env.CLERK_PUBLISHABLE_KEY,
-  ),
-})));
+if (clerkConfigured) {
+  app.use(clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })));
+}
 
 app.use("/api", router);
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
