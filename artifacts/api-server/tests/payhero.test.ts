@@ -69,6 +69,32 @@ test("initiates an M-Pesa STK request with the configured channel and callback",
   assert.equal(body.callback_url, "https://example.com/api/webhooks/payhero");
 });
 
+test("discovers the unique active M-Pesa channel when no ID is configured", async () => {
+  process.env.PAYHERO_AUTH_TOKEN = "test-token";
+  delete process.env.PAYHERO_CHANNEL_ID;
+  const requests: { url: string; body?: string }[] = [];
+  globalThis.fetch = (async (url, init) => {
+    requests.push({ url: String(url), body: init?.body ? String(init.body) : undefined });
+    if (requests.length === 1) {
+      return Response.json({ payment_channels: [
+        { id: 15456, is_active: true, channel_type: "bank", transaction_type: "CustomerPayBillOnline" },
+        { id: 2, is_active: false, channel_type: "till", transaction_type: "CustomerBuyGoodsOnline" },
+      ] });
+    }
+    return Response.json({ success: true, status: "QUEUED", reference: "PH-REF-2", CheckoutRequestID: "ws-456" });
+  }) as typeof fetch;
+
+  await initiatePayheroStk({
+    amount: 100,
+    phoneNumber: "0712345678",
+    externalReference: "our-request-2",
+    customerName: "ProBet Tips User",
+    callbackUrl: "https://example.com/api/webhooks/payhero",
+  });
+  assert.equal(requests[0].url, "https://backend.payhero.co.ke/api/v2/payment_channels?is_active=true");
+  assert.equal(JSON.parse(requests[1].body!).channel_id, 15456);
+});
+
 test("looks up PayHero status by the transaction reference", async () => {
   configure();
   let requested = "";

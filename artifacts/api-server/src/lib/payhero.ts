@@ -80,10 +80,9 @@ async function resolveChannelId(): Promise<number> {
     if (channel.is_active !== true || typeof channel.id !== "number" || !Number.isSafeInteger(channel.id)) return false;
     const type = String(channel.channel_type ?? "").toLowerCase();
     const transaction = String(channel.transaction_type ?? "").toLowerCase();
-    return type !== "bank"
-      && (["paybill", "till", "mpesa"].includes(type)
-        || transaction.includes("customerbuygoodsonline")
-        || transaction.includes("customerpaybillonline"));
+    const mpesaTransaction = transaction.includes("customerbuygoodsonline")
+      || transaction.includes("customerpaybillonline");
+    return mpesaTransaction || (type !== "bank" && ["paybill", "till", "mpesa"].includes(type));
   });
   if (channels.length === 1) return channels[0].id as number;
   if (channels.length > 1) {
