@@ -10,6 +10,7 @@ Football-tip packages, a top-up-only wallet, ChatBase, and transaction history, 
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
+- Vercel production: `PAYHERO_AUTH_TOKEN` is required for M-Pesa Express; `PAYHERO_CHANNEL_ID` is optional when the account has exactly one active M-Pesa channel.
 
 ## Stack
 
