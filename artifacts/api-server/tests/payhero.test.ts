@@ -33,8 +33,8 @@ test("PayHero stays unavailable until an API key and channel are configured", ()
 });
 
 test("normalizes Kenyan mobile numbers and rejects unsupported formats", () => {
-  assert.equal(normalizeKenyanPhone("0712 345 678"), "254712345678");
-  assert.equal(normalizeKenyanPhone("+254 112 345 678"), "254112345678");
+  assert.equal(normalizeKenyanPhone("0712 345 678"), "0712345678");
+  assert.equal(normalizeKenyanPhone("+254 112 345 678"), "0112345678");
   assert.throws(() => normalizeKenyanPhone("123456"), /valid Safaricom number/);
 });
 
@@ -62,7 +62,7 @@ test("initiates an M-Pesa STK request with the configured channel and callback",
   assert.equal(headers.get("Authorization"), "Basic test-token");
   const body = JSON.parse(String(requestInit?.body));
   assert.equal(body.amount, 250);
-  assert.equal(body.phone_number, "254712345678");
+  assert.equal(body.phone_number, "0712345678");
   assert.equal(body.channel_id, 133);
   assert.equal(body.provider, "m-pesa");
   assert.equal(body.external_reference, "our-request-id");
@@ -120,4 +120,19 @@ test("looks up PayHero status by the transaction reference", async () => {
     amount: 250,
   });
   assert.equal(requested, "https://backend.payhero.co.ke/api/v2/transaction-status?reference=PH-REF-1");
+});
+
+test("returns PayHero's safe validation message instead of hiding it", async () => {
+  configure();
+  globalThis.fetch = (async () => Response.json({ error_message: "Invalid phone_number" }, { status: 400 })) as typeof fetch;
+  await assert.rejects(
+    initiatePayheroStk({
+      amount: 100,
+      phoneNumber: "0712345678",
+      externalReference: "our-request-3",
+      customerName: "ProBet Tips User",
+      callbackUrl: "https://example.com/api/webhooks/payhero",
+    }),
+    /PayHero rejected the request: Invalid phone_number/,
+  );
 });

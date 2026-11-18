@@ -18,9 +18,19 @@ export function payheroEnabled(): boolean {
 
 export function normalizeKenyanPhone(value: string): string {
   const digits = value.replace(/[\s()+-]/g, "");
-  if (/^0[17]\d{8}$/.test(digits)) return `254${digits.slice(1)}`;
-  if (/^254[17]\d{8}$/.test(digits)) return digits;
+  // PayHero's STK documentation uses the local 07/01 form in phone_number examples.
+  if (/^0[17]\d{8}$/.test(digits)) return digits;
+  if (/^254[17]\d{8}$/.test(digits)) return `0${digits.slice(3)}`;
   throw new PayheroApiError("Enter a valid Safaricom number, such as 0712345678.", 400);
+}
+
+function providerErrorMessage(data: unknown): string | null {
+  if (!data || typeof data !== "object") return null;
+  const record = data as Record<string, unknown>;
+  const value = [record.error_message, record.message, record.error]
+    .find((candidate) => typeof candidate === "string" && candidate.trim());
+  if (typeof value !== "string") return null;
+  return value.replace(/[\r\n\t]+/g, " ").trim().slice(0, 180);
 }
 
 function authorizationHeader(): string {
@@ -51,7 +61,11 @@ async function payheroFetch(url: URL, init: RequestInit): Promise<unknown> {
     if (response.status === 401 || response.status === 403) {
       throw new PayheroApiError("PayHero denied the API request. Check the API key and payment-channel access.", 502);
     }
-    throw new PayheroApiError("PayHero could not process the payment request.", 502);
+    const detail = providerErrorMessage(data);
+    throw new PayheroApiError(
+      detail ? `PayHero rejected the request: ${detail}` : "PayHero could not process the payment request.",
+      502,
+    );
   }
   return data;
 }
