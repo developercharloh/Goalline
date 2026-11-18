@@ -24,3 +24,4 @@ export * from "./chat";
 export * from "./community-chat";
 export * from "./cashia-deposits";
 export * from "./manual-deposits";
+export * from "./payhero-deposits";

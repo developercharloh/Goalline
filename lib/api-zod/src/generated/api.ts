@@ -135,6 +135,48 @@ export const GetCashiaDepositStatusResponse = zod.object({
 })
 
 
+export const GetPayheroConfigResponse = zod.object({
+  "enabled": zod.boolean(),
+  "message": zod.string()
+})
+
+
+export const createPayheroDepositBodyAmountMax = 100000;
+
+export const createPayheroDepositBodyPhoneNumberMin = 9;
+export const createPayheroDepositBodyPhoneNumberMax = 13;
+
+
+
+export const CreatePayheroDepositBody = zod.object({
+  "amount": zod.number().int().min(1).max(createPayheroDepositBodyAmountMax),
+  "phoneNumber": zod.string().min(createPayheroDepositBodyPhoneNumberMin).max(createPayheroDepositBodyPhoneNumberMax)
+})
+
+export const CreatePayheroDepositResponse = zod.object({
+  "requestId": zod.string(),
+  "status": zod.enum(['pending', 'credited', 'failed']),
+  "amount": zod.number(),
+  "currency": zod.enum(['KES']),
+  "message": zod.string(),
+  "balance": zod.number().nullable()
+})
+
+
+export const GetPayheroDepositStatusParams = zod.object({
+  "requestId": zod.coerce.string().uuid()
+})
+
+export const GetPayheroDepositStatusResponse = zod.object({
+  "requestId": zod.string(),
+  "status": zod.enum(['pending', 'credited', 'failed']),
+  "amount": zod.number(),
+  "currency": zod.enum(['KES']),
+  "message": zod.string(),
+  "balance": zod.number().nullable()
+})
+
+
 export const GetManualDepositConfigResponse = zod.object({
   "enabled": zod.boolean(),
   "tillNumber": zod.string().nullable(),

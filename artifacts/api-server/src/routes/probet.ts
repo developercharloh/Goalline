@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits } from "@workspace/db";
+import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits, payheroDepositCredits } from "@workspace/db";
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import { tipCatalog } from "../lib/tip-catalog.js";
@@ -9,6 +9,7 @@ import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSessio
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
 import { identity } from "../lib/wallet-identity.js";
 import manualDepositRouter from "./manual-deposits.js";
+import { payheroEnabled } from "../lib/payhero.js";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
@@ -31,15 +32,30 @@ router.use(manualDepositRouter);
 
 async function walletFor(owner: string) {
   const [wallet] = await db.select().from(wallets).where(eq(wallets.owner, owner));
-  const [credits] = await db.select({ total: sql<string>`coalesce(sum(${depositCredits.amountCents}), 0)` }).from(depositCredits).where(eq(depositCredits.owner, owner));
-  return { balance: wallet.balanceCents / 100, depositedBalance: Number(credits.total) / 100, currency: "KES", isDemo: wallet.isDemo, paymentsEnabled: false, provider: "Safaricom M-Pesa", stagingCheckoutEnabled: cashiaStagingCheckoutEnabled() };
+  const [[credits], [payheroCredits]] = await Promise.all([
+    db.select({ total: sql<string>`coalesce(sum(${depositCredits.amountCents}), 0)` }).from(depositCredits).where(eq(depositCredits.owner, owner)),
+    db.select({ total: sql<string>`coalesce(sum(${payheroDepositCredits.amountCents}), 0)` }).from(payheroDepositCredits).where(eq(payheroDepositCredits.owner, owner)),
+  ]);
+  return {
+    balance: wallet.balanceCents / 100,
+    depositedBalance: (Number(credits.total) + Number(payheroCredits.total)) / 100,
+    currency: "KES",
+    isDemo: wallet.isDemo,
+    paymentsEnabled: payheroEnabled(),
+    provider: "Safaricom M-Pesa",
+    stagingCheckoutEnabled: cashiaStagingCheckoutEnabled(),
+  };
 }
 async function transactionsFor(owner: string, isDemo: boolean) {
   const rows = await db.select().from(transactions).where(eq(transactions.owner, owner)).orderBy(desc(transactions.createdAt));
-  const credits = await db.select().from(depositCredits).where(eq(depositCredits.owner, owner));
+  const [credits, payheroCredits] = await Promise.all([
+    db.select().from(depositCredits).where(eq(depositCredits.owner, owner)),
+    db.select().from(payheroDepositCredits).where(eq(payheroDepositCredits.owner, owner)),
+  ]);
   return [
     ...rows.map(row => ({ id: row.id, title: row.title, amount: row.amountCents / 100, type: row.type, createdAt: row.createdAt.toISOString(), isDemo })),
     ...credits.map(row => ({ id: row.depositId, title: "M-Pesa deposit approved", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
+    ...payheroCredits.map(row => ({ id: row.depositId, title: "PayHero M-Pesa deposit", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 async function tipsFor(owner: string) {

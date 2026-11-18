@@ -93,6 +93,43 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/DepositStatus" }
+  /probet/payhero/config:
+    get:
+      operationId: getPayheroConfig
+      responses:
+        "200":
+          description: PayHero M-Pesa Express availability
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayheroConfig" }
+  /probet/payhero/deposits:
+    post:
+      operationId: createPayheroDeposit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PayheroDepositInput" }
+      responses:
+        "201":
+          description: M-Pesa STK payment initiated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayheroDepositStatus" }
+  /probet/payhero/deposits/{requestId}:
+    get:
+      operationId: getPayheroDepositStatus
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Current PayHero payment status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PayheroDepositStatus" }
   /probet/manual-deposits/config:
     get:
       operationId: getManualDepositConfig
@@ -277,6 +314,28 @@ components:
         amount: { type: number }
         currency: { type: string, enum: [KES] }
     DepositStatus:
+      type: object
+      required: [requestId, status, amount, currency, message, balance]
+      properties:
+        requestId: { type: string }
+        status: { type: string, enum: [pending, credited, failed] }
+        amount: { type: number }
+        currency: { type: string, enum: [KES] }
+        message: { type: string }
+        balance: { type: ["number", "null"] }
+    PayheroConfig:
+      type: object
+      required: [enabled, message]
+      properties:
+        enabled: { type: boolean }
+        message: { type: string }
+    PayheroDepositInput:
+      type: object
+      required: [amount, phoneNumber]
+      properties:
+        amount: { type: integer, minimum: 1, maximum: 100000 }
+        phoneNumber: { type: string, minLength: 9, maxLength: 13 }
+    PayheroDepositStatus:
       type: object
       required: [requestId, status, amount, currency, message, balance]
       properties:

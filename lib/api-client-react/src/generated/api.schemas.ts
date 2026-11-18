@@ -117,6 +117,50 @@ export interface DepositStatus {
   balance: number | null;
 }
 
+export interface PayheroConfig {
+  enabled: boolean;
+  message: string;
+}
+
+export interface PayheroDepositInput {
+  /**
+     * @minimum 1
+     * @maximum 100000
+     */
+  amount: number;
+  /**
+     * @minLength 9
+     * @maxLength 13
+     */
+  phoneNumber: string;
+}
+
+export type PayheroDepositStatusStatus = typeof PayheroDepositStatusStatus[keyof typeof PayheroDepositStatusStatus];
+
+
+export const PayheroDepositStatusStatus = {
+  pending: 'pending',
+  credited: 'credited',
+  failed: 'failed',
+} as const;
+
+export type PayheroDepositStatusCurrency = typeof PayheroDepositStatusCurrency[keyof typeof PayheroDepositStatusCurrency];
+
+
+export const PayheroDepositStatusCurrency = {
+  KES: 'KES',
+} as const;
+
+export interface PayheroDepositStatus {
+  requestId: string;
+  status: PayheroDepositStatusStatus;
+  amount: number;
+  currency: PayheroDepositStatusCurrency;
+  message: string;
+  /** @nullable */
+  balance: number | null;
+}
+
 export interface ManualDepositConfig {
   enabled: boolean;
   /** @nullable */

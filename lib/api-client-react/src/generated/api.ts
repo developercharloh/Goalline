@@ -36,6 +36,9 @@ import type {
   ManualDepositConfig,
   ManualDepositInput,
   ManualDepositReview,
+  PayheroConfig,
+  PayheroDepositInput,
+  PayheroDepositStatus,
   PurchaseInput,
   PurchaseResult,
   TipPackage,
@@ -697,6 +700,278 @@ export function useGetCashiaDepositStatus<TData = Awaited<ReturnType<typeof getC
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetCashiaDepositStatusQueryOptions(requestId,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetPayheroConfigUrl = () => {
+
+
+
+
+  return `/api/probet/payhero/config`
+}
+
+export const getPayheroConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<PayheroConfig> => {
+
+  return customFetch<PayheroConfig>(getGetPayheroConfigUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayheroConfigQueryKey = () => {
+    return [
+    `/api/probet/payhero/config`
+    ] as const;
+    }
+
+
+export const getGetPayheroConfigQueryOptions = <TData = Awaited<ReturnType<typeof getPayheroConfig>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayheroConfigQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayheroConfig>>> = ({ signal }) => getPayheroConfig({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPayheroConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getPayheroConfig>>>
+export type GetPayheroConfigQueryError = ErrorType<unknown>
+
+
+export function useGetPayheroConfig<TData = Awaited<ReturnType<typeof getPayheroConfig>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayheroConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getPayheroConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayheroConfig<TData = Awaited<ReturnType<typeof getPayheroConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayheroConfig>>,
+          TError,
+          Awaited<ReturnType<typeof getPayheroConfig>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayheroConfig<TData = Awaited<ReturnType<typeof getPayheroConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetPayheroConfig<TData = Awaited<ReturnType<typeof getPayheroConfig>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroConfig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayheroConfigQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreatePayheroDepositUrl = () => {
+
+
+
+
+  return `/api/probet/payhero/deposits`
+}
+
+export const createPayheroDeposit = async (payheroDepositInput: PayheroDepositInput, options?: Parameters<typeof customFetch>[1]): Promise<PayheroDepositStatus> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<PayheroDepositStatus>(getCreatePayheroDepositUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(payheroDepositInput)
+  }
+);}
+
+
+
+
+
+export const getCreatePayheroDepositMutationKey = () => ['createPayheroDeposit'] as const;
+
+export const getCreatePayheroDepositMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayheroDeposit>>, TError,CreatePayheroDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createPayheroDeposit>>, TError,CreatePayheroDepositMutationVariables, TContext> => {
+
+const mutationKey = getCreatePayheroDepositMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPayheroDeposit>>, CreatePayheroDepositMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createPayheroDeposit(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreatePayheroDepositMutationResult = NonNullable<Awaited<ReturnType<typeof createPayheroDeposit>>>
+    export type CreatePayheroDepositMutationBody = BodyType<PayheroDepositInput>
+    export type CreatePayheroDepositMutationError = ErrorType<unknown>
+    export type CreatePayheroDepositMutationVariables = {data: BodyType<PayheroDepositInput>}
+
+    export const useCreatePayheroDeposit = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPayheroDeposit>>, TError,CreatePayheroDepositMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof createPayheroDeposit>>,
+        TError,
+        CreatePayheroDepositMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreatePayheroDepositMutationOptions(options), queryClient);
+    }
+
+export const getGetPayheroDepositStatusUrl = (requestId: string,) => {
+
+
+
+
+  return `/api/probet/payhero/deposits/${requestId}`
+}
+
+export const getPayheroDepositStatus = async (requestId: string, options?: Parameters<typeof customFetch>[1]): Promise<PayheroDepositStatus> => {
+
+  return customFetch<PayheroDepositStatus>(getGetPayheroDepositStatusUrl(requestId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetPayheroDepositStatusQueryKey = (requestId: string,) => {
+    return [
+    `/api/probet/payhero/deposits/${requestId}`
+    ] as const;
+    }
+
+
+export const getGetPayheroDepositStatusQueryOptions = <TData = Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError = ErrorType<unknown>>(requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetPayheroDepositStatusQueryKey(requestId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getPayheroDepositStatus>>> = ({ signal }) => getPayheroDepositStatus(requestId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: requestId !== null && requestId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetPayheroDepositStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPayheroDepositStatus>>>
+export type GetPayheroDepositStatusQueryError = ErrorType<unknown>
+
+
+export function useGetPayheroDepositStatus<TData = Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError = ErrorType<unknown>>(
+ requestId: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayheroDepositStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getPayheroDepositStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayheroDepositStatus<TData = Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError = ErrorType<unknown>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getPayheroDepositStatus>>,
+          TError,
+          Awaited<ReturnType<typeof getPayheroDepositStatus>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetPayheroDepositStatus<TData = Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError = ErrorType<unknown>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetPayheroDepositStatus<TData = Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError = ErrorType<unknown>>(
+ requestId: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getPayheroDepositStatus>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetPayheroDepositStatusQueryOptions(requestId,options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

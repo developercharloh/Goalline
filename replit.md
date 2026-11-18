@@ -28,7 +28,8 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 - Signed-out visitors can explore a clearly labeled $25 demo wallet. Demo credits are not money and never transfer into real accounts.
 - Real accounts start at $0. Sample tip packages are never sold for real money.
-- Cashia is the chosen provider. Do not replace it with Stripe or Whop. Wallet funding remains disabled until checkout responses and authenticated settlement are documented.
+- Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
+- PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.
 - The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
 - Browser success redirects are never proof of settlement; require authenticated server verification and idempotency before crediting a wallet.
 - The user does not want Replit-managed AI. An external AI provider alone does not move hosting, authentication, or the database away from Replit; confirm hosting scope before proposing a migration.
