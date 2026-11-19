@@ -138,7 +138,6 @@ export const GetCashiaDepositStatusResponse = zod.object({
 export const GetPayheroConfigResponse = zod.object({
   "enabled": zod.boolean(),
   "message": zod.string(),
-  "lipwaUrl": zod.string().url().nullable(),
   "channelId": zod.number().int().nullable()
 })
 

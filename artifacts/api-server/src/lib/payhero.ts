@@ -1,13 +1,14 @@
 const PAYHERO_API_BASE = "https://backend.payhero.co.ke/api/v2";
-export const PAYHERO_LIPWA_URL = "https://lipwa.link/13956";
 
 export class PayheroApiError extends Error {
   public readonly statusCode: number;
+  public readonly outcomeUnknown: boolean;
 
-  constructor(message: string, statusCode: number) {
+  constructor(message: string, statusCode: number, outcomeUnknown = false) {
     super(message);
     this.name = "PayheroApiError";
     this.statusCode = statusCode;
+    this.outcomeUnknown = outcomeUnknown;
   }
 }
 
@@ -55,7 +56,11 @@ async function payheroFetch(url: URL, init: RequestInit): Promise<unknown> {
       signal: AbortSignal.timeout(15_000),
     });
   } catch {
-    throw new PayheroApiError("PayHero could not be reached. Please try again shortly.", 502);
+    throw new PayheroApiError(
+      "PayHero could not be reached. Check your phone before retrying.",
+      502,
+      init.method === "POST",
+    );
   }
   const data: unknown = await response.json().catch(() => null);
   if (!response.ok) {
@@ -106,6 +111,57 @@ export async function resolveChannelId(): Promise<number> {
   throw new PayheroApiError("PayHero has no active M-Pesa payment channel. Activate one in PayHero or set PAYHERO_CHANNEL_ID.", 503);
 }
 
+export type PayheroStkResult = {
+  reference: string;
+  checkoutRequestId: string;
+};
+
+export async function initiatePayheroStk(input: {
+  amount: number;
+  phoneNumber: string;
+  externalReference: string;
+  customerName: string;
+  callbackUrl: string;
+}): Promise<PayheroStkResult> {
+  if (!Number.isSafeInteger(input.amount) || input.amount < 1 || input.amount > 100_000) {
+    throw new PayheroApiError("Enter a whole KES amount from 1 to 100,000.", 400);
+  }
+  const phoneNumber = normalizeKenyanPhone(input.phoneNumber);
+  const data = await payheroFetch(new URL(`${PAYHERO_API_BASE}/payments`), {
+    method: "POST",
+    body: JSON.stringify({
+      amount: input.amount,
+      phone_number: phoneNumber,
+      channel_id: await resolveChannelId(),
+      provider: "m-pesa",
+      external_reference: input.externalReference,
+      customer_name: input.customerName,
+      callback_url: input.callbackUrl,
+    }),
+  }) as {
+    success?: unknown;
+    status?: unknown;
+    reference?: unknown;
+    CheckoutRequestID?: unknown;
+  } | null;
+  const accepted = data?.success === true
+    || (typeof data?.status === "string" && ["QUEUED", "PENDING", "SUCCESS"].includes(data.status.toUpperCase()));
+  if (
+    !accepted
+    || typeof data?.reference !== "string"
+    || !data.reference
+    || typeof data.CheckoutRequestID !== "string"
+    || !data.CheckoutRequestID
+  ) {
+    throw new PayheroApiError(
+      "PayHero did not return a trackable M-Pesa request. Check your phone before retrying.",
+      502,
+      true,
+    );
+  }
+  return { reference: data.reference, checkoutRequestId: data.CheckoutRequestID };
+}
+
 export type PayheroTransactionStatus = {
   status: "QUEUED" | "SUCCESS" | "FAILED" | "UNKNOWN";
   reference: string | null;
@@ -116,20 +172,34 @@ export type PayheroTransactionStatus = {
   amount: number | null;
 };
 
-export function matchesPayheroLipwaTransaction(
+export function matchesPayheroStkIdentity(
   status: PayheroTransactionStatus,
   expected: {
     reference: string;
-    userReference: string;
-    providerReference: string;
-    amountCents: number;
+    externalReference: string;
+    checkoutRequestId: string;
   },
 ): boolean {
   return status.reference === expected.reference
-    && status.paymentReference === expected.userReference
+    && (!status.paymentReference || status.paymentReference === expected.externalReference)
     && status.provider === "m-pesa"
-    && status.providerReference === expected.providerReference
-    && (status.amount === null || Math.round(status.amount * 100) === expected.amountCents);
+    && status.checkoutRequestId === expected.checkoutRequestId;
+}
+
+export function matchesPayheroStkTransaction(
+  status: PayheroTransactionStatus,
+  expected: {
+    reference: string;
+    externalReference: string;
+    checkoutRequestId: string;
+    amountCents: number;
+    providerReference?: string | null;
+  },
+): boolean {
+  return matchesPayheroStkIdentity(status, expected)
+    && status.amount !== null
+    && Math.round(status.amount * 100) === expected.amountCents
+    && (!expected.providerReference || status.providerReference === expected.providerReference);
 }
 
 export async function getPayheroTransactionStatus(reference: string): Promise<PayheroTransactionStatus> {

@@ -10,7 +10,5 @@ export interface PayheroConfig {
   enabled: boolean;
   message: string;
   /** @nullable */
-  lipwaUrl: string | null;
-  /** @nullable */
   channelId: number | null;
 }
