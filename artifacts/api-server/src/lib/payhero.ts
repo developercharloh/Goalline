@@ -1,4 +1,5 @@
 const PAYHERO_API_BASE = "https://backend.payhero.co.ke/api/v2";
+export const PAYHERO_LIPWA_URL = "https://lipwa.link/13956";
 
 export class PayheroApiError extends Error {
   public readonly statusCode: number;
@@ -70,7 +71,7 @@ async function payheroFetch(url: URL, init: RequestInit): Promise<unknown> {
   return data;
 }
 
-async function resolveChannelId(): Promise<number> {
+export async function resolveChannelId(): Promise<number> {
   const configured = process.env.PAYHERO_CHANNEL_ID;
   if (configured) {
     const value = Number(configured);
@@ -105,61 +106,31 @@ async function resolveChannelId(): Promise<number> {
   throw new PayheroApiError("PayHero has no active M-Pesa payment channel. Activate one in PayHero or set PAYHERO_CHANNEL_ID.", 503);
 }
 
-export type PayheroStkResult = {
-  reference: string;
-  checkoutRequestId: string;
-};
-
-export async function initiatePayheroStk(input: {
-  amount: number;
-  phoneNumber: string;
-  externalReference: string;
-  customerName: string;
-  callbackUrl: string;
-}): Promise<PayheroStkResult> {
-  if (!Number.isSafeInteger(input.amount) || input.amount < 1 || input.amount > 100_000) {
-    throw new PayheroApiError("Enter a whole KES amount from 1 to 100,000.", 400);
-  }
-  const phoneNumber = normalizeKenyanPhone(input.phoneNumber);
-  const body = {
-    amount: input.amount,
-    phone_number: phoneNumber,
-    channel_id: await resolveChannelId(),
-    provider: "m-pesa",
-    external_reference: input.externalReference,
-    customer_name: input.customerName,
-    callback_url: input.callbackUrl,
-  };
-  const data = await payheroFetch(new URL(`${PAYHERO_API_BASE}/payments`), {
-    method: "POST",
-    body: JSON.stringify(body),
-  }) as {
-    success?: unknown;
-    status?: unknown;
-    reference?: unknown;
-    CheckoutRequestID?: unknown;
-  } | null;
-  if (
-    !data
-    || data.success !== true
-    || typeof data.reference !== "string"
-    || !data.reference
-    || typeof data.CheckoutRequestID !== "string"
-    || !data.CheckoutRequestID
-  ) {
-    throw new PayheroApiError("PayHero did not return a valid M-Pesa payment request.", 502);
-  }
-  return { reference: data.reference, checkoutRequestId: data.CheckoutRequestID };
-}
-
 export type PayheroTransactionStatus = {
   status: "QUEUED" | "SUCCESS" | "FAILED" | "UNKNOWN";
   reference: string | null;
+  paymentReference: string | null;
   provider: string | null;
   checkoutRequestId: string | null;
   providerReference: string | null;
   amount: number | null;
 };
+
+export function matchesPayheroLipwaTransaction(
+  status: PayheroTransactionStatus,
+  expected: {
+    reference: string;
+    userReference: string;
+    providerReference: string;
+    amountCents: number;
+  },
+): boolean {
+  return status.reference === expected.reference
+    && status.paymentReference === expected.userReference
+    && status.provider === "m-pesa"
+    && status.providerReference === expected.providerReference
+    && (status.amount === null || Math.round(status.amount * 100) === expected.amountCents);
+}
 
 export async function getPayheroTransactionStatus(reference: string): Promise<PayheroTransactionStatus> {
   const url = new URL(`${PAYHERO_API_BASE}/transaction-status`);
@@ -167,6 +138,7 @@ export async function getPayheroTransactionStatus(reference: string): Promise<Pa
   const data = await payheroFetch(url, { method: "GET" }) as {
     status?: unknown;
     reference?: unknown;
+    payment_reference?: unknown;
     provider?: unknown;
     CheckoutRequestID?: unknown;
     provider_reference?: unknown;
@@ -183,6 +155,9 @@ export async function getPayheroTransactionStatus(reference: string): Promise<Pa
       ? normalized
       : "UNKNOWN",
     reference: typeof data.reference === "string" ? data.reference : null,
+    paymentReference: typeof data.payment_reference === "string" && data.payment_reference
+      ? data.payment_reference
+      : null,
     provider: typeof data.provider === "string" ? data.provider.toLowerCase() : null,
     checkoutRequestId: typeof data.CheckoutRequestID === "string" ? data.CheckoutRequestID : null,
     providerReference: typeof data.provider_reference === "string"

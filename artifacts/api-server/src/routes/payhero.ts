@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { rateLimit } from "express-rate-limit";
 import {
+  GetPayheroConfigResponse,
   CreatePayheroDepositBody,
   CreatePayheroDepositResponse,
   GetPayheroDepositStatusParams,
@@ -12,10 +13,12 @@ import { db, payheroDepositCredits, payheroDeposits } from "@workspace/db";
 import { identity } from "../lib/wallet-identity.js";
 import {
   getPayheroTransactionStatus,
-  initiatePayheroStk,
+  matchesPayheroLipwaTransaction,
   normalizeKenyanPhone,
+  PAYHERO_LIPWA_URL,
   PayheroApiError,
   payheroEnabled,
+  resolveChannelId,
 } from "../lib/payhero.js";
 
 const router: IRouter = Router();
@@ -23,7 +26,7 @@ const router: IRouter = Router();
 function depositMessage(status: "pending" | "credited" | "failed"): string {
   if (status === "credited") return "Payment confirmed. Your deposit has been credited.";
   if (status === "failed") return "PayHero confirmed that this payment failed. No wallet credit was added.";
-  return "Approve the M-Pesa request on your phone. Your balance updates after PayHero confirms payment.";
+  return "Complete the PayHero checkout. Your balance updates only after PayHero confirms payment.";
 }
 
 function statusResponse(deposit: typeof payheroDeposits.$inferSelect) {
@@ -37,15 +40,32 @@ function statusResponse(deposit: typeof payheroDeposits.$inferSelect) {
   });
 }
 
+function matchesPayheroTransaction(
+  status: Awaited<ReturnType<typeof getPayheroTransactionStatus>>,
+  deposit: typeof payheroDeposits.$inferSelect,
+): boolean {
+  if (!deposit.checkoutRequestId) {
+    return Boolean(deposit.providerReference && deposit.receiptNumber)
+      && matchesPayheroLipwaTransaction(status, {
+        reference: deposit.providerReference ?? "",
+        userReference: deposit.id,
+        providerReference: deposit.receiptNumber ?? "",
+        amountCents: deposit.amountCents,
+      });
+  }
+  return (status.reference === deposit.providerReference || status.reference === deposit.id)
+    && (!status.provider || status.provider === "m-pesa")
+    && (!status.paymentReference || status.paymentReference === deposit.id)
+    && (!status.checkoutRequestId || status.checkoutRequestId === deposit.checkoutRequestId)
+    && (!deposit.receiptNumber || !status.providerReference || status.providerReference === deposit.receiptNumber)
+    && (status.amount === null || Math.round(status.amount * 100) === deposit.amountCents);
+}
+
 function matchesPayheroPayment(
   status: Awaited<ReturnType<typeof getPayheroTransactionStatus>>,
   deposit: typeof payheroDeposits.$inferSelect,
 ): boolean {
-  return status.status === "SUCCESS"
-    && (status.reference === deposit.providerReference || status.reference === deposit.id)
-    && (!status.provider || status.provider === "m-pesa")
-    && (!status.checkoutRequestId || status.checkoutRequestId === deposit.checkoutRequestId)
-    && (status.amount === null || Math.round(status.amount * 100) === deposit.amountCents);
+  return status.status === "SUCCESS" && matchesPayheroTransaction(status, deposit);
 }
 
 async function refreshDeposit(
@@ -53,7 +73,7 @@ async function refreshDeposit(
   callbackAmount?: unknown,
   callbackCheckoutId?: unknown,
 ): Promise<typeof payheroDeposits.$inferSelect> {
-  if (deposit.status !== "pending" || !deposit.providerReference || !deposit.checkoutRequestId) return deposit;
+  if (deposit.status !== "pending" || !deposit.providerReference) return deposit;
   if (callbackAmount !== undefined && (
     typeof callbackAmount !== "number"
     || !Number.isFinite(callbackAmount)
@@ -65,9 +85,7 @@ async function refreshDeposit(
   )) return deposit;
 
   const providerStatus = await getPayheroTransactionStatus(deposit.providerReference);
-  const matchingTransaction = (providerStatus.reference === deposit.providerReference || providerStatus.reference === deposit.id)
-    && (!providerStatus.provider || providerStatus.provider === "m-pesa")
-    && (!providerStatus.checkoutRequestId || providerStatus.checkoutRequestId === deposit.checkoutRequestId);
+  const matchingTransaction = matchesPayheroTransaction(providerStatus, deposit);
   if (providerStatus.status === "FAILED" && matchingTransaction) {
     const [failed] = await db.update(payheroDeposits)
       .set({ status: "failed", updatedAt: new Date() })
@@ -99,13 +117,24 @@ async function refreshDeposit(
   });
 }
 
-router.get("/probet/payhero/config", (_req, res) => {
-  res.json({
-    enabled: payheroEnabled(),
-    message: payheroEnabled()
-      ? "PayHero M-Pesa Express is available."
-      : "PayHero is not configured yet. Deposits are not available through this option.",
-  });
+router.get("/probet/payhero/config", async (_req, res): Promise<void> => {
+  let enabled = payheroEnabled();
+  let channelId: number | null = null;
+  let lipwaUrl: string | null = null;
+  let message = "PayHero is not configured yet. Deposits are not available through this option.";
+  if (enabled) {
+    try {
+      channelId = await resolveChannelId();
+      lipwaUrl = PAYHERO_LIPWA_URL;
+      message = "PayHero Lipwa checkout is available.";
+    } catch (error) {
+      enabled = false;
+      message = error instanceof PayheroApiError
+        ? error.message
+        : "PayHero checkout could not be configured.";
+    }
+  }
+  res.json(GetPayheroConfigResponse.parse({ enabled, message, lipwaUrl, channelId }));
 });
 
 router.post("/probet/payhero/deposits", rateLimit({ windowMs: 60_000, limit: 3, validate: false }), async (req, res): Promise<void> => {
@@ -131,42 +160,13 @@ router.post("/probet/payhero/deposits", rateLimit({ windowMs: 60_000, limit: 3, 
 
   const { owner } = await identity(req, res);
   const requestId = randomUUID();
-  const host = req.get("x-forwarded-host") || req.get("host");
-  if (!host || !/^[a-zA-Z0-9.:[\]-]+$/.test(host)) {
-    res.status(400).json({ error: "Invalid callback host." });
-    return;
-  }
-  const origin = `${req.get("x-forwarded-proto") === "https" || req.secure ? "https" : "http"}://${host}`;
-  await db.insert(payheroDeposits).values({
+  const [deposit] = await db.insert(payheroDeposits).values({
     id: requestId,
     owner,
     amountCents: input.data.amount * 100,
     phoneNumber,
-  });
-  try {
-    const payment = await initiatePayheroStk({
-      amount: input.data.amount,
-      phoneNumber,
-      externalReference: requestId,
-      customerName: "ProBet Tips User",
-      callbackUrl: `${origin}/api/webhooks/payhero`,
-    });
-    const [deposit] = await db.update(payheroDeposits)
-      .set({
-        providerReference: payment.reference,
-        checkoutRequestId: payment.checkoutRequestId,
-        updatedAt: new Date(),
-      })
-      .where(eq(payheroDeposits.id, requestId))
-      .returning();
-    res.status(201).json(CreatePayheroDepositResponse.parse(statusResponse(deposit)));
-  } catch (error) {
-    await db.update(payheroDeposits)
-      .set({ status: "failed", updatedAt: new Date() })
-      .where(and(eq(payheroDeposits.id, requestId), eq(payheroDeposits.status, "pending")));
-    if (!(error instanceof PayheroApiError)) throw error;
-    res.status(error.statusCode).json({ error: error.message });
-  }
+  }).returning();
+  res.status(201).json(CreatePayheroDepositResponse.parse(statusResponse(deposit)));
 });
 
 router.get("/probet/payhero/deposits/:requestId", async (req, res): Promise<void> => {
@@ -194,16 +194,27 @@ router.get("/probet/payhero/deposits/:requestId", async (req, res): Promise<void
 });
 
 router.post("/webhooks/payhero", async (req, res): Promise<void> => {
-  const callback = req.body?.response;
-  const externalReference = callback?.ExternalReference;
-  const amount = callback?.Amount;
-  const checkoutRequestId = callback?.CheckoutRequestID;
+  const callback = req.body;
+  const externalReference = callback?.user_reference;
+  const paymentReference = callback?.reference;
+  const providerReference = callback?.providerReference;
+  const amount = callback?.amount;
+  const channel = callback?.channel;
   if (
-    typeof externalReference !== "string"
+    callback?.paymentSuccess !== true
+    || typeof externalReference !== "string"
+    || !externalReference
+    || typeof paymentReference !== "string"
+    || !paymentReference
+    || typeof providerReference !== "string"
+    || !providerReference
     || typeof amount !== "number"
-    || typeof checkoutRequestId !== "string"
+    || !Number.isFinite(amount)
+    || typeof callback?.provider !== "string"
+    || callback.provider.toLowerCase() !== "m-pesa"
+    || typeof channel !== "string"
   ) {
-    res.status(400).json({ error: "Invalid PayHero callback." });
+    res.status(400).json({ error: "Invalid PayHero Lipwa callback." });
     return;
   }
   const [deposit] = await db.select().from(payheroDeposits).where(eq(payheroDeposits.id, externalReference));
@@ -215,16 +226,36 @@ router.post("/webhooks/payhero", async (req, res): Promise<void> => {
     res.status(200).json({ received: true });
     return;
   }
+  if (Math.round(amount * 100) !== deposit.amountCents) {
+    res.status(400).json({ error: "PayHero callback amount does not match the pending deposit." });
+    return;
+  }
   try {
-    const updated = await refreshDeposit(deposit, amount, checkoutRequestId);
-    if (updated.status === "pending") {
-      res.status(503).json({ error: "Payment is not yet confirmed by PayHero. Callback may be retried." });
+    const channelId = await resolveChannelId();
+    if (channel !== String(channelId)) {
+      res.status(400).json({ error: "PayHero callback channel does not match the configured deposit channel." });
       return;
     }
+    const [tagged] = await db.update(payheroDeposits)
+      .set({
+        providerReference: paymentReference,
+        receiptNumber: providerReference,
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(payheroDeposits.id, deposit.id),
+        eq(payheroDeposits.status, "pending"),
+      ))
+      .returning();
+    if (!tagged) {
+      res.status(200).json({ received: true });
+      return;
+    }
+    await refreshDeposit(tagged, amount);
     res.status(200).json({ received: true });
   } catch (error) {
     if (!(error instanceof PayheroApiError)) throw error;
-    res.status(503).json({ error: "Payment status could not be verified with PayHero. Callback may be retried." });
+    res.status(503).json({ error: "Payment status could not be verified with PayHero." });
   }
 });
 

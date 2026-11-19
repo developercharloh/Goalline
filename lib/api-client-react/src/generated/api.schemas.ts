@@ -120,6 +120,10 @@ export interface DepositStatus {
 export interface PayheroConfig {
   enabled: boolean;
   message: string;
+  /** @nullable */
+  lipwaUrl: string | null;
+  /** @nullable */
+  channelId: number | null;
 }
 
 export interface PayheroDepositInput {

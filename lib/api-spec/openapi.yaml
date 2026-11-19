@@ -98,7 +98,7 @@ paths:
       operationId: getPayheroConfig
       responses:
         "200":
-          description: PayHero M-Pesa Express availability
+          description: PayHero Lipwa checkout availability
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PayheroConfig" }
@@ -112,7 +112,7 @@ paths:
             schema: { $ref: "#/components/schemas/PayheroDepositInput" }
       responses:
         "201":
-          description: M-Pesa STK payment initiated
+          description: Pending Lipwa checkout deposit created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PayheroDepositStatus" }
@@ -325,10 +325,12 @@ components:
         balance: { type: ["number", "null"] }
     PayheroConfig:
       type: object
-      required: [enabled, message]
+      required: [enabled, message, lipwaUrl, channelId]
       properties:
         enabled: { type: boolean }
         message: { type: string }
+        lipwaUrl: { type: ["string", "null"], format: uri }
+        channelId: { type: ["integer", "null"] }
     PayheroDepositInput:
       type: object
       required: [amount, phoneNumber]

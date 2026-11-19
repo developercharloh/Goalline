@@ -9,8 +9,61 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Check, ChevronLeft, Clock, LoaderCircle, Lock, ShieldCheck, Smartphone, Wallet, Zap } from "lucide-react";
 import { errMsg, invalidateMoney, money } from "@/lib/probet";
 
-type Step = "choose" | "manual" | "payhero" | "waiting" | "done";
+type Step = "choose" | "manual" | "payhero" | "checkout" | "waiting" | "done";
 const EMPTY = { firstName: "", lastName: "", amount: "", message: "" };
+const PAYHERO_SDK_URL = "https://applet.payherokenya.com/cdn/button_sdk.js?v=3.1";
+const PAYHERO_BUTTON_CONTAINER = "payhero-lipwa-button";
+
+type PayHeroButtonOptions = {
+  paymentUrl: string;
+  channelID: number;
+  amount: number;
+  phone: string;
+  name: string;
+  reference: string;
+  buttonName: string;
+  buttonColor: string;
+  callbackUrl: string;
+  containerId: string;
+};
+
+type PayHeroButtonSdk = {
+  init(options: PayHeroButtonOptions): unknown;
+  closeModal?(): void;
+};
+
+type PayHeroWindow = Window & { PayHero?: PayHeroButtonSdk };
+
+let payHeroSdkPromise: Promise<PayHeroButtonSdk> | null = null;
+
+function loadPayHeroSdk(): Promise<PayHeroButtonSdk> {
+  const existingSdk = (window as PayHeroWindow).PayHero;
+  if (existingSdk) return Promise.resolve(existingSdk);
+  if (payHeroSdkPromise) return payHeroSdkPromise;
+
+  payHeroSdkPromise = new Promise<PayHeroButtonSdk>((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = PAYHERO_SDK_URL;
+    script.async = true;
+    script.dataset.payheroButtonSdk = "true";
+    script.onload = () => {
+      const sdk = (window as PayHeroWindow).PayHero;
+      if (sdk) resolve(sdk);
+      else reject(new Error("PayHero checkout did not initialize."));
+    };
+    script.onerror = () => reject(new Error("Could not load PayHero checkout."));
+    document.head.appendChild(script);
+  }).catch((error: unknown) => {
+    payHeroSdkPromise = null;
+    throw error;
+  });
+  return payHeroSdkPromise;
+}
+
+function toPayHeroPhone(value: string): string {
+  const digits = value.replace(/[\s()+-]/g, "");
+  return digits.startsWith("254") ? `0${digits.slice(3)}` : digits;
+}
 
 export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void; provider?: string }) {
   const qc = useQueryClient();
@@ -18,6 +71,9 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [step, setStep] = useState<Step>(() => window.sessionStorage.getItem("probet-payhero-pending") ? "waiting" : "choose");
   const [form, setForm] = useState(EMPTY);
   const [payheroForm, setPayheroForm] = useState({ amount: "", phoneNumber: "" });
+  const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutRetry, setCheckoutRetry] = useState(0);
+  const [widgetReady, setWidgetReady] = useState(false);
   const [err, setErr] = useState("");
   const [done, setDone] = useState<ManualDeposit | null>(null);
   const config = useGetManualDepositConfig({ query: { enabled: open, queryKey: getGetManualDepositConfigQueryKey() } });
@@ -26,21 +82,79 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const createPayhero = useCreatePayheroDeposit();
   const payheroStatus = useGetPayheroDepositStatus(pendingRequestId ?? "", {
     query: {
-      enabled: open && step === "waiting" && Boolean(pendingRequestId),
+      enabled: open && (step === "checkout" || step === "waiting") && Boolean(pendingRequestId),
       refetchInterval: (query) => query.state.data?.status === "pending" ? 3000 : false,
     },
   });
   const cfg = config.data;
   const enabled = cfg?.enabled === true;
+  const payheroCheckoutEnabled = payheroConfig.data?.enabled === true;
+  const payheroLipwaUrl = payheroConfig.data?.lipwaUrl ?? null;
+  const payheroChannelId = payheroConfig.data?.channelId ?? null;
+  const payheroConfigMessage = payheroConfig.data?.message;
 
-  // Keep a pending STK request visible when the dialog is closed and reopened.
+  // Keep a pending Lipwa checkout visible when the dialog is closed and reopened.
   useEffect(() => {
     if (open && !pendingRequestId) {
       setStep("choose"); setForm(EMPTY); setPayheroForm({ amount: "", phoneNumber: "" });
-      setErr(""); setDone(null); submit.reset(); createPayhero.reset();
+      setErr(""); setDone(null); setCheckoutError(""); setWidgetReady(false); submit.reset(); createPayhero.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pendingRequestId]);
+
+  useEffect(() => {
+    if (!open || step !== "checkout" || !pendingRequestId) return;
+    if (!payheroCheckoutEnabled || !payheroLipwaUrl || !payheroChannelId) {
+      setCheckoutError(payheroConfigMessage || "PayHero Lipwa checkout is not configured.");
+      return;
+    }
+
+    let cancelled = false;
+    const onSuccess = () => {
+      setErr("");
+      setStep("waiting");
+    };
+    const onFailed = () => {
+      setErr("PayHero did not complete this payment. Check your M-Pesa messages before retrying.");
+    };
+    window.addEventListener("payherosuccess", onSuccess);
+    window.addEventListener("payherofailed", onFailed);
+
+    loadPayHeroSdk().then((sdk) => {
+      if (cancelled) return;
+      const container = document.getElementById(PAYHERO_BUTTON_CONTAINER);
+      if (!container) {
+        setCheckoutError("PayHero checkout could not be opened. Please try again.");
+        return;
+      }
+      container.replaceChildren();
+      sdk.init({
+        paymentUrl: payheroLipwaUrl,
+        channelID: payheroChannelId,
+        amount: Number(payheroForm.amount),
+        phone: toPayHeroPhone(payheroForm.phoneNumber),
+        name: "ProBet Tips User",
+        reference: pendingRequestId,
+        buttonName: `Pay KSh ${payheroForm.amount}`,
+        buttonColor: "#1769ff",
+        callbackUrl: `${window.location.origin}/api/webhooks/payhero`,
+        containerId: PAYHERO_BUTTON_CONTAINER,
+      });
+      const button = container.querySelector("button");
+      button?.setAttribute("data-testid", "button-open-lipwa-checkout");
+      button?.setAttribute("aria-label", `Open PayHero checkout for KSh ${payheroForm.amount}`);
+      setWidgetReady(Boolean(button));
+      if (!button) setCheckoutError("PayHero checkout could not create its payment button.");
+    }).catch((error: unknown) => {
+      if (!cancelled) setCheckoutError(error instanceof Error ? error.message : "Could not load PayHero checkout.");
+    });
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("payherosuccess", onSuccess);
+      window.removeEventListener("payherofailed", onFailed);
+    };
+  }, [open, step, pendingRequestId, payheroCheckoutEnabled, payheroLipwaUrl, payheroChannelId, payheroConfigMessage, payheroForm.amount, payheroForm.phoneNumber, checkoutRetry]);
 
   useEffect(() => {
     if (payheroStatus.data?.status === "credited") {
@@ -56,7 +170,11 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     }
   }, [payheroStatus.data, qc]);
 
-  function close(v: boolean) { if (submit.isPending || createPayhero.isPending) return; onOpenChange(v); }
+  function close(v: boolean) {
+    if (submit.isPending || createPayhero.isPending) return;
+    if (!v && step === "checkout") (window as PayHeroWindow).PayHero?.closeModal?.();
+    onOpenChange(v);
+  }
   const set = (k: keyof typeof EMPTY) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setPayhero = (k: keyof typeof payheroForm) => (e: { target: { value: string } }) => setPayheroForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -72,12 +190,18 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       setErr("Enter a valid Safaricom phone number.");
       return;
     }
+    if (!payheroLipwaUrl || !payheroChannelId) {
+      setErr("PayHero Lipwa checkout is not ready yet. Please try again later.");
+      return;
+    }
     setErr("");
     createPayhero.mutate({ data: { amount, phoneNumber } }, {
       onSuccess: (result) => {
         setPendingRequestId(result.requestId);
         window.sessionStorage.setItem("probet-payhero-pending", result.requestId);
-        setStep("waiting");
+        setCheckoutError("");
+        setWidgetReady(false);
+        setStep("checkout");
       },
     });
   }
@@ -110,18 +234,18 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         <DialogHeader>
           <DialogTitle className="font-display text-xl flex items-center gap-2">
             {(step === "manual" || step === "payhero") && <button type="button" onClick={() => setStep("choose")} disabled={submit.isPending || createPayhero.isPending} aria-label="Back" className="rounded-lg p-1 hover:bg-secondary" data-testid="button-deposit-back"><ChevronLeft className="h-5 w-5" /></button>}
-            <Wallet className="h-5 w-5 text-gold" />{step === "choose" ? "Deposit Funds" : step === "manual" ? "Manual M-Pesa Deposit" : step === "payhero" ? "M-Pesa Express" : step === "waiting" ? "Approve M-Pesa Payment" : "Deposit Confirmed"}
+            <Wallet className="h-5 w-5 text-gold" />{step === "choose" ? "Deposit Funds" : step === "manual" ? "Manual M-Pesa Deposit" : step === "payhero" ? "PayHero Lipwa Checkout" : step === "checkout" ? "Complete Payment" : step === "waiting" ? "Confirming Payment" : "Deposit Confirmed"}
           </DialogTitle>
           <DialogDescription>Kenyan shillings (KES) only. Withdrawals are not available.</DialogDescription>
         </DialogHeader>
 
         {step === "choose" && (
           <div className="space-y-3">
-            <button type="button" onClick={() => { setErr(""); setStep("payhero"); }} disabled={!payheroConfig.data?.enabled} className={`w-full text-left rounded-2xl border border-border bg-[hsl(224_60%_9%)] p-4 transition-colors ${payheroConfig.data?.enabled ? "hover:border-primary" : "opacity-60 cursor-not-allowed"}`} aria-disabled={!payheroConfig.data?.enabled} data-testid="option-mpesa-express">
+            <button type="button" onClick={() => { setErr(""); setStep("payhero"); }} disabled={!payheroCheckoutEnabled} className={`w-full text-left rounded-2xl border border-border bg-[hsl(224_60%_9%)] p-4 transition-colors ${payheroCheckoutEnabled ? "hover:border-primary" : "opacity-60 cursor-not-allowed"}`} aria-disabled={!payheroCheckoutEnabled} data-testid="option-mpesa-express">
               <div className="flex items-center gap-3">
                 <div className={`grid h-11 w-11 place-items-center rounded-xl ${payheroConfig.data?.enabled ? "btn-blue" : "bg-secondary"}`}><Zap className={`h-5 w-5 ${payheroConfig.data?.enabled ? "text-white" : "text-muted-foreground"}`} /></div>
-                <div className="flex-1"><p className="font-bold">Safaricom M-Pesa Express</p><p className="text-xs text-muted-foreground">Secure STK push via PayHero</p></div>
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${payheroConfig.data?.enabled ? "bg-[hsl(142_72%_50%/.18)] text-win" : "bg-secondary text-muted-foreground"}`}>{payheroConfig.data?.enabled ? "Available" : "Setup needed"}</span>
+                <div className="flex-1"><p className="font-bold">Safaricom M-Pesa Express</p><p className="text-xs text-muted-foreground">Hosted PayHero Lipwa checkout</p></div>
+                <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold ${payheroCheckoutEnabled ? "bg-[hsl(142_72%_50%/.18)] text-win" : "bg-secondary text-muted-foreground"}`}>{payheroCheckoutEnabled ? "Available" : "Setup needed"}</span>
               </div>
             </button>
             <button type="button" onClick={() => setStep("manual")} className="w-full text-left rounded-2xl border-[1.5px] border-[hsl(142_72%_50%/.6)] bg-[hsl(142_72%_50%/.07)] p-4 hover:bg-[hsl(142_72%_50%/.12)] transition-colors" data-testid="option-manual-mpesa">
@@ -131,7 +255,7 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 <span className="rounded-full bg-[hsl(142_72%_50%/.18)] px-2.5 py-1 text-[11px] font-bold text-win">Recommended</span>
               </div>
             </button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Every deposit is checked by a person before credit</p>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"><Lock className="h-3 w-3" />Deposits are verified securely before wallet credit</p>
           </div>
         )}
 
@@ -146,12 +270,34 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 <input inputMode="numeric" value={payheroForm.amount} onChange={setPayhero("amount")} disabled={createPayhero.isPending} placeholder="0" className="w-full bg-transparent py-3 px-2 outline-none text-lg font-bold text-foreground" data-testid="input-payhero-amount" />
               </div>
             </label>
-            <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0 text-primary" />PayHero will send an M-Pesa prompt to your phone. Your wallet is credited only after PayHero confirms the payment.</p>
+            <p className="flex gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0 text-primary" />PayHero opens its hosted Lipwa checkout. Your wallet is credited only after PayHero confirms the payment.</p>
             {(err || createPayhero.error) && <p className="text-sm text-loss" role="alert">{err || errMsg(createPayhero.error)}</p>}
             <button type="submit" disabled={createPayhero.isPending} className="btn-blue w-full rounded-xl py-3 font-bold disabled:opacity-50" data-testid="button-start-payhero">
-              {createPayhero.isPending ? "Sending request..." : "Send M-Pesa Request"}
+              {createPayhero.isPending ? "Preparing checkout..." : "Continue to PayHero"}
             </button>
           </form>
+        )}
+
+        {step === "checkout" && (
+          <div className="space-y-4 text-center" data-testid="status-lipwa-checkout">
+            <div className="rounded-xl border border-border bg-[hsl(224_60%_9%)] p-4">
+              <p className="text-sm text-muted-foreground">Deposit amount</p>
+              <p className="font-display text-2xl font-extrabold">{money(Number(payheroForm.amount))}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Phone {payheroForm.phoneNumber}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">Open PayHero’s secure checkout and complete your M-Pesa payment. Keep this page open while we verify it.</p>
+            <div id={PAYHERO_BUTTON_CONTAINER} className="min-h-12" data-testid="container-lipwa-button" />
+            {!widgetReady && !checkoutError && <p className="flex items-center justify-center gap-2 text-xs text-muted-foreground" role="status"><LoaderCircle className="h-4 w-4 animate-spin" />Loading PayHero checkout…</p>}
+            {checkoutError && (
+              <div className="space-y-2" role="alert">
+                <p className="text-sm text-loss">{checkoutError}</p>
+                <button type="button" onClick={() => { setCheckoutError(""); setWidgetReady(false); setCheckoutRetry((value) => value + 1); }} className="text-sm font-bold text-primary" data-testid="button-retry-lipwa">
+                  Reload checkout
+                </button>
+              </div>
+            )}
+            {widgetReady && <p className="text-xs text-muted-foreground">After payment, PayHero confirms the transaction before your ProBet wallet is credited.</p>}
+          </div>
         )}
 
         {step === "waiting" && (
@@ -171,7 +317,7 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             ) : (
               <>
                 <LoaderCircle className="h-10 w-10 mx-auto text-primary animate-spin" />
-                <p className="font-bold">Check your phone and approve the M-Pesa prompt.</p>
+                <p className="font-bold">PayHero is confirming your payment.</p>
                 <p className="text-sm text-muted-foreground">{payheroStatus.data?.message || "Waiting for PayHero to confirm the payment."}</p>
                 {payheroStatus.data && <p className="font-display text-xl font-extrabold">{money(payheroStatus.data.amount)}</p>}
               </>

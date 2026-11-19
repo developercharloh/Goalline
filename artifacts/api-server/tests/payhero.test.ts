@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import { afterEach, test } from "node:test";
 import {
   getPayheroTransactionStatus,
-  initiatePayheroStk,
+  matchesPayheroLipwaTransaction,
   normalizeKenyanPhone,
   payheroEnabled,
+  resolveChannelId,
 } from "../src/lib/payhero.js";
 
 const originalFetch = globalThis.fetch;
@@ -38,61 +39,20 @@ test("normalizes Kenyan mobile numbers and rejects unsupported formats", () => {
   assert.throws(() => normalizeKenyanPhone("123456"), /valid Safaricom number/);
 });
 
-test("initiates an M-Pesa STK request with the configured channel and callback", async () => {
-  configure();
-  let requestUrl = "";
-  let requestInit: RequestInit | undefined;
-  globalThis.fetch = (async (url, init) => {
-    requestUrl = String(url);
-    requestInit = init;
-    return Response.json({ success: true, status: "QUEUED", reference: "PH-REF-1", CheckoutRequestID: "ws-123" });
-  }) as typeof fetch;
-
-  const result = await initiatePayheroStk({
-    amount: 250,
-    phoneNumber: "0712345678",
-    externalReference: "our-request-id",
-    customerName: "ProBet Tips User",
-    callbackUrl: "https://example.com/api/webhooks/payhero",
-  });
-
-  assert.deepEqual(result, { reference: "PH-REF-1", checkoutRequestId: "ws-123" });
-  assert.equal(requestUrl, "https://backend.payhero.co.ke/api/v2/payments");
-  const headers = new Headers(requestInit?.headers);
-  assert.equal(headers.get("Authorization"), "Basic test-token");
-  const body = JSON.parse(String(requestInit?.body));
-  assert.equal(body.amount, 250);
-  assert.equal(body.phone_number, "0712345678");
-  assert.equal(body.channel_id, 133);
-  assert.equal(body.provider, "m-pesa");
-  assert.equal(body.external_reference, "our-request-id");
-  assert.equal(body.callback_url, "https://example.com/api/webhooks/payhero");
-});
-
 test("discovers the unique active M-Pesa channel when no ID is configured", async () => {
   process.env.PAYHERO_AUTH_TOKEN = "test-token";
   delete process.env.PAYHERO_CHANNEL_ID;
-  const requests: { url: string; body?: string }[] = [];
+  const requests: string[] = [];
   globalThis.fetch = (async (url, init) => {
-    requests.push({ url: String(url), body: init?.body ? String(init.body) : undefined });
-    if (requests.length === 1) {
-      return Response.json({ payment_channels: [
-        { id: 15456, is_active: true, channel_type: "bank", transaction_type: "CustomerPayBillOnline" },
-        { id: 2, is_active: false, channel_type: "till", transaction_type: "CustomerBuyGoodsOnline" },
-      ] });
-    }
-    return Response.json({ success: true, status: "QUEUED", reference: "PH-REF-2", CheckoutRequestID: "ws-456" });
+    requests.push(String(url));
+    return Response.json({ payment_channels: [
+      { id: 15456, is_active: true, channel_type: "bank", transaction_type: "CustomerPayBillOnline" },
+      { id: 2, is_active: false, channel_type: "till", transaction_type: "CustomerBuyGoodsOnline" },
+    ] });
   }) as typeof fetch;
 
-  await initiatePayheroStk({
-    amount: 100,
-    phoneNumber: "0712345678",
-    externalReference: "our-request-2",
-    customerName: "ProBet Tips User",
-    callbackUrl: "https://example.com/api/webhooks/payhero",
-  });
-  assert.equal(requests[0].url, "https://backend.payhero.co.ke/api/v2/payment_channels?is_active=true");
-  assert.equal(JSON.parse(requests[1].body!).channel_id, 15456);
+  assert.equal(await resolveChannelId(), 15456);
+  assert.deepEqual(requests, ["https://backend.payhero.co.ke/api/v2/payment_channels?is_active=true"]);
 });
 
 test("looks up PayHero status by the transaction reference", async () => {
@@ -104,6 +64,7 @@ test("looks up PayHero status by the transaction reference", async () => {
       status: "SUCCESS",
       success: true,
       reference: "PH-REF-1",
+      payment_reference: "our-request-id",
       provider: "m-pesa",
       CheckoutRequestID: "ws-123",
       provider_reference: "ABC123",
@@ -114,6 +75,7 @@ test("looks up PayHero status by the transaction reference", async () => {
   assert.deepEqual(await getPayheroTransactionStatus("PH-REF-1"), {
     status: "SUCCESS",
     reference: "PH-REF-1",
+    paymentReference: "our-request-id",
     provider: "m-pesa",
     checkoutRequestId: "ws-123",
     providerReference: "ABC123",
@@ -122,17 +84,34 @@ test("looks up PayHero status by the transaction reference", async () => {
   assert.equal(requested, "https://backend.payhero.co.ke/api/v2/transaction-status?reference=PH-REF-1");
 });
 
+test("matches Lipwa confirmations to their server-created deposit and amount", () => {
+  const status = {
+    status: "SUCCESS" as const,
+    reference: "PH-LIPWA-1",
+    paymentReference: "deposit-uuid",
+    provider: "m-pesa",
+    checkoutRequestId: null,
+    providerReference: "TCT3K99UFZ",
+    amount: 25,
+  };
+  const expected = {
+    reference: "PH-LIPWA-1",
+    userReference: "deposit-uuid",
+    providerReference: "TCT3K99UFZ",
+    amountCents: 2500,
+  };
+
+  assert.equal(matchesPayheroLipwaTransaction(status, expected), true);
+  assert.equal(matchesPayheroLipwaTransaction(status, { ...expected, userReference: "another-deposit" }), false);
+  assert.equal(matchesPayheroLipwaTransaction(status, { ...expected, amountCents: 2600 }), false);
+  assert.equal(matchesPayheroLipwaTransaction(status, { ...expected, providerReference: "OTHER-RECEIPT" }), false);
+});
+
 test("returns PayHero's safe validation message instead of hiding it", async () => {
   configure();
   globalThis.fetch = (async () => Response.json({ error_message: "Invalid phone_number" }, { status: 400 })) as typeof fetch;
   await assert.rejects(
-    initiatePayheroStk({
-      amount: 100,
-      phoneNumber: "0712345678",
-      externalReference: "our-request-3",
-      customerName: "ProBet Tips User",
-      callbackUrl: "https://example.com/api/webhooks/payhero",
-    }),
+    getPayheroTransactionStatus("PH-REF-1"),
     /PayHero rejected the request: Invalid phone_number/,
   );
 });
