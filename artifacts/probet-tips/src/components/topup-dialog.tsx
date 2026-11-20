@@ -6,11 +6,12 @@ import {
 } from "@workspace/api-client-react";
 import type { ManualDeposit } from "@workspace/api-client-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Check, ChevronLeft, Clock, LoaderCircle, Lock, ShieldCheck, Smartphone, Wallet, Zap } from "lucide-react";
+import { Check, ChevronLeft, Clock, ExternalLink, LoaderCircle, Lock, ShieldCheck, Smartphone, Wallet, Zap } from "lucide-react";
 import { errMsg, invalidateMoney, money } from "@/lib/probet";
 
 type Step = "choose" | "manual" | "payhero" | "waiting" | "done";
 const EMPTY = { firstName: "", lastName: "", amount: "", message: "" };
+const PAYHERO_LIPWA_URL = "https://lipwa.link/13956";
 
 export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void; provider?: string }) {
   const qc = useQueryClient();
@@ -121,6 +122,19 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
         {step === "choose" && (
           <div className="space-y-3">
+            <a
+              href={PAYHERO_LIPWA_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full rounded-2xl border border-border bg-[hsl(224_60%_9%)] p-4 transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              data-testid="option-payhero-lipwa"
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-xl btn-blue"><Wallet className="h-5 w-5 text-white" /></div>
+                <div className="flex-1"><p className="font-bold">PayHero Lipwa</p><p className="text-xs text-muted-foreground">Open the existing hosted checkout</p></div>
+                <ExternalLink className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </div>
+            </a>
             <button type="button" onClick={() => { setErr(""); setStep("payhero"); }} disabled={!payheroEnabled} className={`w-full text-left rounded-2xl border border-border bg-[hsl(224_60%_9%)] p-4 transition-colors ${payheroEnabled ? "hover:border-primary" : "opacity-60 cursor-not-allowed"}`} aria-disabled={!payheroEnabled} data-testid="option-mpesa-express">
               <div className="flex items-center gap-3">
                 <div className={`grid h-11 w-11 place-items-center rounded-xl ${payheroConfig.data?.enabled ? "btn-blue" : "bg-secondary"}`}><Zap className={`h-5 w-5 ${payheroConfig.data?.enabled ? "text-white" : "text-muted-foreground"}`} /></div>
