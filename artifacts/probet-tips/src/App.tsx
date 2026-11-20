@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk } from "@clerk/react";
+import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, Redirect, useLocation, Router as WouterRouter } from "wouter";
@@ -97,11 +97,11 @@ function AuthFrame({ children }: { children: ReactNode }) {
 }
 
 function SignInPage() {
-  return <AuthFrame><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} /></AuthFrame>;
+  return <AuthFrame><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} forceRedirectUrl={`${basePath}/wallet?link=1`} /></AuthFrame>;
 }
 
 function SignUpPage() {
-  return <AuthFrame><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} /></AuthFrame>;
+  return <AuthFrame><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} forceRedirectUrl={`${basePath}/wallet?link=1`} /></AuthFrame>;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -179,6 +179,46 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
   );
 }
 
+function WalletRoute() {
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const [linkState, setLinkState] = useState<"idle" | "linking" | "linked" | "empty" | "error">("idle");
+  const [message, setMessage] = useState("");
+  const attempted = useRef(false);
+
+  useEffect(() => {
+    if (!user || attempted.current || new URLSearchParams(window.location.search).get("link") !== "1") return;
+    attempted.current = true;
+    setLinkState("linking");
+    setLocation("/wallet", { replace: true });
+    void (async () => {
+      try {
+        const response = await fetch("/api/probet/wallet/link", { method: "POST", credentials: "same-origin" });
+        const data = await response.json() as { linked?: boolean; message?: string; error?: string };
+        if (!response.ok) throw new Error(data.error || "Could not link this wallet.");
+        setLinkState(data.linked ? "linked" : "empty");
+        setMessage(data.linked ? "Your browser wallet is now saved to this account." : data.message || "Your account wallet is ready.");
+        await queryClient.invalidateQueries();
+      } catch (error) {
+        setLinkState("error");
+        setMessage(error instanceof Error ? error.message : "Could not link this wallet.");
+      }
+    })();
+  }, [user, queryClient, setLocation]);
+
+  const accountLinkContent = linkState === "idle" ? null : (
+    <div
+      className={`mt-4 rounded-2xl border p-4 text-sm ${linkState === "error" ? "border-loss/40 bg-loss/10 text-loss" : "border-primary/30 bg-primary/10"}`}
+      role={linkState === "error" ? "alert" : "status"}
+      data-testid="status-wallet-link"
+    >
+      {linkState === "linking" ? "Saving your wallet to this account..." : message}
+    </div>
+  );
+  return <WalletPage accountLinkContent={accountLinkContent} />;
+}
+
 function RoutedErrorBoundary({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   return <ErrorBoundary resetKey={location}>{children}</ErrorBoundary>;
@@ -212,7 +252,7 @@ function ClerkProviderWithRoutes() {
                 <Route path="/sign-up/*?" component={SignUpPage} />
                 <Route path="/dashboard"><Protected><DashboardPage /></Protected></Route>
                 <Route path="/chat" component={ChatPage} />
-                <Route path="/wallet" component={WalletPage} />
+                <Route path="/wallet" component={WalletRoute} />
                 <Route path="/tips" component={TipsPage} />
                 <Route path="/purchase/:id" component={PurchasePage} />
                 <Route path="/success" component={SuccessPage} />
@@ -245,6 +285,10 @@ function AccountUnavailablePage() {
   );
 }
 
+function GuestWalletRoute() {
+  return <WalletPage />;
+}
+
 function GuestPreviewRoutes() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -257,7 +301,7 @@ function GuestPreviewRoutes() {
               <Route path="/sign-in/*?" component={AccountUnavailablePage} />
               <Route path="/sign-up/*?" component={AccountUnavailablePage} />
               <Route path="/chat" component={ChatPage} />
-              <Route path="/wallet" component={WalletPage} />
+              <Route path="/wallet" component={GuestWalletRoute} />
               <Route path="/tips" component={TipsPage} />
               <Route path="/purchase/:id" component={PurchasePage} />
               <Route path="/success" component={SuccessPage} />

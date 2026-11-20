@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Redirect, useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetWallet, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
+  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
 import { MessageCircle, Send, Check, Wallet, Gem, ShieldCheck, Crown, Users } from "lucide-react";
@@ -10,10 +10,11 @@ import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
 import { TopUpDialog } from "@/components/topup-dialog";
-import { errMsg, invalidateMoney, money } from "@/lib/probet";
+import { errMsg, fmtDate, invalidateMoney, money } from "@/lib/probet";
 
-export function WalletPage() {
+export function WalletPage({ accountLinkContent }: { accountLinkContent?: ReactNode } = {}) {
   const w = useGetWallet({ query: { refetchInterval: 15000 } });
+  const history = useGetTransactions();
   const [open, setOpen] = useState(false);
   const guest = w.data?.isDemo === true;
   return (
@@ -36,9 +37,42 @@ export function WalletPage() {
       {guest && (
         <div className="mt-4 flex gap-3 rounded-2xl border border-[hsl(43_96%_56%/.4)] bg-[hsl(43_96%_56%/.07)] p-4 text-sm" role="note" data-testid="status-guest-wallet">
           <ShieldCheck className="h-5 w-5 shrink-0 text-gold" />
-          <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Do not clear your browser data or switch devices until it is linked to an account, or you may lose access to your deposits.</span></p>
+          <div>
+            <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Link an account to keep your balance, history, and purchases if you clear browser data or switch devices.</span></p>
+            {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link href="/sign-up" className="btn-blue rounded-lg px-4 py-2 text-xs font-bold" data-testid="link-wallet-signup">Create account and save wallet</Link>
+                <Link href="/sign-in" className="rounded-lg border border-border px-4 py-2 text-xs font-bold hover:bg-secondary" data-testid="link-wallet-signin">Sign in to save wallet</Link>
+              </div>
+            )}
+          </div>
         </div>
       )}
+      {accountLinkContent}
+      <section className="glass mt-6 rounded-3xl p-5 md:p-6" aria-labelledby="wallet-activity-title" data-testid="section-wallet-activity">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 id="wallet-activity-title" className="font-display text-xl font-extrabold">Wallet activity</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Deposits and purchases stay with your account.</p>
+          </div>
+        </div>
+        {history.isLoading ? <Sk className="h-20" />
+          : history.error ? <ErrorCard message={errMsg(history.error)} onRetry={() => history.refetch()} />
+            : !history.data?.length ? <p className="rounded-xl bg-background/40 p-4 text-sm text-muted-foreground" data-testid="status-empty-wallet-activity">No wallet activity yet.</p>
+              : <ul className="divide-y divide-border/70" data-testid="list-wallet-activity">
+                {history.data.map((item) => (
+                  <li key={item.id} className="flex flex-wrap items-center justify-between gap-2 py-3 first:pt-0 last:pb-0">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{item.title}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground">{fmtDate(item.createdAt)}</p>
+                    </div>
+                    <span className={`shrink-0 text-sm font-bold ${item.type === "topup" ? "text-win" : "text-foreground"}`}>
+                      {item.amount > 0 ? "+" : "−"}{money(Math.abs(item.amount))}
+                    </span>
+                  </li>
+                ))}
+              </ul>}
+      </section>
       <TopUpDialog open={open} onOpenChange={setOpen} />
     </AppShell>
   );

@@ -7,7 +7,7 @@ import { rateLimit } from "express-rate-limit";
 import { tipCatalog } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
-import { identity } from "../lib/wallet-identity.js";
+import { authenticatedUserId, identity, linkGuestWallet, WalletLinkError } from "../lib/wallet-identity.js";
 import manualDepositRouter from "./manual-deposits.js";
 import { payheroEnabled } from "../lib/payhero.js";
 
@@ -65,6 +65,28 @@ async function tipsFor(owner: string) {
 router.get("/probet/wallet", async (req, res): Promise<void> => {
   const { owner } = await identity(req, res);
   res.json(GetWalletResponse.parse(await walletFor(owner)));
+});
+router.post("/probet/wallet/link", async (req, res): Promise<void> => {
+  const userId = authenticatedUserId(req);
+  if (!userId) {
+    res.status(401).json({ error: "Sign in to link this wallet to your account." });
+    return;
+  }
+  const guestId = req.signedCookies?.probet_demo;
+  if (typeof guestId !== "string") {
+    res.json({ linked: false, message: "No guest wallet was found in this browser." });
+    return;
+  }
+  try {
+    const result = await linkGuestWallet(guestId, userId);
+    res.json({ ...result, balance: result.balanceCents / 100 });
+  } catch (error) {
+    if (error instanceof WalletLinkError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
 });
 router.get("/probet/transactions", async (req, res): Promise<void> => {
   const { owner, isDemo } = await identity(req, res);
