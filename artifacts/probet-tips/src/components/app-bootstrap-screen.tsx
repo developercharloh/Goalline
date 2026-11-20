@@ -4,10 +4,9 @@ import { Logo } from "@/components/brand";
 type BootstrapState = "loading" | "error";
 
 const loadingSteps = [
-  { label: "Starting ProBet Tips", state: "complete" },
-  { label: "Loading your wallet and available tips", state: "active" },
-  { label: "Collecting verified match data", state: "pending" },
-  { label: "Calculating win rate", state: "pending" },
+  { label: "Collecting match data", state: "complete" },
+  { label: "Analysing team performance", state: "complete" },
+  { label: "Generating predictions", state: "active" },
   { label: "Preparing premium tips", state: "pending" },
 ] as const;
 
@@ -32,7 +31,7 @@ export function AppBootstrapScreen({
           <div className="relative mx-auto mb-4 grid h-20 w-20 place-items-center rounded-3xl border border-[hsl(43_96%_56%/.42)] bg-[hsl(222_70%_12%)] shadow-[0_0_34px_hsl(217_100%_55%/.22)]">
             <Logo className="h-16 w-16" />
           </div>
-          <p className="text-xs font-extrabold uppercase tracking-[.25em] text-[hsl(43_96%_63%)]">⚽ Welcome to</p>
+          <p className="text-xs font-extrabold uppercase tracking-[.25em] text-[hsl(43_96%_63%)]">⚽ WELCOME TO</p>
           <h1 className="mt-1 font-display text-3xl font-black tracking-tight sm:text-4xl">
             <span className="brand-grad">PRO BET </span>
             <span className="brand-grad-blue">TIPS</span>
@@ -71,6 +70,10 @@ export function AppBootstrapScreen({
                   </li>
                 ))}
               </ul>
+              <p className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-foreground/85">
+                <LoaderCircle className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
+                Calculating win rate...
+              </p>
             </>
           ) : (
             <div className="mt-4 text-center">
@@ -103,7 +106,7 @@ export function AppBootstrapScreen({
         </p>
 
         <p className="mt-4 text-center text-[10px] leading-4 text-muted-foreground/80">
-          <strong className="text-foreground/90">DISCLAIMER:</strong> ProBet Tips is strictly for individuals aged 18 and above. Not intended for persons under 18.
+          <strong className="text-foreground/90">DISCLAIMER:</strong> Pro Bet Tips is strictly for individuals aged 18 and above. Not intended for persons under 18.
         </p>
       </section>
     </main>
