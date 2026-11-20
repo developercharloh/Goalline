@@ -9,8 +9,8 @@ The user asked to add PayHero for Safaricom M-Pesa Express while Cashia integrat
 
 **How to apply:** Keep Cashia available as its own integration. For PayHero, use its Basic-auth API, KES integer STK amount, active M-Pesa payment channel, and Kenyan phone number. Auto-select only a unique active M-Pesa channel; otherwise require a configured channel ID.
 
-PayHero's public developer docs describe callbacks but do not document a signature. A callback or browser redirect alone is not settlement proof.
+PayHero's public developer docs describe callbacks but do not document a signature. Its transaction-status response can leave `payment_reference` and `CheckoutRequestID` blank even for a successful STK payment.
 
-**Why:** An unsigned callback can be forged.
+**Why:** An unsigned callback can be forged, and requiring optional status fields caused confirmed live payments to remain pending.
 
-**How to apply:** Confirm the exact PayHero reference and M-Pesa checkout ID through the authenticated transaction-status API, match the amount to the saved request, and credit the deposit exactly once.
+**How to apply:** Re-query the authenticated transaction-status API by the exact saved PayHero reference; require `SUCCESS`, the M-Pesa provider, exact amount, and a receipt. Match `payment_reference` only when non-empty, and do not require the status response's checkout ID. Credit each deposit exactly once.
