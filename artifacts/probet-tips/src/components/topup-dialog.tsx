@@ -56,14 +56,28 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   useEffect(() => {
     if (step !== "done") return;
     const timeout = window.setTimeout(() => {
+      resetCompletedPayment();
       onOpenChange(false);
       setLocation("/");
     }, 3000);
     return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, onOpenChange, setLocation]);
+
+  function resetCompletedPayment() {
+    setStep("request");
+    setPendingRequestId(null);
+    setForm({ amount: "", phoneNumber: "" });
+    setErr("");
+    setConfirmedAmount(null);
+    setConfirmedBalance(null);
+    window.sessionStorage.removeItem("probet-payhero-pending");
+    createPayhero.reset();
+  }
 
   function close(v: boolean) {
     if (createPayhero.isPending) return;
+    if (!v && step === "done") resetCompletedPayment();
     onOpenChange(v);
   }
 
@@ -149,7 +163,7 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <p className="text-sm text-muted-foreground mt-1">{confirmedAmount === null ? "Your balance has been updated." : `${money(confirmedAmount)} has been added to your wallet.`}</p>
             {confirmedBalance !== null && <p className="text-sm font-semibold mt-1" data-testid="text-confirmed-balance">New wallet balance: {money(confirmedBalance)}</p>}
             <p className="text-xs text-muted-foreground mt-3">Returning to Home…</p>
-            <button type="button" onClick={() => { onOpenChange(false); setLocation("/"); }} className="btn-blue w-full mt-4 rounded-xl py-3 font-bold" data-testid="button-mpesa-home">Go to Home</button>
+            <button type="button" onClick={() => { close(false); setLocation("/"); }} className="btn-blue w-full mt-4 rounded-xl py-3 font-bold" data-testid="button-mpesa-home">Go to Home</button>
           </div>
         )}
       </DialogContent>
