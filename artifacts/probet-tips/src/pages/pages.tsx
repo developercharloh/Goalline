@@ -149,7 +149,6 @@ export function PurchasePage() {
                   <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
                 </dl>
-                {pkg.isSample && <p className="text-xs text-muted-foreground mt-3">Match details are illustrative; live stats aren’t connected.</p>}
                 {purchase.error && <p className="mt-3 text-sm text-loss" data-testid="text-purchase-error">{errMsg(purchase.error)}</p>}
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
