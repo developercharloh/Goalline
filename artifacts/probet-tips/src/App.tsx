@@ -18,6 +18,7 @@ import { Logo, Wordmark } from "@/components/brand";
 import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
+const APP_BOOTSTRAP_DURATION_MS = 30_000;
 
 const configuredClerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkPubKey = configuredClerkPubKey
@@ -150,18 +151,38 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let alive = true;
+    let bootstrapResult: "pending" | "ready" | "error" = "pending";
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      if (!alive) return;
+      if (bootstrapResult === "ready") {
+        setState("ready");
+      } else {
+        controller.abort();
+        setState("error");
+      }
+    }, APP_BOOTSTRAP_DURATION_MS);
+
     (async () => {
       try {
-        const res = await fetch("/api/probet/dashboard", { credentials: "same-origin" });
+        const res = await fetch("/api/probet/dashboard", {
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error("Could not load your wallet.");
         const data = (await res.json()) as Dashboard;
-        if (alive) qc.setQueryData(getGetDashboardQueryKey(), data);
-        if (alive) setState("ready");
+        if (!alive) return;
+        qc.setQueryData(getGetDashboardQueryKey(), data);
+        bootstrapResult = "ready";
       } catch {
-        if (alive) setState("error");
+        if (alive) bootstrapResult = "error";
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+      window.clearTimeout(timer);
+      controller.abort();
+    };
   }, [qc, attempt]);
 
   if (state === "ready") return <>{children}</>;
