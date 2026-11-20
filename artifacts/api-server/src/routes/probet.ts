@@ -55,7 +55,7 @@ async function transactionsFor(owner: string, isDemo: boolean) {
   return [
     ...rows.map(row => ({ id: row.id, title: row.title, amount: row.amountCents / 100, type: row.type, createdAt: row.createdAt.toISOString(), isDemo })),
     ...credits.map(row => ({ id: row.depositId, title: "M-Pesa deposit approved", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
-    ...payheroCredits.map(row => ({ id: row.depositId, title: "PayHero M-Pesa deposit", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
+    ...payheroCredits.map(row => ({ id: row.depositId, title: "M-Pesa deposit", amount: row.amountCents / 100, type: "topup" as const, createdAt: row.createdAt.toISOString(), isDemo: false })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 async function tipsFor(owner: string) {

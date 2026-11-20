@@ -24,7 +24,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
               <Wordmark size="lg" tagline />
-              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a top-up-only wallet and the ChatBase community. You are viewing a guest preview with sample matches.</p>
+              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a secure wallet and the ChatBase community. You are viewing a guest preview with sample matches.</p>
               {authAvailable ? (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
@@ -35,7 +35,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
               )}
             </div>
             <div className="hidden lg:grid grid-cols-2 gap-2 text-sm">
-              {[[MessageCircle, "ChatBase", "Community"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "Top Up Only", "No Withdrawal"]].map(([I, a, b], i) => {
+              {[[MessageCircle, "ChatBase", "Community"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "M-Pesa Express", "Fast Deposits"]].map(([I, a, b], i) => {
                 const Icon = I as typeof MessageCircle;
                 return (
                   <div key={i} className="glass rounded-xl px-3 py-2.5 flex items-center gap-2">
@@ -99,7 +99,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
           </div>
         </div>
       )}
-      <TopUpDialog open={topup} onOpenChange={setTopup} provider={data?.wallet.provider} />
+      <TopUpDialog open={topup} onOpenChange={setTopup} />
     </>
   );
 }

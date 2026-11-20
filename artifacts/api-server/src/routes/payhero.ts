@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { randomUUID } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { Request } from "express";
 import { rateLimit } from "express-rate-limit";
 import {
@@ -10,7 +10,7 @@ import {
   GetPayheroDepositStatusParams,
   GetPayheroDepositStatusResponse,
 } from "@workspace/api-zod";
-import { db, payheroDepositCredits, payheroDeposits } from "@workspace/db";
+import { db, payheroDepositCredits, payheroDeposits, wallets } from "@workspace/db";
 import { identity } from "../lib/wallet-identity.js";
 import {
   getPayheroTransactionStatus,
@@ -26,9 +26,9 @@ import {
 const router: IRouter = Router();
 
 function depositMessage(status: "pending" | "credited" | "failed"): string {
-  if (status === "credited") return "Payment confirmed. Your deposit has been credited.";
-  if (status === "failed") return "PayHero confirmed that this payment failed. No wallet credit was added.";
-  return "Approve the M-Pesa prompt on your phone. Your balance updates only after PayHero confirms payment.";
+  if (status === "credited") return "Payment confirmed. Your wallet balance has been updated.";
+  if (status === "failed") return "The M-Pesa payment was not completed. No wallet credit was added.";
+  return "Approve the M-Pesa prompt on your phone. Your balance updates after payment confirmation.";
 }
 
 function statusResponse(deposit: typeof payheroDeposits.$inferSelect, message?: string) {
@@ -105,11 +105,18 @@ async function refreshDeposit(
     const [locked] = await tx.select().from(payheroDeposits)
       .where(eq(payheroDeposits.id, deposit.id)).for("update");
     if (!locked || locked.status !== "pending") return locked ?? deposit;
-    await tx.insert(payheroDepositCredits).values({
+    const [credit] = await tx.insert(payheroDepositCredits).values({
       depositId: locked.id,
       owner: locked.owner,
       amountCents: locked.amountCents,
-    }).onConflictDoNothing();
+    }).onConflictDoNothing().returning({ depositId: payheroDepositCredits.depositId });
+    if (credit) {
+      const [wallet] = await tx.update(wallets)
+        .set({ balanceCents: sql`${wallets.balanceCents} + ${locked.amountCents}` })
+        .where(eq(wallets.owner, locked.owner))
+        .returning({ owner: wallets.owner });
+      if (!wallet) throw new Error("Wallet not found for verified M-Pesa deposit.");
+    }
     const [credited] = await tx.update(payheroDeposits)
       .set({
         status: "credited",
@@ -126,16 +133,14 @@ async function refreshDeposit(
 router.get("/probet/payhero/config", async (_req, res): Promise<void> => {
   let enabled = payheroEnabled();
   let channelId: number | null = null;
-  let message = "PayHero is not configured yet. Deposits are not available through this option.";
+  let message = "M-Pesa Express is temporarily unavailable.";
   if (enabled) {
     try {
       channelId = await resolveChannelId();
-      message = "PayHero M-Pesa Express is ready.";
+      message = "M-Pesa Express is ready.";
     } catch (error) {
       enabled = false;
-      message = error instanceof PayheroApiError
-        ? error.message
-        : "PayHero M-Pesa Express could not be configured.";
+      message = "M-Pesa Express is temporarily unavailable.";
     }
   }
   res.json(GetPayheroConfigResponse.parse({ enabled, message, channelId }));
@@ -148,7 +153,7 @@ router.post("/probet/payhero/deposits", rateLimit({ windowMs: 60_000, limit: 3, 
     return;
   }
   if (!payheroEnabled()) {
-    res.status(503).json({ error: "PayHero is not configured yet. No payment request was sent." });
+    res.status(503).json({ error: "M-Pesa Express is temporarily unavailable. No request was sent." });
     return;
   }
   let phoneNumber: string;
@@ -192,14 +197,14 @@ router.post("/probet/payhero/deposits", rateLimit({ windowMs: 60_000, limit: 3, 
     if (error.outcomeUnknown) {
       res.status(201).json(CreatePayheroDepositResponse.parse(statusResponse(
         deposit,
-        "PayHero's response was interrupted. Check your phone before retrying; your balance updates after payment is verified.",
+        "Check your phone before retrying. If an M-Pesa prompt arrived, complete or cancel it first.",
       )));
       return;
     }
     await db.update(payheroDeposits)
       .set({ status: "failed", updatedAt: new Date() })
       .where(and(eq(payheroDeposits.id, requestId), eq(payheroDeposits.status, "pending")));
-    res.status(error.statusCode).json({ error: error.message });
+    res.status(error.statusCode).json({ error: "We couldn’t start the M-Pesa request. Check your details and try again." });
   }
 });
 
@@ -223,12 +228,12 @@ router.get("/probet/payhero/deposits/:requestId", async (req, res): Promise<void
     res.json(statusResponse(
       current,
       current.status === "pending" && !current.providerReference
-        ? "The request has no PayHero receipt yet. Check your phone before retrying."
+        ? "Check your phone before retrying. If an M-Pesa prompt arrived, complete or cancel it first."
         : undefined,
     ));
   } catch (error) {
     if (!(error instanceof PayheroApiError)) throw error;
-    res.status(error.statusCode).json({ error: error.message });
+    res.status(error.statusCode).json({ error: "Payment status is temporarily unavailable. Please try again." });
   }
 });
 

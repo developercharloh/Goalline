@@ -1,15 +1,13 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { clerkClient, getAuth } from "@clerk/express";
-import { rateLimit } from "express-rate-limit";
 import {
-  GetManualDepositConfigResponse, GetManualDepositsResponse, SubmitManualDepositBody,
-  SubmitManualDepositResponse, GetManualDepositReviewsResponse, ReviewManualDepositBody,
+  GetManualDepositConfigResponse, GetManualDepositsResponse, GetManualDepositReviewsResponse, ReviewManualDepositBody,
   ReviewManualDepositParams, ReviewManualDepositResponse,
 } from "@workspace/api-zod";
 import { identity } from "../lib/wallet-identity.js";
 import {
   ManualDepositError, manualDepositConfig, reviewerEmailAllowed, depositResponse,
-  submitManualDeposit, listManualDeposits, decideManualDeposit,
+  listManualDeposits, decideManualDeposit,
 } from "../lib/manual-deposits.js";
 
 const router: IRouter = Router();
@@ -43,18 +41,8 @@ router.get("/probet/manual-deposits", async (req, res): Promise<void> => {
   const { owner } = await identity(req, res);
   res.json(GetManualDepositsResponse.parse((await listManualDeposits(owner)).map(depositResponse)));
 });
-router.post("/probet/manual-deposits", rateLimit({ windowMs: 60_000, limit: 3, validate: false }), async (req, res): Promise<void> => {
-  const input = SubmitManualDepositBody.safeParse(req.body);
-  if (!input.success) { res.status(400).json({ error: "Enter the amount paid, first name, last name and complete M-Pesa confirmation message." }); return; }
-  try {
-    if (!manualDepositConfig().enabled) throw new ManualDepositError(manualDepositConfig().message, 503);
-    const { owner } = await identity(req, res);
-    const row = await submitManualDeposit(owner, input.data);
-    res.status(201).json(SubmitManualDepositResponse.parse(depositResponse(row)));
-  } catch (error) {
-    if (!(error instanceof ManualDepositError)) throw error;
-    res.status(error.status).json({ error: error.message });
-  }
+router.post("/probet/manual-deposits", (_req, res): void => {
+  res.status(410).json({ error: "This deposit option is no longer available." });
 });
 router.post("/probet/manual-deposits/:id/review", requireReviewer, async (req, res): Promise<void> => {
   const params = ReviewManualDepositParams.safeParse(req.params);

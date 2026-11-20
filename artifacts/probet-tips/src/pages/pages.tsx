@@ -5,7 +5,7 @@ import {
   useGetWallet, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
 } from "@workspace/api-client-react";
 import type { ChatMessage } from "@workspace/api-client-react";
-import { MessageCircle, Send, Check, Wallet, Gem, ShieldCheck, Ban, Crown, Users } from "lucide-react";
+import { MessageCircle, Send, Check, Wallet, Gem, ShieldCheck, Crown, Users } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -18,18 +18,18 @@ export function WalletPage() {
   const guest = w.data?.isDemo === true;
   return (
     <AppShell>
-      <PageHeader title="My Wallet" subtitle="Top up only. Wallet funds are used for premium tips and cannot be withdrawn." />
+      <PageHeader title="My Wallet" subtitle="Manage your wallet balance and M-Pesa deposits." />
       {w.isLoading ? <Sk className="h-56" /> : w.error || !w.data ? <ErrorCard message={errMsg(w.error)} onRetry={() => w.refetch()} /> : (
         <div className="glass rounded-3xl p-6 md:p-8 text-center relative overflow-hidden rise">
           <div className="absolute inset-x-0 -top-24 mx-auto h-48 w-48 rounded-full bg-[hsl(217_100%_55%/.3)] blur-3xl" />
           <div className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-8 w-8 text-[hsl(43_96%_70%)]" /></div>
-          <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-deposited-balance">{money(w.data.depositedBalance ?? 0, w.data.currency)}</div>
-          <div className="relative text-muted-foreground mt-1">Deposited balance</div>
+          <div className="relative font-display text-5xl font-extrabold mt-4" data-testid="text-wallet-balance">{money(w.data.balance, w.data.currency)}</div>
+          <div className="relative text-muted-foreground mt-1">Wallet balance</div>
+          <div className="relative text-xs text-muted-foreground mt-2" data-testid="text-total-deposited">Total deposited: {money(w.data.depositedBalance ?? 0, w.data.currency)}</div>
           <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Deposit with M-Pesa</button>
           <p className="relative mt-2 text-xs text-muted-foreground">Real tip purchases are not available yet.</p>
           <div className="relative mt-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />Manually verified deposits</span>
-            <span className="flex items-center gap-1"><Ban className="h-4 w-4" />No withdrawals</span>
+            <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />M-Pesa payments are confirmed automatically</span>
           </div>
         </div>
       )}
@@ -39,7 +39,7 @@ export function WalletPage() {
           <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Do not clear your browser data or switch devices until it is linked to an account, or you may lose access to your deposits.</span></p>
         </div>
       )}
-      <TopUpDialog open={open} onOpenChange={setOpen} provider={w.data?.provider} />
+      <TopUpDialog open={open} onOpenChange={setOpen} />
     </AppShell>
   );
 }
@@ -129,7 +129,7 @@ export function PurchasePage() {
             )}
           </div>
         )}
-      <TopUpDialog open={topup} onOpenChange={setTopup} provider={w.data?.provider} />
+      <TopUpDialog open={topup} onOpenChange={setTopup} />
     </AppShell>
   );
 }

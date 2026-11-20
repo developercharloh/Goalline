@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
-import { db, manualDeposits, depositCredits, type ManualDepositRow } from "@workspace/db";
+import { and, desc, eq, sql } from "drizzle-orm";
+import { db, manualDeposits, depositCredits, wallets, type ManualDepositRow } from "@workspace/db";
 import type { ManualDepositInput, ManualDepositReview } from "@workspace/api-zod";
 
 export class ManualDepositError extends Error {
@@ -104,9 +104,16 @@ export async function decideManualDeposit(id: string, reviewerId: string, input:
       status: input.decision, note, reviewedBy: reviewerId, reviewedAt: new Date(),
     }).where(and(eq(manualDeposits.id, id), eq(manualDeposits.status, "pending"))).returning();
     if (input.decision === "approved") {
-      await tx.insert(depositCredits).values({
+      const [credit] = await tx.insert(depositCredits).values({
         depositId: row.id, owner: row.owner, amountCents: row.amountCents,
-      });
+      }).onConflictDoNothing().returning({ depositId: depositCredits.depositId });
+      if (credit) {
+        const [wallet] = await tx.update(wallets)
+          .set({ balanceCents: sql`${wallets.balanceCents} + ${row.amountCents}` })
+          .where(eq(wallets.owner, row.owner))
+          .returning({ owner: wallets.owner });
+        if (!wallet) throw new Error("Wallet not found for approved M-Pesa deposit.");
+      }
     }
     return row;
   });
