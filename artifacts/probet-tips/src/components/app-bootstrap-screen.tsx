@@ -4,20 +4,24 @@ import { Logo } from "@/components/brand";
 type BootstrapState = "loading" | "error";
 
 const loadingSteps = [
-  { label: "Collecting match data", state: "complete" },
-  { label: "Analysing team performance", state: "complete" },
-  { label: "Generating predictions", state: "active" },
-  { label: "Preparing premium tips", state: "pending" },
+  { label: "Collecting match data", completeAt: 0.2 },
+  { label: "Analysing team performance", completeAt: 0.4 },
+  { label: "Generating predictions", completeAt: 0.6 },
+  { label: "Preparing premium tips", completeAt: 0.8 },
+  { label: "Calculating win rate...", completeAt: 0.96 },
 ] as const;
 
 export function AppBootstrapScreen({
   state,
+  progress,
   onRetry,
 }: {
   state: BootstrapState;
+  progress: number;
   onRetry: () => void;
 }) {
   const isLoading = state === "loading";
+  const activeStep = loadingSteps.findIndex((step) => progress < step.completeAt);
 
   return (
     <main className="relative isolate flex min-h-[100dvh] items-center justify-center overflow-hidden bg-[hsl(224_70%_7%)] px-4 py-8">
@@ -55,25 +59,35 @@ export function AppBootstrapScreen({
 
           {isLoading ? (
             <>
-              <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div className="h-full w-2/5 animate-pulse rounded-full bg-gradient-to-r from-primary via-[hsl(43_96%_56%)] to-primary motion-reduce:animate-none" />
+              <div
+                className="mt-4 h-1.5 overflow-hidden rounded-full bg-secondary"
+                role="progressbar"
+                aria-label="Loading progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(progress * 100)}
+              >
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-primary via-[hsl(43_96%_56%)] to-primary transition-[width] duration-100 ease-linear"
+                  style={{ width: `${Math.round(progress * 100)}%` }}
+                />
               </div>
               <ul className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-                {loadingSteps.map((step) => (
-                  <li key={step.label} className="flex items-center gap-2 text-foreground/85">
-                    {step.state === "complete"
-                      ? <Check className="h-4 w-4 shrink-0 text-win" aria-hidden="true" />
-                      : step.state === "active"
-                        ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
-                        : <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-                    <span>{step.label}</span>
-                  </li>
-                ))}
+                {loadingSteps.map((step, index) => {
+                  const complete = progress >= step.completeAt;
+                  const active = index === activeStep;
+                  return (
+                    <li key={step.label} className="flex items-center gap-2 text-foreground/85">
+                      {complete
+                        ? <Check className="h-4 w-4 shrink-0 text-win" aria-hidden="true" />
+                        : active
+                          ? <LoaderCircle className="h-4 w-4 shrink-0 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
+                          : <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+                      <span>{step.label}</span>
+                    </li>
+                  );
+                })}
               </ul>
-              <p className="mt-4 flex items-center justify-center gap-2 text-sm font-semibold text-foreground/85">
-                <LoaderCircle className="h-4 w-4 animate-spin text-primary motion-reduce:animate-none" aria-hidden="true" />
-                Calculating win rate...
-              </p>
             </>
           ) : (
             <div className="mt-4 text-center">
@@ -100,10 +114,6 @@ export function AppBootstrapScreen({
         ) : (
           <p className="mt-5 text-center text-sm text-muted-foreground">We&apos;ll keep your place while you reconnect.</p>
         )}
-
-        <p className="mt-5 rounded-xl border border-[hsl(43_96%_56%/.22)] bg-[hsl(43_96%_56%/.06)] p-3 text-center text-xs leading-5 text-muted-foreground">
-          Live fixture data and verified win-rate calculations are not connected yet; current match examples are illustrative.
-        </p>
 
         <p className="mt-4 text-center text-[10px] leading-4 text-muted-foreground/80">
           <strong className="text-foreground/90">DISCLAIMER:</strong> Pro Bet Tips is strictly for individuals aged 18 and above. Not intended for persons under 18.

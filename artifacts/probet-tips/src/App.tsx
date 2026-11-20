@@ -149,12 +149,20 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
+  const [progress, setProgress] = useState(0);
   useEffect(() => {
     let alive = true;
     let bootstrapResult: "pending" | "ready" | "error" = "pending";
     const controller = new AbortController();
+    const startedAt = performance.now();
+    const progressTimer = window.setInterval(() => {
+      if (!alive) return;
+      setProgress(Math.min((performance.now() - startedAt) / APP_BOOTSTRAP_DURATION_MS, 1));
+    }, 50);
     const timer = window.setTimeout(() => {
       if (!alive) return;
+      window.clearInterval(progressTimer);
+      setProgress(1);
       if (bootstrapResult === "ready") {
         setState("ready");
       } else {
@@ -180,13 +188,22 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
     })();
     return () => {
       alive = false;
+      window.clearInterval(progressTimer);
       window.clearTimeout(timer);
       controller.abort();
     };
   }, [qc, attempt]);
 
   if (state === "ready") return <>{children}</>;
-  return <AppBootstrapScreen state={state} onRetry={() => { setState("loading"); setAttempt((a) => a + 1); }} />;
+  return <AppBootstrapScreen
+    state={state}
+    progress={progress}
+    onRetry={() => {
+      setProgress(0);
+      setState("loading");
+      setAttempt((a) => a + 1);
+    }}
+  />;
 }
 
 function WalletRoute() {
