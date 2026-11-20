@@ -28,17 +28,20 @@ const router: IRouter = Router();
 function depositMessage(status: "pending" | "credited" | "failed"): string {
   if (status === "credited") return "Payment confirmed. Your wallet balance has been updated.";
   if (status === "failed") return "The M-Pesa payment was not completed. No wallet credit was added.";
-  return "Approve the M-Pesa prompt on your phone. Your balance updates after payment confirmation.";
+  return "Waiting for M-Pesa confirmation. Your wallet updates automatically after payment.";
 }
 
-function statusResponse(deposit: typeof payheroDeposits.$inferSelect, message?: string) {
+async function statusResponse(deposit: typeof payheroDeposits.$inferSelect, message?: string) {
+  const [wallet] = await db.select({ balanceCents: wallets.balanceCents })
+    .from(wallets)
+    .where(eq(wallets.owner, deposit.owner));
   return GetPayheroDepositStatusResponse.parse({
     requestId: deposit.id,
     status: deposit.status,
     amount: deposit.amountCents / 100,
     currency: deposit.currency,
     message: message ?? depositMessage(deposit.status),
-    balance: null,
+    balance: wallet ? wallet.balanceCents / 100 : null,
   });
 }
 
@@ -50,7 +53,6 @@ function matchesPayheroTransaction(
     && matchesPayheroStkIdentity(status, {
       reference: deposit.providerReference ?? "",
       externalReference: deposit.id,
-      checkoutRequestId: deposit.checkoutRequestId ?? "",
     });
 }
 
@@ -59,6 +61,7 @@ function matchesPayheroPayment(
   deposit: typeof payheroDeposits.$inferSelect,
 ): boolean {
   return status.status === "SUCCESS"
+    && Boolean(status.providerReference)
     && matchesPayheroTransaction(status, deposit)
     && matchesPayheroStkTransaction(status, {
       reference: deposit.providerReference ?? "",
@@ -191,11 +194,11 @@ router.post("/probet/payhero/deposits", rateLimit({ windowMs: 60_000, limit: 3, 
       })
       .where(and(eq(payheroDeposits.id, requestId), eq(payheroDeposits.status, "pending")))
       .returning();
-    res.status(201).json(CreatePayheroDepositResponse.parse(statusResponse(initiated ?? deposit)));
+    res.status(201).json(CreatePayheroDepositResponse.parse(await statusResponse(initiated ?? deposit)));
   } catch (error) {
     if (!(error instanceof PayheroApiError)) throw error;
     if (error.outcomeUnknown) {
-      res.status(201).json(CreatePayheroDepositResponse.parse(statusResponse(
+      res.status(201).json(CreatePayheroDepositResponse.parse(await statusResponse(
         deposit,
         "Check your phone before retrying. If an M-Pesa prompt arrived, complete or cancel it first.",
       )));
@@ -225,7 +228,7 @@ router.get("/probet/payhero/deposits/:requestId", async (req, res): Promise<void
   }
   try {
     const current = await refreshDeposit(deposit);
-    res.json(statusResponse(
+    res.json(await statusResponse(
       current,
       current.status === "pending" && !current.providerReference
         ? "Check your phone before retrying. If an M-Pesa prompt arrived, complete or cancel it first."
@@ -309,11 +312,9 @@ router.post("/webhooks/payhero", async (req, res): Promise<void> => {
       }
       const providerStatus = await getPayheroTransactionStatus(reference);
       if (
-        providerStatus.paymentReference !== deposit.id
-        || !matchesPayheroStkIdentity(providerStatus, {
+        !matchesPayheroStkIdentity(providerStatus, {
           reference,
           externalReference: deposit.id,
-          checkoutRequestId,
         })
         || (providerStatus.amount !== null && Math.round(providerStatus.amount * 100) !== deposit.amountCents)
       ) {

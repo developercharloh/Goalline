@@ -229,7 +229,7 @@ function ClerkProviderWithRoutes() {
 }
 
 function GuestHomePage() {
-  return <AppShell title="Guest preview"><DashboardView guest /></AppShell>;
+  return <AppShell title="Dashboard"><DashboardView guest /></AppShell>;
 }
 
 function AccountUnavailablePage() {
@@ -238,7 +238,7 @@ function AccountUnavailablePage() {
       <div className="glass rounded-3xl p-8 max-w-lg text-center mx-auto">
         <Logo className="h-16 w-16 mx-auto" />
         <h2 className="font-display text-2xl font-extrabold mt-4">Sign-in is not enabled yet</h2>
-        <p className="text-sm text-muted-foreground mt-2">You can continue exploring the guest preview while account access is being configured.</p>
+        <p className="text-sm text-muted-foreground mt-2">Explore ProBet Tips and the community while account access is unavailable.</p>
         <a href="/" className="btn-blue inline-block rounded-xl px-5 py-2.5 font-bold mt-5">Return home</a>
       </div>
     </AppShell>

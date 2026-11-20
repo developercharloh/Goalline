@@ -177,13 +177,11 @@ export function matchesPayheroStkIdentity(
   expected: {
     reference: string;
     externalReference: string;
-    checkoutRequestId: string;
   },
 ): boolean {
   return status.reference === expected.reference
     && (!status.paymentReference || status.paymentReference === expected.externalReference)
-    && status.provider === "m-pesa"
-    && status.checkoutRequestId === expected.checkoutRequestId;
+    && status.provider === "m-pesa";
 }
 
 export function matchesPayheroStkTransaction(
@@ -229,7 +227,9 @@ export async function getPayheroTransactionStatus(reference: string): Promise<Pa
       ? data.payment_reference
       : null,
     provider: typeof data.provider === "string" ? data.provider.toLowerCase() : null,
-    checkoutRequestId: typeof data.CheckoutRequestID === "string" ? data.CheckoutRequestID : null,
+    checkoutRequestId: typeof data.CheckoutRequestID === "string" && data.CheckoutRequestID.trim()
+      ? data.CheckoutRequestID
+      : null,
     providerReference: typeof data.provider_reference === "string"
       ? data.provider_reference
       : typeof data.third_party_reference === "string" ? data.third_party_reference : null,

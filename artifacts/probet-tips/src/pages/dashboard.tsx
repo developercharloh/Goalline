@@ -12,7 +12,7 @@ import { errMsg, money } from "@/lib/probet";
 export function DashboardView({ guest = false, name }: { guest?: boolean; name?: string }) {
   const { data, isLoading, error, refetch } = useGetDashboard();
   const [topup, setTopup] = useState(false);
-  const displayName = guest ? "Guest" : name || "Champion";
+  const displayName = guest ? "Champion" : name || "Champion";
   const authAvailable = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
 
   return (
@@ -24,14 +24,14 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
               <Wordmark size="lg" tagline />
-              <p className="mt-4 max-w-lg text-muted-foreground">Quick premium football picks, a secure wallet and the ChatBase community. You are viewing a guest preview with sample matches.</p>
+              <p className="mt-4 max-w-lg text-muted-foreground">Explore premium football picks, manage your wallet, and chat with the ProBet Tips community.</p>
               {authAvailable ? (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
                   <Link href="/sign-in" className="rounded-xl px-6 py-3 font-bold border border-[hsl(217_80%_50%/.5)] hover:bg-secondary transition-colors" data-testid="link-hero-signin">Login</Link>
                 </div>
               ) : (
-                <p className="mt-5 text-sm text-muted-foreground">Guest demo is available; account sign-in is not enabled on this preview.</p>
+                <p className="mt-5 text-sm text-muted-foreground">Explore the app without signing in.</p>
               )}
             </div>
             <div className="hidden lg:grid grid-cols-2 gap-2 text-sm">
@@ -79,7 +79,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
                   : data.packages.slice(0, 2).map((p) => <TipCard key={p.id} pkg={p} compact />)}
               </div>
             </div>
-            <p className="flex items-start gap-2 text-xs text-muted-foreground"><Info className="h-4 w-4 shrink-0" />Sample matches are illustrative. ProBet Tips does not provide live stats or guaranteed outcomes.</p>
+            <p className="flex items-start gap-2 text-xs text-muted-foreground"><Info className="h-4 w-4 shrink-0" />Match information is illustrative. Live stats aren’t connected and outcomes aren’t guaranteed.</p>
           </div>
 
           <div className="lg:col-span-2 space-y-6">

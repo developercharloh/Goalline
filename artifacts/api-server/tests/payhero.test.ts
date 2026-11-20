@@ -119,9 +119,9 @@ test("looks up PayHero status by the transaction reference", async () => {
       status: "SUCCESS",
       success: true,
       reference: "PH-REF-1",
-      payment_reference: "our-request-id",
+      payment_reference: "",
       provider: "m-pesa",
-      CheckoutRequestID: "ws-123",
+      CheckoutRequestID: "",
       provider_reference: "ABC123",
       amount: 250,
     });
@@ -130,16 +130,16 @@ test("looks up PayHero status by the transaction reference", async () => {
   assert.deepEqual(await getPayheroTransactionStatus("PH-REF-1"), {
     status: "SUCCESS",
     reference: "PH-REF-1",
-    paymentReference: "our-request-id",
+    paymentReference: null,
     provider: "m-pesa",
-    checkoutRequestId: "ws-123",
+    checkoutRequestId: null,
     providerReference: "ABC123",
     amount: 250,
   });
   assert.equal(requested, "https://backend.payhero.co.ke/api/v2/transaction-status?reference=PH-REF-1");
 });
 
-test("matches STK confirmations to the server-created deposit, checkout, and amount", () => {
+test("matches STK confirmations by provider reference and amount when status IDs are blank", () => {
   const status = {
     status: "SUCCESS" as const,
     reference: "PH-REF-1",
@@ -158,8 +158,9 @@ test("matches STK confirmations to the server-created deposit, checkout, and amo
   };
 
   assert.equal(matchesPayheroStkTransaction(status, expected), true);
+  assert.equal(matchesPayheroStkTransaction({ ...status, checkoutRequestId: "provider-status-variant" }, expected), true);
   assert.equal(matchesPayheroStkTransaction(status, { ...expected, externalReference: "another-deposit" }), false);
-  assert.equal(matchesPayheroStkTransaction(status, { ...expected, checkoutRequestId: "another-checkout" }), false);
+  assert.equal(matchesPayheroStkTransaction(status, { ...expected, checkoutRequestId: "another-checkout" }), true);
   assert.equal(matchesPayheroStkTransaction(status, { ...expected, amountCents: 2600 }), false);
   assert.equal(matchesPayheroStkTransaction(status, { ...expected, providerReference: "OTHER-RECEIPT" }), false);
   assert.equal(matchesPayheroStkIdentity({ ...status, amount: null }, expected), true);

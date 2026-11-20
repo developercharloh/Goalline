@@ -53,8 +53,8 @@ function AppShellFrame({
         <div className="mt-auto glass rounded-2xl p-4 text-sm">
           {guestPreview ? (
             <>
-              <div className="font-bold">Guest preview</div>
-              <p className="text-xs text-muted-foreground mt-1">Sample matches. Account access is not enabled on this deployment.</p>
+              <div className="font-bold">Welcome to ProBet Tips</div>
+              <p className="text-xs text-muted-foreground mt-1">Explore football tips, your wallet, and community chat.</p>
             </>
           ) : (
             <>
@@ -63,8 +63,7 @@ function AppShellFrame({
                 <div className="text-xs text-muted-foreground">Member account</div>
               </Show>
               <Show when="signed-out">
-            <div className="font-bold">Guest preview</div>
-            <p className="text-xs text-muted-foreground mb-3">Sample matches</p>
+            <div className="font-bold">Welcome</div>
             <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 font-bold" data-testid="link-sidebar-signup">Create account</Link>
               </Show>
             </>

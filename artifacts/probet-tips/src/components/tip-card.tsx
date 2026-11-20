@@ -9,7 +9,6 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
       <div className="flex items-start justify-between gap-3">
         <span className="inline-flex items-center gap-1 rounded-md btn-gold px-2 py-0.5 text-xs font-extrabold"><Crown className="h-3.5 w-3.5" />Premium</span>
         <div className="flex items-center gap-2">
-          {pkg.isSample && <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground border border-border rounded-full px-2 py-0.5">Sample matches</span>}
           {pkg.purchased ? <Unlock className="h-5 w-5 text-win" aria-label="Unlocked" /> : <Lock className="h-5 w-5 text-foreground/80" aria-label="Locked" />}
         </div>
       </div>

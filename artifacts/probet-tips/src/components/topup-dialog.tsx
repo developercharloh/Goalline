@@ -16,46 +16,49 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
   const [form, setForm] = useState({ amount: "", phoneNumber: "" });
   const [err, setErr] = useState("");
   const [confirmedAmount, setConfirmedAmount] = useState<number | null>(null);
+  const [confirmedBalance, setConfirmedBalance] = useState<number | null>(null);
   const payheroConfig = useGetPayheroConfig({ query: { enabled: open, refetchOnWindowFocus: true } });
   const createPayhero = useCreatePayheroDeposit();
   const payheroStatus = useGetPayheroDepositStatus(pendingRequestId ?? "", {
     query: {
-      enabled: open && step === "waiting" && Boolean(pendingRequestId),
-      refetchInterval: (query) => query.state.data?.status === "pending" ? 3000 : false,
+      enabled: step === "waiting" && Boolean(pendingRequestId),
+      refetchInterval: (query) => query.state.data?.status === "credited" || query.state.data?.status === "failed" ? false : 3000,
     },
   });
   const payheroEnabled = payheroConfig.data?.enabled === true;
 
   // Keep a pending M-Pesa request visible when the dialog is closed and reopened.
   useEffect(() => {
-    if (open && !pendingRequestId) {
+    if (open && !pendingRequestId && step === "request") {
       setStep("request"); setForm({ amount: "", phoneNumber: "" }); setErr("");
-      setConfirmedAmount(null); createPayhero.reset();
+      setConfirmedAmount(null); setConfirmedBalance(null); createPayhero.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, pendingRequestId]);
+  }, [open, pendingRequestId, step]);
 
   useEffect(() => {
     if (payheroStatus.data?.status === "credited") {
       setConfirmedAmount(payheroStatus.data.amount);
+      setConfirmedBalance(payheroStatus.data.balance ?? null);
       setStep("done");
       setPendingRequestId(null);
       window.sessionStorage.removeItem("probet-payhero-pending");
       invalidateMoney(qc);
+      onOpenChange(true);
     } else if (payheroStatus.data?.status === "failed") {
       setStep("request");
       setPendingRequestId(null);
       window.sessionStorage.removeItem("probet-payhero-pending");
       setErr(payheroStatus.data.message);
     }
-  }, [payheroStatus.data, qc]);
+  }, [payheroStatus.data, qc, onOpenChange]);
 
   useEffect(() => {
     if (step !== "done") return;
     const timeout = window.setTimeout(() => {
       onOpenChange(false);
       setLocation("/");
-    }, 1800);
+    }, 3000);
     return () => window.clearTimeout(timeout);
   }, [step, onOpenChange, setLocation]);
 
@@ -130,9 +133,10 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             ) : (
               <>
                 <LoaderCircle className="h-10 w-10 mx-auto text-primary animate-spin" />
-                <p className="font-bold">Approve the M-Pesa prompt on your phone.</p>
-                <p className="text-sm text-muted-foreground">{payheroStatus.data?.message || "Waiting for payment confirmation."}</p>
+                <p className="font-bold">Checking your M-Pesa payment…</p>
+                <p className="text-sm text-muted-foreground">{payheroStatus.data?.message || "We’ll update your wallet as soon as payment is confirmed."}</p>
                 {payheroStatus.data && <p className="font-display text-xl font-extrabold">{money(payheroStatus.data.amount)}</p>}
+                <button type="button" onClick={() => payheroStatus.refetch()} className="text-sm font-semibold text-primary underline-offset-4 hover:underline" data-testid="button-check-mpesa">I’ve paid — check now</button>
               </>
             )}
           </div>
@@ -143,6 +147,7 @@ export function TopUpDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <div className="mx-auto grid h-16 w-16 place-items-center rounded-full border-4 border-[hsl(142_72%_50%)] pop"><Check className="h-8 w-8 text-win" strokeWidth={3} /></div>
             <p className="font-display text-2xl font-extrabold mt-3">Payment Successful</p>
             <p className="text-sm text-muted-foreground mt-1">{confirmedAmount === null ? "Your balance has been updated." : `${money(confirmedAmount)} has been added to your wallet.`}</p>
+            {confirmedBalance !== null && <p className="text-sm font-semibold mt-1" data-testid="text-confirmed-balance">New wallet balance: {money(confirmedBalance)}</p>}
             <p className="text-xs text-muted-foreground mt-3">Returning to Home…</p>
             <button type="button" onClick={() => { onOpenChange(false); setLocation("/"); }} className="btn-blue w-full mt-4 rounded-xl py-3 font-bold" data-testid="button-mpesa-home">Go to Home</button>
           </div>

@@ -50,7 +50,7 @@ export function TipsPage() {
   const avail = (t.data ?? []).filter((p) => !p.purchased);
   return (
     <AppShell>
-      <PageHeader title="Premium Tips" subtitle="Packages and the picks you've unlocked. Sample matches only — no live stats." />
+      <PageHeader title="Premium Tips" subtitle="Packages and the picks you've unlocked. Match information is illustrative; live stats aren’t connected." />
       {t.isLoading ? <div className="grid md:grid-cols-2 gap-4"><Sk className="h-56" /><Sk className="h-56" /></div>
         : t.error ? <ErrorCard message={errMsg(t.error)} onRetry={() => t.refetch()} /> : (
           <div className="space-y-8">
@@ -115,7 +115,7 @@ export function PurchasePage() {
                   <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
                 </dl>
-                {pkg.isSample && <p className="text-xs text-muted-foreground mt-3">This package contains sample matches for demonstration.</p>}
+                {pkg.isSample && <p className="text-xs text-muted-foreground mt-3">Match details are illustrative; live stats aren’t connected.</p>}
                 {purchase.error && <p className="mt-3 text-sm text-loss" data-testid="text-purchase-error">{errMsg(purchase.error)}</p>}
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
