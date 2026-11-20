@@ -15,6 +15,7 @@ import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pag
 import DepositReviewsPage from "@/pages/deposit-reviews";
 import { AppShell } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
+import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 
@@ -164,19 +165,7 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
   }, [qc, attempt]);
 
   if (state === "ready") return <>{children}</>;
-  return (
-    <div className="min-h-[100dvh] grid place-items-center">
-      <div className="text-center">
-        <Logo className={`h-20 w-20 mx-auto ${state === "loading" ? "animate-pulse" : ""}`} />
-        {state === "error" ? (
-          <>
-            <p className="mt-4 font-semibold">Could not reach ProBet Tips.</p>
-            <button type="button" onClick={() => { setState("loading"); setAttempt((a) => a + 1); }} className="btn-blue mt-4 rounded-lg px-5 py-2 font-bold" data-testid="button-bootstrap-retry">Try again</button>
-          </>
-        ) : <p className="mt-4 text-sm text-muted-foreground">Loading your wallet...</p>}
-      </div>
-    </div>
-  );
+  return <AppBootstrapScreen state={state} onRetry={() => { setState("loading"); setAttempt((a) => a + 1); }} />;
 }
 
 function WalletRoute() {
