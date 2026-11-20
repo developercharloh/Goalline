@@ -31,12 +31,11 @@ export function AppBootstrapScreen({
         <header className="text-center">
           <div className="relative mx-auto mb-4 grid h-20 w-20 place-items-center rounded-3xl border border-[hsl(43_96%_56%/.42)] bg-[hsl(222_70%_12%)] shadow-[0_0_34px_hsl(217_100%_55%/.22)]">
             <Logo className="h-16 w-16" />
-            <span className="absolute -right-2 -top-2 text-2xl" aria-hidden="true">⚽</span>
           </div>
-          <p className="text-xs font-extrabold uppercase tracking-[.25em] text-[hsl(43_96%_63%)]">Welcome to</p>
+          <p className="text-xs font-extrabold uppercase tracking-[.25em] text-[hsl(43_96%_63%)]">⚽ Welcome to</p>
           <h1 className="mt-1 font-display text-3xl font-black tracking-tight sm:text-4xl">
-            <span className="brand-grad">ProBet </span>
-            <span className="brand-grad-blue">Tips</span>
+            <span className="brand-grad">PRO BET </span>
+            <span className="brand-grad-blue">TIPS</span>
           </h1>
           <p className="mt-2 text-sm font-semibold text-foreground/90 sm:text-base">
             Analysing the game. Predicting the possibilities.
