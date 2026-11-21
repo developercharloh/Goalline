@@ -21,7 +21,7 @@ import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
 import { ADMIN_PORTAL_URL, isAdminPortalHost, shouldRedirectAdminPathToPortal } from "@/lib/portal-host";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
-const APP_BOOTSTRAP_DURATION_MS = 30_000;
+const APP_BOOTSTRAP_DURATION_MS = 10_000;
 
 const configuredClerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const clerkPubKey = configuredClerkPubKey
