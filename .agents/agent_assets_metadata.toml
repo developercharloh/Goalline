@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "pN9c9XPfDLpcTmaux-8su"
+uri = "file://generated-artifacts/probet-tips-android.apk"
+type = "unspecified"
+title = "ProBet Tips Android APK"
+description = "Installable Android app package. It opens the live ProBet Tips website and requires an internet connection."
+logical_id = "210cb17d-0a66-42b3-9ea0-8f464624f02b"
+content_hash = "sha256:d5c816750bdd37ebc8cec13b9636bf310454355b7433421a15d3e9eecb5cc8fc"
+size = 17120
+mtime_ms = 1795273887793
+storage_uri = "gcs://replit-rams-assets-picard/rams/assets/repl:41cd1d98-0792-408d-9489-d6725d4b406c/210cb17d-0a66-42b3-9ea0-8f464624f02b/974456ac-0085-4ebd-812a-91e8b23b150f"
+storage_version_token = "1795273950498268"
+content_type = "application/octet-stream"
