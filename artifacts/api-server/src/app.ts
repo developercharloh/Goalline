@@ -35,7 +35,24 @@ app.set("trust proxy", 1);
 if (clerkConfigured) {
   app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
 }
-app.use(cors({ credentials: true, origin: true }));
+app.use((req, res, next) => {
+  const origin = req.get("origin");
+  const host = req.get("x-forwarded-host") || req.get("host");
+  if (!origin || !host) {
+    next();
+    return;
+  }
+  try {
+    if (new URL(origin).host !== host) {
+      next();
+      return;
+    }
+  } catch {
+    next();
+    return;
+  }
+  cors({ credentials: true, origin: true })(req, res, next);
+});
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required for demo sessions.");
@@ -57,6 +74,7 @@ if (clerkConfigured) {
 }
 
 app.use("/api", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, private");
   if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     next();
     return;

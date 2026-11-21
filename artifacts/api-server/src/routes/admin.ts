@@ -1,4 +1,4 @@
-import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
+import { Router, type IRouter } from "express";
 import { desc, eq, ilike, or } from "drizzle-orm";
 import { accounts, db, tipEntries, tipPackages } from "@workspace/db";
 import {
@@ -17,20 +17,9 @@ import {
 import { randomUUID } from "node:crypto";
 import { publicAccount } from "../lib/account-session.js";
 import { ensureTipCatalogSeed } from "../lib/tip-catalog.js";
+import { requireAdmin } from "../lib/admin-access.js";
 
 const router: IRouter = Router();
-
-function requireAdmin(req: Request, res: Response, next: NextFunction): void {
-  if (!req.probetAccountId) {
-    res.status(401).json({ error: "Sign in to continue." });
-    return;
-  }
-  if (req.probetAccountRole !== "admin") {
-    res.status(403).json({ error: "Administrator access is required." });
-    return;
-  }
-  next();
-}
 
 function normalizePick(pick: { match: string; prediction: string; league: string }) {
   return {
@@ -73,7 +62,7 @@ function isUniqueViolation(error: unknown): boolean {
   return (error as { code?: string })?.code === "23505";
 }
 
-router.use(requireAdmin);
+router.use("/admin", requireAdmin);
 
 router.get("/admin/users", async (req, res): Promise<void> => {
   const query = GetAdminUsersQueryParams.safeParse(req.query);

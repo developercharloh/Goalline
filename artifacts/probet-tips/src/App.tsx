@@ -4,7 +4,7 @@ import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, Redirect, useLocation, Router as WouterRouter } from "wouter";
-import { getGetAuthMeQueryKey, getGetDashboardQueryKey, useGetAuthMe } from "@workspace/api-client-react";
+import { getGetDashboardQueryKey, useGetAuthMe } from "@workspace/api-client-react";
 import type { Dashboard } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";

@@ -2,6 +2,7 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { eq, sql } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { accounts, accountSessions, db } from "@workspace/db";
+import { clerkClient, getAuth } from "@clerk/express";
 import {
   BootstrapAdminBody,
   BootstrapAdminResponse,
@@ -143,6 +144,12 @@ router.post("/auth/signin", signInLimit, async (req, res): Promise<void> => {
 });
 
 router.post("/auth/signout", async (req, res): Promise<void> => {
+  if (process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY) {
+    const legacyAuth = getAuth(req);
+    if (legacyAuth.sessionId) {
+      await clerkClient.sessions.revokeSession(legacyAuth.sessionId);
+    }
+  }
   if (req.probetSessionHash) {
     await db.delete(accountSessions).where(eq(accountSessions.tokenHash, req.probetSessionHash));
   }

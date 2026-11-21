@@ -9,7 +9,8 @@ Football-tip packages, a top-up-only wallet, ChatBase, and transaction history, 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required env: `DATABASE_URL`, `SESSION_SECRET`
+- `ADMIN_BOOTSTRAP_TOKEN` enables private one-time setup of the initial administrator; configure it in each environment before the first admin is created.
 - Vercel production: `PAYHERO_AUTH_TOKEN` is required for M-Pesa Express; `PAYHERO_CHANNEL_ID` is optional when the account has exactly one active M-Pesa channel.
 - Vercel production uses the external Neon database. Vercel deploys do not migrate its schema; apply and verify each required production schema change in Neon before deploying code that depends on it. Never point the development `db push` command at production.
 
@@ -30,6 +31,10 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 - Signed-out visitors can explore a clearly labeled $25 demo wallet. Demo credits are not money and never transfer into real accounts.
 - Real accounts start at $0. Sample tip packages are never sold for real money.
+- New accounts use email/password with no verification codes; username, full name, phone and country are stored as unverified profile details.
+- Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
+- Admin roles are server-enforced. Only the first-account bootstrap route can create an admin, and it requires `ADMIN_BOOTSTRAP_TOKEN`; sign-up cannot set a role.
+- Admin-managed packages and picks are stored in `probet_tip_packages` / `probet_tip_entries`. Archive packages instead of deleting them so existing purchasers retain access.
 - Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
 - PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.
 - The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
@@ -38,7 +43,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Product
 
-Responsive dashboard, Clerk signup/login, package purchase confirmation and success, unlocked sample tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
+Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and tip packages, package purchase confirmation and success, unlocked tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
 Do not configure Replit AI Integrations. Select an external AI provider with the user before enabling ChatBase. The user does not have an OpenAI API key; do not ask for one.
 No live sports feed is connected; supplied football matches are labeled as samples.
 

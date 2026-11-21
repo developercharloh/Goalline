@@ -35,6 +35,7 @@ function AppShellFrame({
   account?: { username: string; fullName: string; role: "user" | "admin" } | null;
 }) {
   const isActive = useActive();
+  const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const signOut = useSignOut();
   const name = account?.fullName || displayName || email || "Member";
@@ -44,7 +45,7 @@ function AppShellFrame({
     signOut.mutate(undefined, {
       onSuccess: () => {
         queryClient.clear();
-        window.location.assign("/");
+        setLocation("/");
       },
     });
   }
@@ -97,7 +98,14 @@ function AppShellFrame({
       <div className="flex-1 min-w-0 pb-10">
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b border-border/50">
           <Link href="/dashboard" className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
-          {!authenticated && <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>}
+          {!authenticated ? (
+            <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link href="/profile" aria-label="My profile" className="rounded-lg p-2 text-primary hover:bg-secondary" data-testid="link-header-profile"><UserRound className="h-5 w-5" /></Link>
+              <button type="button" onClick={handleSignOut} disabled={signOut.isPending} aria-label="Sign out" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:opacity-50" data-testid="button-header-signout"><LogOut className="h-5 w-5" /></button>
+            </div>
+          )}
         </header>
         <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
           className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-[hsl(225_70%_8%/.95)] px-2 py-1.5 backdrop-blur">
