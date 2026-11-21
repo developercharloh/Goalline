@@ -18,6 +18,7 @@ import {
 import { Archive, Check, FilePlus2, Search, Shield, Users, Gem } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { errMsg, money } from "@/lib/probet";
+import { USER_APP_URL } from "@/lib/portal-host";
 
 type AdminTab = "tips" | "users";
 
@@ -280,15 +281,15 @@ export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>("tips");
   const heading = useMemo(() => tab === "tips" ? "Tips" : "Profiles", [tab]);
 
-  if (auth.isLoading) return <AppShell><Sk className="h-20" /></AppShell>;
-  if (auth.error) return <AppShell><ErrorCard message={errMsg(auth.error)} onRetry={() => auth.refetch()} /></AppShell>;
+  if (auth.isLoading) return <AppShell adminPortal><Sk className="h-20" /></AppShell>;
+  if (auth.error) return <AppShell adminPortal><ErrorCard message={errMsg(auth.error)} onRetry={() => auth.refetch()} /></AppShell>;
   if (!auth.data?.account) return <Redirect to="/sign-in?returnTo=%2Fadmin" />;
   if (auth.data.account.role !== "admin") {
-    return <AppShell title="Admin access"><div className="glass max-w-xl rounded-3xl p-8 text-center"><Shield className="mx-auto h-10 w-10 text-gold" /><h1 className="font-display text-2xl font-extrabold mt-3">Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account cannot manage users or tip packages.</p><Link href="/profile" className="btn-blue inline-block mt-5 rounded-xl px-5 py-2.5 font-bold">Back to profile</Link></div></AppShell>;
+    return <AppShell title="Admin access" adminPortal><div className="glass max-w-xl rounded-3xl p-8 text-center"><Shield className="mx-auto h-10 w-10 text-gold" /><h1 className="font-display text-2xl font-extrabold mt-3">Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account cannot manage users or tip packages.</p><a href={`${USER_APP_URL}/profile`} className="btn-blue inline-block mt-5 rounded-xl px-5 py-2.5 font-bold">Open user profile</a></div></AppShell>;
   }
 
   return (
-    <AppShell title="Admin portal">
+    <AppShell title="Admin portal" adminPortal>
       <PageHeader title="Admin Portal" subtitle="Manage user profiles and premium tip packages." />
       <div className="mb-5 flex gap-2 rounded-2xl border border-border bg-background/40 p-1.5" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" aria-selected={tab === "tips"} onClick={() => setTab("tips")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "tips" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-tips"><Gem className="h-4 w-4" />Tip packages</button>

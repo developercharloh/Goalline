@@ -4,6 +4,7 @@ import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield } fr
 import { useGetAuthMe, useSignOut } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo, Wordmark } from "@/components/brand";
+import { ADMIN_PORTAL_URL } from "@/lib/portal-host";
 
 const NAV = [
   { href: "/dashboard", label: "Home", icon: Home },
@@ -26,6 +27,7 @@ function AppShellFrame({
   email,
   guestPreview = false,
   account,
+  adminPortal = false,
 }: {
   children: ReactNode;
   title?: string;
@@ -33,6 +35,7 @@ function AppShellFrame({
   email?: string;
   guestPreview?: boolean;
   account?: { username: string; fullName: string; role: "user" | "admin" } | null;
+  adminPortal?: boolean;
 }) {
   const isActive = useActive();
   const [, setLocation] = useLocation();
@@ -53,12 +56,16 @@ function AppShellFrame({
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur sticky top-0 h-[100dvh] p-5">
-        <Link href="/dashboard" className="flex items-center gap-2 mb-8" data-testid="link-logo">
+        <Link href={adminPortal ? "/" : "/dashboard"} className="flex items-center gap-2 mb-8" data-testid="link-logo">
           <Logo className="h-11 w-11" />
           <Wordmark size="sm" />
         </Link>
         <nav className="flex flex-col gap-1">
-          {NAV.map((n) => {
+          {adminPortal ? (
+            <Link href="/" className="btn-blue flex items-center gap-3 rounded-xl px-3 py-2.5 font-semibold" data-testid="link-nav-admin">
+              <Shield className="h-[18px] w-[18px]" />Admin portal
+            </Link>
+          ) : NAV.map((n) => {
             const a = isActive(n.href);
             return (
               <Link key={n.href} href={n.href} data-testid={`link-nav-${n.label.toLowerCase()}`}
@@ -74,12 +81,12 @@ function AppShellFrame({
               <div className="font-bold truncate">{name}</div>
               {account && <div className="text-xs text-muted-foreground">@{account.username}</div>}
               <div className="mt-3 grid gap-2">
-                <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" data-testid="link-profile">
+                {!adminPortal && <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" data-testid="link-profile">
                   <UserRound className="h-4 w-4" />My profile
-                </Link>
-                {account?.role === "admin" && <Link href="/admin" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-gold hover:bg-sidebar-accent" data-testid="link-admin">
-                  <Shield className="h-4 w-4" />Admin portal
                 </Link>}
+                {account?.role === "admin" && !adminPortal && <a href={ADMIN_PORTAL_URL} className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-gold hover:bg-sidebar-accent" data-testid="link-admin">
+                  <Shield className="h-4 w-4" />Admin portal
+                </a>}
                 <button type="button" onClick={handleSignOut} disabled={signOut.isPending} className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground disabled:opacity-50" data-testid="button-signout">
                   <LogOut className="h-4 w-4" />{signOut.isPending ? "Signing out…" : "Sign out"}
                 </button>
@@ -97,17 +104,17 @@ function AppShellFrame({
 
       <div className="flex-1 min-w-0 pb-10">
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b border-border/50">
-          <Link href="/dashboard" className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
+          <Link href={adminPortal ? "/" : "/dashboard"} className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
           {!authenticated ? (
             <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>
           ) : (
             <div className="flex items-center gap-2">
-              <Link href="/profile" aria-label="My profile" className="rounded-lg p-2 text-primary hover:bg-secondary" data-testid="link-header-profile"><UserRound className="h-5 w-5" /></Link>
+              {!adminPortal && <Link href="/profile" aria-label="My profile" className="rounded-lg p-2 text-primary hover:bg-secondary" data-testid="link-header-profile"><UserRound className="h-5 w-5" /></Link>}
               <button type="button" onClick={handleSignOut} disabled={signOut.isPending} aria-label="Sign out" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:opacity-50" data-testid="button-header-signout"><LogOut className="h-5 w-5" /></button>
             </div>
           )}
         </header>
-        <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
+        {!adminPortal && <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
           className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-[hsl(225_70%_8%/.95)] px-2 py-1.5 backdrop-blur">
           {MOBILE_NAV.map((n) => {
             const a = isActive(n.href);
@@ -119,7 +126,7 @@ function AppShellFrame({
               </Link>
             );
           })}
-        </nav>
+        </nav>}
         {title && <h1 className="sr-only">{title}</h1>}
         <main className="mx-auto max-w-5xl px-4 md:px-8 pt-5 md:pt-10">{children}</main>
       </div>
@@ -128,9 +135,9 @@ function AppShellFrame({
   );
 }
 
-export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+export function AppShell({ children, title, adminPortal = false }: { children: ReactNode; title?: string; adminPortal?: boolean }) {
   const { data } = useGetAuthMe();
-  return <AppShellFrame title={title} account={data?.account}>{children}</AppShellFrame>;
+  return <AppShellFrame title={title} account={data?.account} adminPortal={adminPortal}>{children}</AppShellFrame>;
 }
 
 export function PageHeader({ title, subtitle, back }: { title: string; subtitle?: string; back?: string }) {

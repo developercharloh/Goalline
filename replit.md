@@ -34,6 +34,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 - New accounts use email/password with no verification codes. Users can sign in with email or username; username, full name, phone and country are stored as unverified profile details.
 - Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
 - Admin roles are server-enforced. The reserved username `admin` cannot be claimed through public sign-up; public sign-up cannot set a role. Provision the first administrator through a private, secure setup.
+- Vercel production serves the admin portal on `admin-probet-tips.vercel.app`; the user site redirects `/admin` to that host, and admin APIs remain role-protected.
 - Admin-managed packages and picks are stored in `probet_tip_packages` / `probet_tip_entries`. Archive packages instead of deleting them so existing purchasers retain access.
 - Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
 - PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.

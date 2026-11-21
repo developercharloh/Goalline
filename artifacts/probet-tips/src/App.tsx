@@ -18,6 +18,7 @@ import DepositReviewsPage from "@/pages/deposit-reviews";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { Logo } from "@/components/brand";
 import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
+import { ADMIN_PORTAL_URL, isAdminPortalHost, shouldRedirectAdminPathToPortal } from "@/lib/portal-host";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
 const APP_BOOTSTRAP_DURATION_MS = 30_000;
@@ -117,8 +118,6 @@ function ClerkQueryClientCacheInvalidator() {
 }
 
 function HomeRoute() {
-  const { data } = useGetAuthMe();
-  if (data?.account?.role === "admin") return <Redirect to="/admin" />;
   return <Redirect to="/dashboard" />;
 }
 
@@ -189,13 +188,26 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
   const auth = useGetAuthMe();
   const [location] = useLocation();
   const path = location.split("?")[0];
+  const adminPath = path === "/admin" || path.startsWith("/admin/");
+  const adminPortalHost = isAdminPortalHost();
+  const redirectToAdminPortal = adminPath && shouldRedirectAdminPathToPortal();
   const isPublicAuthRoute = ["/sign-in", "/sign-up", "/legacy-sign-in"]
     .some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+
+  useEffect(() => {
+    if (redirectToAdminPortal) window.location.replace(ADMIN_PORTAL_URL);
+  }, [redirectToAdminPortal]);
+
+  if (redirectToAdminPortal) {
+    return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Opening the Admin portal…</div>;
+  }
+  if (adminPortalHost && adminPath) return <Redirect to="/" />;
+  if (adminPortalHost && path !== "/" && !isPublicAuthRoute) return <Redirect to="/" />;
 
   if (auth.isLoading) return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Checking your account…</div>;
   if (auth.error) {
     return (
-      <AppShell title="Account access">
+      <AppShell title="Account access" adminPortal={adminPortalHost}>
         <ErrorCard message="Could not verify your sign-in. Please try again." onRetry={() => void auth.refetch()} />
       </AppShell>
     );
@@ -207,7 +219,7 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
 
   return (
     <Switch>
-      <Route path="/" component={HomeRoute} />
+      <Route path="/" component={adminPortalHost ? AdminPage : HomeRoute} />
       <Route path="/sign-in/*?" component={CredentialSignInPage} />
       <Route path="/sign-up/*?" component={CredentialSignUpPage} />
       <Route path="/legacy-sign-in/*?" component={legacyAvailable ? LegacySignInPage : AccountUnavailablePage} />

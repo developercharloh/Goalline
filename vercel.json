@@ -10,6 +10,28 @@
       "dest": "/api/index.js"
     },
     {
+      "src": "/admin(?:/.*)?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^probet-tips\\.vercel\\.app$"
+        }
+      ],
+      "status": 308,
+      "dest": "https://admin-probet-tips.vercel.app/"
+    },
+    {
+      "src": "/admin(?:/.*)?",
+      "has": [
+        {
+          "type": "host",
+          "value": "^admin-probet-tips\\.vercel\\.app$"
+        }
+      ],
+      "status": 308,
+      "dest": "https://admin-probet-tips.vercel.app/"
+    },
+    {
       "handle": "filesystem"
     },
     {

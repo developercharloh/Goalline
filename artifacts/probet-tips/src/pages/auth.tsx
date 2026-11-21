@@ -9,6 +9,7 @@ import {
 import { AlertCircle, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { Logo, Wordmark } from "@/components/brand";
 import { errMsg } from "@/lib/probet";
+import { isAdminPortalHost } from "@/lib/portal-host";
 
 function AuthFrame({ children, title }: { children: ReactNode; title: string }) {
   return (
@@ -172,7 +173,7 @@ export function SignInPage() {
       onSuccess: (result) => {
         queryClient.setQueryData(getGetAuthMeQueryKey(), { account: result.account, legacySession: false });
         queryClient.invalidateQueries();
-        setLocation(requestedReturnTo ? returnTo : result.account.role === "admin" ? "/admin" : returnTo);
+        setLocation(requestedReturnTo ? returnTo : isAdminPortalHost() ? "/" : returnTo);
       },
     });
   }
