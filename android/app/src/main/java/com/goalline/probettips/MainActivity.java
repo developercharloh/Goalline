@@ -124,11 +124,9 @@ public final class MainActivity extends Activity {
             }
         });
 
-        if (savedInstanceState == null) {
-            webView.loadUrl(APP_URL);
-        } else {
-            webView.restoreState(savedInstanceState);
-        }
+        // Keep web features current after Vercel deployments without requiring an APK update.
+        webView.clearCache(true);
+        webView.loadUrl(APP_URL);
     }
 
     private void openExternal(Uri uri) {

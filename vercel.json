@@ -4,6 +4,25 @@
   "installCommand": "pnpm install --frozen-lockfile",
   "buildCommand": "pnpm --filter @workspace/api-server run build && pnpm --filter @workspace/probet-tips run build",
   "outputDirectory": "artifacts/probet-tips/dist/public",
+  "headers": [
+    {
+      "source": "/downloads/probet-tips.apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"probet-tips.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/api(?:/.*)?",
