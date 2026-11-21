@@ -77,7 +77,14 @@ export function WalletPage({ accountLinkContent }: { accountLinkContent?: ReactN
 }
 
 export function TipsPage() {
-  const t = useGetTips();
+  const t = useGetTips({
+    query: {
+      refetchOnMount: "always",
+      refetchOnWindowFocus: true,
+      refetchInterval: 15_000,
+      refetchIntervalInBackground: false,
+    },
+  });
   const owned = (t.data ?? []).filter((p) => p.purchased);
   const avail = (t.data ?? []).filter((p) => !p.purchased);
   return (
