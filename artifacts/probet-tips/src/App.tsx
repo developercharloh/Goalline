@@ -212,6 +212,9 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
       </AppShell>
     );
   }
+  if (!adminPortalHost && path === "/" && !auth.data?.account) {
+    return <Redirect to="/sign-up" />;
+  }
   if (!isPublicAuthRoute && !auth.data?.account) {
     const returnTo = `${window.location.pathname}${window.location.search}`;
     return <Redirect to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} />;

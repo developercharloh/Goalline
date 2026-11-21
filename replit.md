@@ -31,7 +31,8 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 - All dashboard, wallet, tip, chat, purchase, profile, and admin data requires a signed-in account. Only sign-in, sign-up, health checks, and provider callbacks remain public.
 - Real accounts start at $0. Sample tip packages are never sold for real money.
-- New accounts use email/password with no verification codes. Users can sign in with email or username; username, full name, phone and country are stored as unverified profile details.
+- New accounts use email/password with a four-character minimum and no verification step; after sign-up, users sign in separately. Users can sign in with email or username; username, full name, phone and country are stored as unverified profile details.
+- On the user site, signed-out visitors opening `/` go to sign-up; signed-in visitors go to the dashboard. The separate admin host keeps its own sign-in flow.
 - Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
 - Admin roles are server-enforced. The reserved username `admin` cannot be claimed through public sign-up; public sign-up cannot set a role. Provision the first administrator through a private, secure setup.
 - Vercel production serves the admin portal on `admin-probet-tips.vercel.app`; the user site redirects `/admin` to that host, and admin APIs remain role-protected.

@@ -105,18 +105,12 @@ router.post("/auth/signup", signUpLimit, async (req, res): Promise<void> => {
   const passwordHash = await hashPassword(input.password);
   const id = randomUUID();
   try {
-    const { account, token } = await db.transaction(async (tx) => {
-      const [created] = await tx.insert(accounts).values({
-        id,
-        email,
-        passwordHash,
-        ...profile,
-      }).returning();
-      const { token, session } = createSessionRecord(created.id);
-      await tx.insert(accountSessions).values(session);
-      return { account: created, token };
-    });
-    setSessionCookie(req, res, token);
+    const [account] = await db.insert(accounts).values({
+      id,
+      email,
+      passwordHash,
+      ...profile,
+    }).returning();
     res.status(201).json(SignUpResponse.parse({ account: publicAccount(account) }));
   } catch (error) {
     if ((error as { code?: string }).code === "23505") {

@@ -6,12 +6,12 @@ import {
   useSignIn,
   useSignUp,
 } from "@workspace/api-client-react";
-import { AlertCircle, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { Logo, Wordmark } from "@/components/brand";
 import { errMsg } from "@/lib/probet";
 import { isAdminPortalHost } from "@/lib/portal-host";
 
-function AuthFrame({ children, title }: { children: ReactNode; title: string }) {
+function AuthFrame({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
   return (
     <main className="min-h-[100dvh] grid lg:grid-cols-2">
       <section className="hidden lg:flex flex-col justify-center items-center gap-6 p-12 relative overflow-hidden">
@@ -25,7 +25,7 @@ function AuthFrame({ children, title }: { children: ReactNode; title: string }) 
           <div className="text-center mb-6">
             <Logo className="h-14 w-14 mx-auto lg:hidden" />
             <h1 className="font-display text-3xl font-extrabold mt-2">{title}</h1>
-            <p className="text-sm text-muted-foreground mt-2">Use your email or username and password. No verification codes.</p>
+            <p className="text-sm text-muted-foreground mt-2">{subtitle}</p>
           </div>
           {children}
         </div>
@@ -60,25 +60,44 @@ function Field({
   minLength?: number;
   maxLength?: number;
 }) {
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const isPassword = type === "password";
+  const inputType = isPassword && passwordVisible ? "text" : type;
+  const inputId = `auth-${name}`;
   const icons = name === "email" || name === "identifier" ? <Mail className="h-4 w-4" /> : name === "username" || name === "fullName" ? <UserRound className="h-4 w-4" /> : name.includes("password") ? <LockKeyhole className="h-4 w-4" /> : null;
   return (
-    <label className="grid gap-1.5 text-sm font-semibold">
-      {label}
+    <div className="grid gap-1.5 text-sm font-semibold">
+      <label htmlFor={inputId}>{label}</label>
       <span className="relative flex items-center">
-        {icons && <span className="absolute left-3 text-muted-foreground">{icons}</span>}
+        {icons && <span aria-hidden="true" className="absolute left-3 text-muted-foreground">{icons}</span>}
         <input
+          id={inputId}
           name={name}
-          type={type}
+          type={inputType}
           autoComplete={autoComplete}
           placeholder={placeholder}
           required
           minLength={minLength}
           maxLength={maxLength}
-          className={`w-full rounded-xl border border-border bg-background/70 py-3 ${icons ? "pl-10" : "px-3"} pr-3 outline-none focus:border-primary`}
+          className={`w-full rounded-xl border border-border bg-background/70 py-3 ${icons ? "pl-10" : "pl-3"} ${isPassword ? "pr-12" : "pr-3"} outline-none focus:border-primary`}
           data-testid={`input-${name}`}
         />
+        {isPassword && (
+          <button
+            type="button"
+            aria-label={passwordVisible ? "Hide password" : "Show password"}
+            aria-pressed={passwordVisible}
+            title={passwordVisible ? "Hide password" : "Show password"}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => setPasswordVisible((visible) => !visible)}
+            className="absolute right-2 grid h-9 w-9 place-items-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            data-testid={`toggle-${name}-visibility`}
+          >
+            {passwordVisible ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
+          </button>
+        )}
       </span>
-    </label>
+    </div>
   );
 }
 
@@ -112,16 +131,16 @@ export function SignUpPage() {
         confirmPassword,
       },
     }, {
-      onSuccess: (result) => {
-        queryClient.setQueryData(getGetAuthMeQueryKey(), { account: result.account, legacySession: false });
-        queryClient.invalidateQueries();
-        setLocation(returnTo);
+      onSuccess: () => {
+        queryClient.setQueryData(getGetAuthMeQueryKey(), { account: null, legacySession: false });
+        void queryClient.invalidateQueries({ queryKey: getGetAuthMeQueryKey() });
+        setLocation(`/sign-in?returnTo=${encodeURIComponent(returnTo)}&created=1`);
       },
     });
   }
 
   return (
-    <AuthFrame title="Create Account">
+    <AuthFrame title="Create Account" subtitle="Enter your details to create an account.">
       <form onSubmit={submit} className="grid gap-4" data-testid="form-signup">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Full name" name="fullName" autoComplete="name" minLength={2} maxLength={100} />
@@ -133,8 +152,8 @@ export function SignUpPage() {
           <Field label="Country" name="country" autoComplete="country-name" minLength={2} maxLength={80} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Password" name="password" type="password" autoComplete="new-password" minLength={10} maxLength={128} />
-          <Field label="Confirm password" name="confirmPassword" type="password" autoComplete="new-password" minLength={10} maxLength={128} />
+          <Field label="Password" name="password" type="password" autoComplete="new-password" minLength={4} maxLength={128} />
+          <Field label="Confirm password" name="confirmPassword" type="password" autoComplete="new-password" minLength={4} maxLength={128} />
         </div>
         <FormError message={validationError || (signUp.error ? errMsg(signUp.error) : "")} />
         <button disabled={signUp.isPending} className="btn-blue rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-signup">
@@ -160,6 +179,7 @@ export function SignInPage() {
   const params = new URLSearchParams(window.location.search);
   const requestedReturnTo = params.get("returnTo");
   const returnTo = safeReturnTo(requestedReturnTo);
+  const accountCreated = params.get("created") === "1";
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -179,8 +199,9 @@ export function SignInPage() {
   }
 
   return (
-    <AuthFrame title="Welcome Back">
+    <AuthFrame title="Welcome Back" subtitle="Sign in with your email or username and password.">
       <form onSubmit={submit} className="grid gap-4" data-testid="form-signin">
+        {accountCreated && <p className="rounded-xl border border-win/30 bg-win/10 p-3 text-sm text-win" role="status">Account created. Sign in to continue.</p>}
         <Field label="Email or username" name="identifier" autoComplete="username" placeholder="Email address or username" maxLength={254} />
         <Field label="Password" name="password" type="password" autoComplete="current-password" minLength={1} maxLength={128} />
         <FormError message={signIn.error ? errMsg(signIn.error) : ""} />

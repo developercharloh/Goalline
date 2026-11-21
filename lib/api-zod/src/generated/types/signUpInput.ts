@@ -10,12 +10,12 @@ export interface SignUpInput {
   /** @maxLength 254 */
   email: string;
   /**
-     * @minLength 10
+     * @minLength 4
      * @maxLength 128
      */
   password: string;
   /**
-     * @minLength 10
+     * @minLength 4
      * @maxLength 128
      */
   confirmPassword: string;

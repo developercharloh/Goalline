@@ -10,10 +10,10 @@ import * as zod from 'zod';
 
 export const signUpBodyEmailMax = 254;
 
-export const signUpBodyPasswordMin = 10;
+export const signUpBodyPasswordMin = 4;
 export const signUpBodyPasswordMax = 128;
 
-export const signUpBodyConfirmPasswordMin = 10;
+export const signUpBodyConfirmPasswordMin = 4;
 export const signUpBodyConfirmPasswordMax = 128;
 
 export const signUpBodyUsernameMin = 3;
