@@ -78,12 +78,13 @@ async function tipsFor(owner: string) {
   return rows.map((pack) => {
     const purchased = ownedIds.includes(pack.id);
     const matches = entries.filter((entry) => entry.packageId === pack.id).flatMap((entry) => {
-      if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || entry.odds == null) return [];
+      if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || !entry.selection || entry.odds == null) return [];
       return [{
         matchDate: entry.matchDate,
         kickoff: entry.kickoff.slice(0, 5),
         homeTeam: entry.homeTeam,
         awayTeam: entry.awayTeam,
+        selection: entry.selection,
         odds: entry.odds,
       }];
     });
@@ -221,6 +222,7 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
       isNotNull(tipEntries.kickoff),
       isNotNull(tipEntries.homeTeam),
       isNotNull(tipEntries.awayTeam),
+      isNotNull(tipEntries.selection),
       isNotNull(tipEntries.odds),
     )).limit(1);
   if (!availableMatch) {

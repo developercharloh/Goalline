@@ -237,6 +237,8 @@ export const getAdminTipPackagesResponseMatchesItemHomeTeamMax = 120;
 
 export const getAdminTipPackagesResponseMatchesItemAwayTeamMax = 120;
 
+export const getAdminTipPackagesResponseMatchesItemSelectionMax = 120;
+
 export const getAdminTipPackagesResponseMatchesItemOddsMin = 1.01;
 export const getAdminTipPackagesResponseMatchesItemOddsMax = 100000;
 export const getAdminTipPackagesResponseMatchesItemOddsMultipleOf = 0.01;
@@ -258,6 +260,7 @@ export const GetAdminTipPackagesResponseItem = zod.object({
   "kickoff": zod.string().regex(getAdminTipPackagesResponseMatchesItemKickoffRegExp),
   "homeTeam": zod.string().min(1).max(getAdminTipPackagesResponseMatchesItemHomeTeamMax),
   "awayTeam": zod.string().min(1).max(getAdminTipPackagesResponseMatchesItemAwayTeamMax),
+  "selection": zod.string().min(1).max(getAdminTipPackagesResponseMatchesItemSelectionMax),
   "odds": zod.number().min(getAdminTipPackagesResponseMatchesItemOddsMin).max(getAdminTipPackagesResponseMatchesItemOddsMax).multipleOf(getAdminTipPackagesResponseMatchesItemOddsMultipleOf)
 })),
   "createdAt": zod.coerce.date(),
@@ -283,6 +286,8 @@ export const updateAdminTipPackageBodyMatchesItemHomeTeamMax = 120;
 
 export const updateAdminTipPackageBodyMatchesItemAwayTeamMax = 120;
 
+export const updateAdminTipPackageBodyMatchesItemSelectionMax = 120;
+
 export const updateAdminTipPackageBodyMatchesItemOddsMin = 1.01;
 export const updateAdminTipPackageBodyMatchesItemOddsMax = 100000;
 export const updateAdminTipPackageBodyMatchesItemOddsMultipleOf = 0.01;
@@ -299,6 +304,7 @@ export const UpdateAdminTipPackageBody = zod.object({
   "kickoff": zod.string().regex(updateAdminTipPackageBodyMatchesItemKickoffRegExp),
   "homeTeam": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemHomeTeamMax),
   "awayTeam": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemAwayTeamMax),
+  "selection": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemSelectionMax),
   "odds": zod.number().min(updateAdminTipPackageBodyMatchesItemOddsMin).max(updateAdminTipPackageBodyMatchesItemOddsMax).multipleOf(updateAdminTipPackageBodyMatchesItemOddsMultipleOf)
 })).min(1).max(updateAdminTipPackageBodyMatchesMax)
 })
@@ -310,6 +316,8 @@ export const updateAdminTipPackageResponseMatchesItemKickoffRegExp = new RegExp(
 export const updateAdminTipPackageResponseMatchesItemHomeTeamMax = 120;
 
 export const updateAdminTipPackageResponseMatchesItemAwayTeamMax = 120;
+
+export const updateAdminTipPackageResponseMatchesItemSelectionMax = 120;
 
 export const updateAdminTipPackageResponseMatchesItemOddsMin = 1.01;
 export const updateAdminTipPackageResponseMatchesItemOddsMax = 100000;
@@ -332,6 +340,7 @@ export const UpdateAdminTipPackageResponse = zod.object({
   "kickoff": zod.string().regex(updateAdminTipPackageResponseMatchesItemKickoffRegExp),
   "homeTeam": zod.string().min(1).max(updateAdminTipPackageResponseMatchesItemHomeTeamMax),
   "awayTeam": zod.string().min(1).max(updateAdminTipPackageResponseMatchesItemAwayTeamMax),
+  "selection": zod.string().min(1).max(updateAdminTipPackageResponseMatchesItemSelectionMax),
   "odds": zod.number().min(updateAdminTipPackageResponseMatchesItemOddsMin).max(updateAdminTipPackageResponseMatchesItemOddsMax).multipleOf(updateAdminTipPackageResponseMatchesItemOddsMultipleOf)
 })),
   "createdAt": zod.coerce.date(),
@@ -346,6 +355,8 @@ export const getDashboardResponsePackagesItemMatchesItemKickoffRegExp = new RegE
 export const getDashboardResponsePackagesItemMatchesItemHomeTeamMax = 120;
 
 export const getDashboardResponsePackagesItemMatchesItemAwayTeamMax = 120;
+
+export const getDashboardResponsePackagesItemMatchesItemSelectionMax = 120;
 
 export const getDashboardResponsePackagesItemMatchesItemOddsMin = 1.01;
 export const getDashboardResponsePackagesItemMatchesItemOddsMax = 100000;
@@ -378,6 +389,7 @@ export const GetDashboardResponse = zod.object({
   "kickoff": zod.string().regex(getDashboardResponsePackagesItemMatchesItemKickoffRegExp),
   "homeTeam": zod.string().min(1).max(getDashboardResponsePackagesItemMatchesItemHomeTeamMax),
   "awayTeam": zod.string().min(1).max(getDashboardResponsePackagesItemMatchesItemAwayTeamMax),
+  "selection": zod.string().min(1).max(getDashboardResponsePackagesItemMatchesItemSelectionMax),
   "odds": zod.number().min(getDashboardResponsePackagesItemMatchesItemOddsMin).max(getDashboardResponsePackagesItemMatchesItemOddsMax).multipleOf(getDashboardResponsePackagesItemMatchesItemOddsMultipleOf)
 }))
 })),
@@ -423,6 +435,8 @@ export const getTipsResponseMatchesItemHomeTeamMax = 120;
 
 export const getTipsResponseMatchesItemAwayTeamMax = 120;
 
+export const getTipsResponseMatchesItemSelectionMax = 120;
+
 export const getTipsResponseMatchesItemOddsMin = 1.01;
 export const getTipsResponseMatchesItemOddsMax = 100000;
 export const getTipsResponseMatchesItemOddsMultipleOf = 0.01;
@@ -444,6 +458,7 @@ export const GetTipsResponseItem = zod.object({
   "kickoff": zod.string().regex(getTipsResponseMatchesItemKickoffRegExp),
   "homeTeam": zod.string().min(1).max(getTipsResponseMatchesItemHomeTeamMax),
   "awayTeam": zod.string().min(1).max(getTipsResponseMatchesItemAwayTeamMax),
+  "selection": zod.string().min(1).max(getTipsResponseMatchesItemSelectionMax),
   "odds": zod.number().min(getTipsResponseMatchesItemOddsMin).max(getTipsResponseMatchesItemOddsMax).multipleOf(getTipsResponseMatchesItemOddsMultipleOf)
 }))
 })

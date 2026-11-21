@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import type { TipPackage } from "@workspace/api-client-react";
 import { money } from "@/lib/probet";
+import { formatMatchSelection } from "@/lib/match-selections";
 
 function formatMatchDate(value: string) {
   const [year, month, day] = value.split("-").map(Number);
@@ -29,6 +30,10 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
                 <p className="min-w-0 font-bold" data-testid={`text-match-teams-${pkg.id}-${index}`}>{match.homeTeam} <span className="text-muted-foreground">vs</span> {match.awayTeam}</p>
                 <p className="shrink-0 text-sm font-extrabold text-gold" data-testid={`text-match-odds-${pkg.id}-${index}`}>{match.odds.toFixed(2)}</p>
               </div>
+              <p className="mt-3 rounded-lg bg-secondary/50 px-3 py-2 text-sm font-semibold" data-testid={`text-match-selection-${pkg.id}-${index}`}>
+                <span className="text-muted-foreground">Selection: </span>
+                {formatMatchSelection(match.selection, match.homeTeam, match.awayTeam)}
+              </p>
             </article>
           ))}
           <div className="rounded-xl border border-border bg-background/40 p-4">

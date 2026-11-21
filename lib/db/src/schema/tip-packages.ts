@@ -24,6 +24,7 @@ export const tipEntries = pgTable("probet_tip_entries", {
   kickoff: time("kickoff"),
   homeTeam: text("home_team"),
   awayTeam: text("away_team"),
+  selection: text("selection"),
   odds: numeric("odds", { precision: 8, scale: 2, mode: "number" }),
 }, (table) => [
   uniqueIndex("probet_tip_entries_package_position_unique").on(table.packageId, table.position),

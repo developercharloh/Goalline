@@ -22,6 +22,11 @@ import { Check, Search, Shield, Users, Gem, Plus, Trash2 } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { Form } from "@/components/ui/form";
 import { errMsg, money } from "@/lib/probet";
+import {
+  CUSTOM_MATCH_SELECTION,
+  isPresetMatchSelection,
+  matchSelectionGroups,
+} from "@/lib/match-selections";
 import { USER_APP_URL } from "@/lib/portal-host";
 
 type AdminTab = "tips" | "users";
@@ -36,10 +41,20 @@ const matchEditorSchema = z.object({
   kickoff: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, "Enter the kickoff time."),
   homeTeam: z.string().trim().min(1, "Enter the home team.").max(120),
   awayTeam: z.string().trim().min(1, "Enter the away team.").max(120),
+  selectionChoice: z.string().min(1, "Choose a prediction selection."),
+  customSelection: z.string().max(120, "Selection must be 120 characters or fewer."),
   odds: z.string()
     .trim()
     .regex(/^\d{1,8}(\.\d{1,2})?$/, "Enter odds with up to two decimal places.")
     .refine((value) => Number(value) >= 1.01 && Number(value) <= 100_000, "Odds must be at least 1.01."),
+}).superRefine((match, context) => {
+  if (match.selectionChoice === CUSTOM_MATCH_SELECTION && !match.customSelection.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["customSelection"],
+      message: "Enter the custom selection.",
+    });
+  }
 });
 
 const packageEditorSchema = z.object({
@@ -54,6 +69,19 @@ function packagePrice(price: number) {
   return price === 0 ? "Free" : money(price);
 }
 
+function toEditorMatch(match: AdminTipPackage["matches"][number]) {
+  const isPreset = isPresetMatchSelection(match.selection);
+  return {
+    matchDate: match.matchDate,
+    kickoff: match.kickoff,
+    homeTeam: match.homeTeam,
+    awayTeam: match.awayTeam,
+    selectionChoice: isPreset ? match.selection : CUSTOM_MATCH_SELECTION,
+    customSelection: isPreset ? "" : match.selection,
+    odds: String(match.odds),
+  };
+}
+
 function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
   const update = useUpdateAdminTipPackage();
   const queryClient = useQueryClient();
@@ -64,13 +92,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
     defaultValues: {
       totalOdds: String(pkg.totalOdds),
       stakeLevel: pkg.stakeLevel,
-      matches: pkg.matches.map((match) => ({
-        matchDate: match.matchDate,
-        kickoff: match.kickoff,
-        homeTeam: match.homeTeam,
-        awayTeam: match.awayTeam,
-        odds: String(match.odds),
-      })),
+      matches: pkg.matches.map(toEditorMatch),
     },
   });
   const matches = useFieldArray({ control: form.control, name: "matches" });
@@ -85,6 +107,9 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
         kickoff: match.kickoff,
         homeTeam: match.homeTeam.trim(),
         awayTeam: match.awayTeam.trim(),
+        selection: match.selectionChoice === CUSTOM_MATCH_SELECTION
+          ? match.customSelection.trim()
+          : match.selectionChoice,
         odds: Number(match.odds),
       })),
     };
@@ -96,13 +121,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
         form.reset({
           totalOdds: String(saved.totalOdds),
           stakeLevel: saved.stakeLevel,
-          matches: saved.matches.map((match) => ({
-            matchDate: match.matchDate,
-            kickoff: match.kickoff,
-            homeTeam: match.homeTeam,
-            awayTeam: match.awayTeam,
-            odds: String(match.odds),
-          })),
+          matches: saved.matches.map(toEditorMatch),
         });
         setFormMessage("Package matches saved.");
       },
@@ -126,7 +145,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
             <h3 className="font-bold">Match details</h3>
             <button
               type="button"
-              onClick={() => matches.append({ matchDate: "", kickoff: "", homeTeam: "", awayTeam: "", odds: "" })}
+              onClick={() => matches.append({ matchDate: "", kickoff: "", homeTeam: "", awayTeam: "", selectionChoice: "", customSelection: "", odds: "" })}
               className="flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary"
               data-testid={`button-add-match-${pkg.id}`}
             >
@@ -156,6 +175,26 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
                     <input maxLength={120} {...form.register(`matches.${index}.awayTeam`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-away-team-${pkg.id}-${index}`} />
                     {errors?.awayTeam?.message && <span className="text-loss">{errors.awayTeam.message}</span>}
                   </label>
+                  <label className="grid gap-1 text-xs font-semibold">Prediction selection
+                    <select {...form.register(`matches.${index}.selectionChoice`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`select-match-selection-${pkg.id}-${index}`}>
+                      <option value="">Choose a selection</option>
+                      {matchSelectionGroups.map((group) => (
+                        <optgroup key={group.label} label={group.label}>
+                          {group.options.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                      <option value={CUSTOM_MATCH_SELECTION}>Other / custom selection</option>
+                    </select>
+                    {errors?.selectionChoice?.message && <span className="text-loss">{errors.selectionChoice.message}</span>}
+                  </label>
+                  {form.watch(`matches.${index}.selectionChoice`) === CUSTOM_MATCH_SELECTION && (
+                    <label className="grid gap-1 text-xs font-semibold">Custom selection
+                      <input maxLength={120} {...form.register(`matches.${index}.customSelection`)} placeholder="Enter the pick for this match" className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-custom-selection-${pkg.id}-${index}`} />
+                      {errors?.customSelection?.message && <span className="text-loss">{errors.customSelection.message}</span>}
+                    </label>
+                  )}
                   <label className="grid gap-1 text-xs font-semibold">Odds
                     <input type="number" min="1.01" max="100000" step="0.01" {...form.register(`matches.${index}.odds`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-match-odds-${pkg.id}-${index}`} />
                     {errors?.odds?.message && <span className="text-loss">{errors.odds.message}</span>}

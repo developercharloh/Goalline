@@ -19,12 +19,13 @@ import { requireAdmin } from "../lib/admin-access.js";
 
 const router: IRouter = Router();
 
-function normalizeMatch(match: { matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; odds: number }) {
+function normalizeMatch(match: { matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; selection: string; odds: number }) {
   return {
     matchDate: match.matchDate,
     kickoff: match.kickoff.slice(0, 5),
     homeTeam: match.homeTeam.trim(),
     awayTeam: match.awayTeam.trim(),
+    selection: match.selection.trim(),
     odds: match.odds,
   };
 }
@@ -36,19 +37,20 @@ function isValidMatchDate(value: string): boolean {
 }
 
 function matchFromEntry(entry: typeof tipEntries.$inferSelect) {
-  if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || entry.odds == null) return null;
+  if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || !entry.selection || entry.odds == null) return null;
   return {
     matchDate: entry.matchDate,
     kickoff: entry.kickoff.slice(0, 5),
     homeTeam: entry.homeTeam,
     awayTeam: entry.awayTeam,
+    selection: entry.selection,
     odds: entry.odds,
   };
 }
 
 function adminPackageResponse(
   pkg: typeof tipPackages.$inferSelect,
-  matches: Array<{ matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; odds: number }>,
+  matches: Array<{ matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; selection: string; odds: number }>,
 ) {
   return {
     id: pkg.id,
@@ -163,6 +165,10 @@ router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
   }
   if (input.data.matches.some((match) => !isValidMatchDate(match.matchDate))) {
     res.status(400).json({ error: "Enter a real calendar date for each match." });
+    return;
+  }
+  if (input.data.matches.some((match) => !match.homeTeam.trim() || !match.awayTeam.trim() || !match.selection.trim())) {
+    res.status(400).json({ error: "Each match needs two teams and a prediction selection." });
     return;
   }
   const now = new Date();

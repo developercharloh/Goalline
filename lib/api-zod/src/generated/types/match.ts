@@ -22,6 +22,11 @@ export interface Match {
      */
   awayTeam: string;
   /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  selection: string;
+  /**
      * @minimum 1.01
      * @maximum 100000
      */
