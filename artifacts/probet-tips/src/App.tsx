@@ -11,7 +11,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DashboardPage from "@/pages/dashboard";
 import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pages/pages";
-import { AdminBootstrapPage, SignInPage as CredentialSignInPage, SignUpPage as CredentialSignUpPage } from "@/pages/auth";
+import { SignInPage as CredentialSignInPage, SignUpPage as CredentialSignUpPage } from "@/pages/auth";
 import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
 import DepositReviewsPage from "@/pages/deposit-reviews";
@@ -219,7 +219,6 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
       <Route path="/success" component={SuccessPage} />
       <Route path="/deposit-reviews" component={DepositReviewsPage} />
       <Route path="/profile" component={AccountPage} />
-      <Route path="/admin/setup" component={AdminBootstrapPage} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>

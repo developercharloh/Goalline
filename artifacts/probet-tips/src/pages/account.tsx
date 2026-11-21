@@ -107,11 +107,6 @@ export default function AccountPage() {
         </section>
       )}
 
-      {account.role !== "admin" && (
-        <Link href="/admin/setup" className="mt-5 inline-block text-sm text-primary underline" data-testid="link-initial-admin-setup">
-          Set up the first administrator
-        </Link>
-      )}
     </AppShell>
   );
 }

@@ -1,16 +1,13 @@
 import { useState, type FormEvent, type ReactNode } from "react";
-import { Link, Redirect, useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetAuthMeQueryKey,
-  useBootstrapAdmin,
-  useGetAuthMe,
   useSignIn,
   useSignUp,
 } from "@workspace/api-client-react";
 import { AlertCircle, LockKeyhole, Mail, UserRound } from "lucide-react";
 import { Logo, Wordmark } from "@/components/brand";
-import { AppShell, PageHeader } from "@/components/app-shell";
 import { errMsg } from "@/lib/probet";
 
 function AuthFrame({ children, title }: { children: ReactNode; title: string }) {
@@ -35,7 +32,6 @@ function AuthFrame({ children, title }: { children: ReactNode; title: string }) 
     </main>
   );
 }
-
 function safeReturnTo(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || value.startsWith("/sign-in") || value.startsWith("/sign-up")) return "/dashboard";
   return value;
@@ -200,44 +196,5 @@ export function SignInPage() {
         )}
       </form>
     </AuthFrame>
-  );
-}
-
-export function AdminBootstrapPage() {
-  const { data, isLoading } = useGetAuthMe();
-  const bootstrap = useBootstrapAdmin();
-  const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
-  const [alreadyAdmin, setAlreadyAdmin] = useState(false);
-
-  if (isLoading) return <AppShell><PageHeader title="Admin setup" /><div className="glass rounded-2xl p-5">Checking account…</div></AppShell>;
-  if (!data?.account) return <Redirect to="/sign-in?returnTo=%2Fadmin%2Fsetup" />;
-  if (data.account.role === "admin") return <Redirect to="/admin" />;
-  const legacySession = data.legacySession;
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-    bootstrap.mutate({ data: { token: String(values.token ?? "") } }, {
-      onSuccess: (result) => {
-        queryClient.setQueryData(getGetAuthMeQueryKey(), { account: result.account, legacySession });
-        setLocation("/admin");
-      },
-      onError: (error) => setAlreadyAdmin(errMsg(error).includes("already")),
-    });
-  }
-
-  return (
-    <AppShell title="Initial admin setup">
-      <PageHeader title="Initial admin setup" subtitle="This setup code is only valid before the first administrator is created." back="/profile" />
-      <form onSubmit={submit} className="glass max-w-xl rounded-3xl p-6 grid gap-4" data-testid="form-admin-bootstrap">
-        <p className="text-sm text-muted-foreground">Create your account first, add the private setup code, then submit it once to enable the admin portal.</p>
-        <Field label="One-time setup code" name="token" type="password" autoComplete="off" minLength={12} maxLength={256} />
-        {bootstrap.error && <FormError message={alreadyAdmin ? "Admin setup has already been completed." : errMsg(bootstrap.error)} />}
-        <button disabled={bootstrap.isPending} className="btn-blue rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-admin-bootstrap">
-          {bootstrap.isPending ? "Setting up…" : "Set up admin access"}
-        </button>
-      </form>
-    </AppShell>
   );
 }
