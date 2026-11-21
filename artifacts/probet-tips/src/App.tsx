@@ -219,6 +219,7 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
       <Route path="/success" component={SuccessPage} />
       <Route path="/deposit-reviews" component={DepositReviewsPage} />
       <Route path="/profile" component={AccountPage} />
+      <Route path="/admin/setup" component={() => <Redirect to="/admin" />} />
       <Route path="/admin" component={AdminPage} />
       <Route component={NotFound} />
     </Switch>
