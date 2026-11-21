@@ -65,7 +65,7 @@ export function WalletPage({ accountLinkContent }: { accountLinkContent?: ReactN
                       <p className="mt-0.5 text-xs text-muted-foreground">{fmtDate(item.createdAt)}</p>
                     </div>
                     <span className={`shrink-0 text-sm font-bold ${item.type === "topup" ? "text-win" : "text-foreground"}`}>
-                      {item.amount > 0 ? "+" : "−"}{money(Math.abs(item.amount))}
+                      {item.amount === 0 ? "" : item.amount > 0 ? "+" : "−"}{money(Math.abs(item.amount))}
                     </span>
                   </li>
                 ))}
@@ -82,7 +82,7 @@ export function TipsPage() {
   const avail = (t.data ?? []).filter((p) => !p.purchased);
   return (
     <AppShell>
-      <PageHeader title="Premium Tips" subtitle="Packages and the picks you've unlocked. Match information is illustrative; live stats aren’t connected." />
+      <PageHeader title="VIP Packages" subtitle="Free VIP, Weekly Multibet, and Weekly Premium VIP." />
       {t.isLoading ? <div className="grid md:grid-cols-2 gap-4"><Sk className="h-56" /><Sk className="h-56" /></div>
         : t.error ? <ErrorCard message={errMsg(t.error)} onRetry={() => t.refetch()} /> : (
           <div className="space-y-8">
@@ -119,6 +119,7 @@ export function PurchasePage() {
   const bal = w.data?.balance ?? 0;
   const after = pkg ? bal - pkg.price : bal;
   const short = !!pkg && after < 0;
+  const noMatches = !!pkg && pkg.matchCount === 0;
   const [topup, setTopup] = useState(false);
 
   function confirm() {
@@ -136,23 +137,25 @@ export function PurchasePage() {
           <div className="glass rounded-3xl p-6 max-w-lg rise">
             <div className="flex items-center gap-4">
               <Logo className="h-16 w-16" />
-              <div><h2 className="font-display text-xl font-extrabold" data-testid="text-purchase-title">{pkg.title}</h2><p className="text-sm text-muted-foreground">{pkg.description}</p></div>
+              <div><h2 className="font-display text-xl font-extrabold" data-testid="text-purchase-title">{pkg.title}</h2></div>
             </div>
             {pkg.purchased ? (
               <div className="mt-6 text-center"><p className="font-bold text-win">You already own this package.</p><Link href="/tips" className="btn-blue inline-block mt-4 rounded-xl px-6 py-2.5 font-bold">View My Tips</Link></div>
             ) : (
               <>
                 <dl className="mt-6 rounded-2xl bg-[hsl(224_60%_9%)] border border-border p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><dt>Ticket Price</dt><dd className="font-bold" data-testid="text-ticket-price">{money(pkg.price)}</dd></div>
+                  <div className="flex justify-between"><dt>Ticket Price</dt><dd className="font-bold" data-testid="text-ticket-price">{pkg.price === 0 ? "Free" : money(pkg.price)}</dd></div>
                   <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
                 </dl>
                 {purchase.error && <p className="mt-3 text-sm text-loss" data-testid="text-purchase-error">{errMsg(purchase.error)}</p>}
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
+                ) : noMatches ? (
+                  <button type="button" disabled className="w-full mt-5 rounded-xl border border-border py-3 font-bold text-muted-foreground" data-testid="button-no-match-details">Match details coming soon</button>
                 ) : (
                   <button type="button" disabled={purchase.isPending} onClick={confirm} className="btn-blue w-full mt-5 rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-confirm-purchase">
-                    {purchase.isPending ? "Processing..." : "Confirm Purchase"}
+                    {purchase.isPending ? "Processing..." : pkg.price === 0 ? "Get Free VIP" : "Confirm Purchase"}
                   </button>
                 )}
                 <Link href="/tips" className="block text-center mt-3 text-sm text-primary font-semibold" data-testid="link-cancel-purchase">Cancel</Link>
@@ -182,7 +185,7 @@ export function SuccessPage() {
           </div>
           <div className="relative mx-auto grid h-20 w-20 place-items-center rounded-full border-4 border-[hsl(142_72%_50%)] pop"><Check className="h-10 w-10 text-win" strokeWidth={3} /></div>
           <h1 className="relative font-display text-3xl font-extrabold mt-5" data-testid="text-success">Purchase Successful!</h1>
-          <p className="relative text-muted-foreground mt-1">Your premium tips are now available.</p>
+          <p className="relative text-muted-foreground mt-1">Your VIP package is now available.</p>
           <Link href="/tips" className="relative btn-blue block mt-6 rounded-xl py-3 font-bold" data-testid="link-view-my-tips">View My Tips</Link>
           <Link href="/dashboard" className="relative block mt-3 text-sm text-primary font-semibold" data-testid="link-back-home">Back to Home</Link>
         </div>

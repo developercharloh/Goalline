@@ -152,10 +152,34 @@ export const AdminTipPackageStatus = {
   archived: 'archived',
 } as const;
 
-export interface Tip {
-  match: string;
-  prediction: string;
-  league: string;
+export type AdminTipPackageStakeLevel = typeof AdminTipPackageStakeLevel[keyof typeof AdminTipPackageStakeLevel];
+
+
+export const AdminTipPackageStakeLevel = {
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface Match {
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  matchDate: string;
+  /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
+  kickoff: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  homeTeam: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  awayTeam: string;
+  /**
+     * @minimum 1.01
+     * @maximum 100000
+     */
+  odds: number;
 }
 
 export interface AdminTipPackage {
@@ -166,43 +190,37 @@ export interface AdminTipPackage {
   status: AdminTipPackageStatus;
   isSample: boolean;
   matchCount: number;
-  tips: Tip[];
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  totalOdds: number;
+  stakeLevel: AdminTipPackageStakeLevel;
+  matches: Match[];
   createdAt: string;
   updatedAt: string;
 }
 
-export type AdminTipPackageInputStatus = typeof AdminTipPackageInputStatus[keyof typeof AdminTipPackageInputStatus];
+export type AdminTipPackageInputStakeLevel = typeof AdminTipPackageInputStakeLevel[keyof typeof AdminTipPackageInputStakeLevel];
 
 
-export const AdminTipPackageInputStatus = {
-  draft: 'draft',
-  published: 'published',
-  archived: 'archived',
+export const AdminTipPackageInputStakeLevel = {
+  medium: 'medium',
+  high: 'high',
 } as const;
 
 export interface AdminTipPackageInput {
   /**
-     * @minLength 3
-     * @maxLength 120
+     * @minimum 1
+     * @maximum 1000000000
      */
-  title: string;
-  /**
-     * @minLength 3
-     * @maxLength 300
-     */
-  description: string;
-  /**
-     * @minimum 0.01
-     * @maximum 100000
-     */
-  price: number;
-  status: AdminTipPackageInputStatus;
-  isSample: boolean;
+  totalOdds: number;
+  stakeLevel: AdminTipPackageInputStakeLevel;
   /**
      * @minItems 1
      * @maxItems 50
      */
-  tips: Tip[];
+  matches: Match[];
 }
 
 export interface Wallet {
@@ -232,6 +250,14 @@ export interface Transaction {
   isDemo: boolean;
 }
 
+export type TipPackageStakeLevel = typeof TipPackageStakeLevel[keyof typeof TipPackageStakeLevel];
+
+
+export const TipPackageStakeLevel = {
+  medium: 'medium',
+  high: 'high',
+} as const;
+
 export interface TipPackage {
   id: string;
   title: string;
@@ -240,7 +266,13 @@ export interface TipPackage {
   purchased: boolean;
   isSample: boolean;
   matchCount: number;
-  tips: Tip[];
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  totalOdds: number;
+  stakeLevel: TipPackageStakeLevel;
+  matches: Match[];
 }
 
 export interface Dashboard {

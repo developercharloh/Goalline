@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useGetAuthMe, useGetDashboard } from "@workspace/api-client-react";
-import { MessageCircle, Gem, Wallet, ShieldCheck, Info } from "lucide-react";
+import { MessageCircle, Gem, Wallet, ShieldCheck } from "lucide-react";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -70,15 +70,14 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
 
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-display text-xl font-extrabold">Premium Tips</h3>
+                <h3 className="font-display text-xl font-extrabold">VIP Packages</h3>
                 <Link href="/tips" className="text-sm text-primary font-semibold" data-testid="link-all-tips">View all</Link>
               </div>
               <div className="space-y-4">
                 {data.packages.length === 0 ? <p className="glass rounded-2xl p-6 text-muted-foreground">No tip packages available right now.</p>
-                  : data.packages.slice(0, 2).map((p) => <TipCard key={p.id} pkg={p} compact />)}
+                  : data.packages.map((p) => <TipCard key={p.id} pkg={p} compact />)}
               </div>
             </div>
-            <p className="flex items-start gap-2 text-xs text-muted-foreground"><Info className="h-4 w-4 shrink-0" />Match information is illustrative. Live stats aren’t connected and outcomes aren’t guaranteed.</p>
           </div>
 
           <div className="lg:col-span-2 space-y-6">
@@ -90,7 +89,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
                   <div className="text-xs text-muted-foreground">Chat with the community</div>
                 </Link>
                 <Link href="/tips" className="glass rounded-2xl p-4 text-center hover:-translate-y-0.5 transition-transform" data-testid="link-feature-tips">
-                  <Gem className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">Premium Tips</div>
+                  <Gem className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">VIP Packages</div>
                   <div className="text-xs text-muted-foreground">{data.purchasedCount} unlocked</div>
                 </Link>
               </div>

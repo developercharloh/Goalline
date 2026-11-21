@@ -1,11 +1,14 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Link, Redirect } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
+import { useFieldArray, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
+  getGetDashboardQueryKey,
   getGetAdminTipPackagesQueryKey,
   getGetAdminUsersQueryKey,
   getGetTipsQueryKey,
-  useCreateAdminTipPackage,
   useGetAdminTipPackages,
   useGetAdminUsers,
   useGetAuthMe,
@@ -15,176 +18,219 @@ import {
   type AdminTipPackageInput,
   type AdminUser,
 } from "@workspace/api-client-react";
-import { Archive, Check, FilePlus2, Search, Shield, Users, Gem } from "lucide-react";
+import { Check, Search, Shield, Users, Gem, Plus, Trash2 } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
+import { Form } from "@/components/ui/form";
 import { errMsg, money } from "@/lib/probet";
 import { USER_APP_URL } from "@/lib/portal-host";
 
 type AdminTab = "tips" | "users";
 
-function PackageManager() {
-  const packages = useGetAdminTipPackages();
-  const create = useCreateAdminTipPackage();
+const decimalInput = z.string()
+  .trim()
+  .regex(/^\d{1,9}(\.\d{1,2})?$/, "Enter a number with up to two decimal places.")
+  .refine((value) => Number(value) >= 1 && Number(value) <= 1_000_000_000, "Enter a total odds value of at least 1.");
+
+const matchEditorSchema = z.object({
+  matchDate: z.string().min(1, "Enter the match date."),
+  kickoff: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, "Enter the kickoff time."),
+  homeTeam: z.string().trim().min(1, "Enter the home team.").max(120),
+  awayTeam: z.string().trim().min(1, "Enter the away team.").max(120),
+  odds: z.string()
+    .trim()
+    .regex(/^\d{1,8}(\.\d{1,2})?$/, "Enter odds with up to two decimal places.")
+    .refine((value) => Number(value) >= 1.01 && Number(value) <= 100_000, "Odds must be at least 1.01."),
+});
+
+const packageEditorSchema = z.object({
+  totalOdds: decimalInput,
+  stakeLevel: z.enum(["medium", "high"]),
+  matches: z.array(matchEditorSchema).min(1, "Add at least one complete match.").max(50),
+});
+
+type PackageEditorValues = z.infer<typeof packageEditorSchema>;
+
+function packagePrice(price: number) {
+  return price === 0 ? "Free" : money(price);
+}
+
+function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
   const update = useUpdateAdminTipPackage();
   const queryClient = useQueryClient();
-  const [editing, setEditing] = useState<AdminTipPackage | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [formError, setFormError] = useState("");
-  const pending = create.isPending || update.isPending;
+  const [formMessage, setFormMessage] = useState("");
+  const form = useForm<PackageEditorValues>({
+    // The resolver peer types and the app's Zod copy differ; both support parseAsync at runtime.
+    resolver: zodResolver(packageEditorSchema as never),
+    defaultValues: {
+      totalOdds: String(pkg.totalOdds),
+      stakeLevel: pkg.stakeLevel,
+      matches: pkg.matches.map((match) => ({
+        matchDate: match.matchDate,
+        kickoff: match.kickoff,
+        homeTeam: match.homeTeam,
+        awayTeam: match.awayTeam,
+        odds: String(match.odds),
+      })),
+    },
+  });
+  const matches = useFieldArray({ control: form.control, name: "matches" });
 
-  const editor = editing ?? (creating ? {
-    id: "",
-    title: "",
-    description: "",
-    price: 10,
-    status: "draft" as const,
-    isSample: false,
-    matchCount: 0,
-    tips: [],
-    createdAt: "",
-    updatedAt: "",
-  } : null);
-
-  function selectEdit(pkg: AdminTipPackage) {
-    setCreating(false);
-    setEditing(pkg);
-    setFormError("");
-  }
-
-  function resetEditor() {
-    setEditing(null);
-    setCreating(false);
-    setFormError("");
-  }
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setFormError("");
-    const values = Object.fromEntries(new FormData(event.currentTarget).entries());
-    const tips = String(values.tips ?? "").split("\n").map((line) => {
-      const [match, prediction, league] = line.split("|").map((part) => part.trim());
-      return { match: match ?? "", prediction: prediction ?? "", league: league ?? "" };
-    }).filter((tip) => tip.match || tip.prediction || tip.league);
+  function submit(values: PackageEditorValues) {
+    setFormMessage("");
     const input: AdminTipPackageInput = {
-      title: String(values.title ?? "").trim(),
-      description: String(values.description ?? "").trim(),
-      price: Number(values.price),
-      status: String(values.status ?? "draft") as AdminTipPackageInput["status"],
-      isSample: values.isSample === "on",
-      tips,
+      totalOdds: Number(values.totalOdds),
+      stakeLevel: values.stakeLevel,
+      matches: values.matches.map((match) => ({
+        matchDate: match.matchDate,
+        kickoff: match.kickoff,
+        homeTeam: match.homeTeam.trim(),
+        awayTeam: match.awayTeam.trim(),
+        odds: Number(match.odds),
+      })),
     };
-    if (!Number.isFinite(input.price) || input.price < 0.01 || !tips.length || tips.some((tip) => !tip.match || !tip.prediction || !tip.league)) {
-      setFormError("Enter a valid price and at least one complete pick: Match | Prediction | League.");
-      return;
-    }
-
-    const options = {
-      onSuccess: () => {
+    update.mutate({ id: pkg.id, data: input }, {
+      onSuccess: (saved) => {
         queryClient.invalidateQueries({ queryKey: getGetAdminTipPackagesQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetTipsQueryKey() });
-        resetEditor();
+        queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+        form.reset({
+          totalOdds: String(saved.totalOdds),
+          stakeLevel: saved.stakeLevel,
+          matches: saved.matches.map((match) => ({
+            matchDate: match.matchDate,
+            kickoff: match.kickoff,
+            homeTeam: match.homeTeam,
+            awayTeam: match.awayTeam,
+            odds: String(match.odds),
+          })),
+        });
+        setFormMessage("Package matches saved.");
       },
-      onError: (error: unknown) => setFormError(errMsg(error)),
-    };
-    if (editing) update.mutate({ id: editing.id, data: input }, options);
-    else create.mutate({ data: input }, options);
-  }
-
-  function archive(pkg: AdminTipPackage) {
-    update.mutate({
-      id: pkg.id,
-      data: { ...pkg, status: "archived" },
-    }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetAdminTipPackagesQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetTipsQueryKey() });
-        if (editing?.id === pkg.id) resetEditor();
-      },
+      onError: (error: unknown) => setFormMessage(errMsg(error)),
     });
   }
 
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(submit)} className="grid gap-5" data-testid={`form-package-matches-${pkg.id}`}>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="font-display text-xl font-extrabold">{pkg.title}</h2>
+            <p className="mt-1 text-sm font-semibold text-gold">{packagePrice(pkg.price)}</p>
+          </div>
+          <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{pkg.matches.length} matches</span>
+        </div>
+
+        <section className="grid gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-bold">Match details</h3>
+            <button
+              type="button"
+              onClick={() => matches.append({ matchDate: "", kickoff: "", homeTeam: "", awayTeam: "", odds: "" })}
+              className="flex items-center gap-1 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary"
+              data-testid={`button-add-match-${pkg.id}`}
+            >
+              <Plus className="h-4 w-4" />Add match
+            </button>
+          </div>
+          {matches.fields.length === 0 && <p className="rounded-xl bg-background/40 p-3 text-sm text-muted-foreground">Add the first match to this package.</p>}
+          {matches.fields.map((field, index) => {
+            const errors = form.formState.errors.matches?.[index];
+            return (
+              <fieldset key={field.id} className="grid gap-3 rounded-2xl border border-border bg-background/30 p-4" data-testid={`match-editor-${pkg.id}-${index}`}>
+                <legend className="px-1 text-sm font-semibold">Match {index + 1}</legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1 text-xs font-semibold">Match date
+                    <input type="date" {...form.register(`matches.${index}.matchDate`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-match-date-${pkg.id}-${index}`} />
+                    {errors?.matchDate?.message && <span className="text-loss">{errors.matchDate.message}</span>}
+                  </label>
+                  <label className="grid gap-1 text-xs font-semibold">Kickoff
+                    <input type="time" {...form.register(`matches.${index}.kickoff`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-match-kickoff-${pkg.id}-${index}`} />
+                    {errors?.kickoff?.message && <span className="text-loss">{errors.kickoff.message}</span>}
+                  </label>
+                  <label className="grid gap-1 text-xs font-semibold">Home team
+                    <input maxLength={120} {...form.register(`matches.${index}.homeTeam`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-home-team-${pkg.id}-${index}`} />
+                    {errors?.homeTeam?.message && <span className="text-loss">{errors.homeTeam.message}</span>}
+                  </label>
+                  <label className="grid gap-1 text-xs font-semibold">Away team
+                    <input maxLength={120} {...form.register(`matches.${index}.awayTeam`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-away-team-${pkg.id}-${index}`} />
+                    {errors?.awayTeam?.message && <span className="text-loss">{errors.awayTeam.message}</span>}
+                  </label>
+                  <label className="grid gap-1 text-xs font-semibold">Odds
+                    <input type="number" min="1.01" max="100000" step="0.01" {...form.register(`matches.${index}.odds`)} className="rounded-xl border border-border bg-background/70 px-3 py-2.5 text-sm" data-testid={`input-match-odds-${pkg.id}-${index}`} />
+                    {errors?.odds?.message && <span className="text-loss">{errors.odds.message}</span>}
+                  </label>
+                  <div className="flex items-end justify-end">
+                    <button type="button" onClick={() => matches.remove(index)} className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-loss hover:bg-loss/10" data-testid={`button-remove-match-${pkg.id}-${index}`}>
+                      <Trash2 className="h-4 w-4" />Remove match
+                    </button>
+                  </div>
+                </div>
+              </fieldset>
+            );
+          })}
+          {typeof form.formState.errors.matches?.message === "string" && <p className="text-sm text-loss" role="alert">{form.formState.errors.matches.message}</p>}
+        </section>
+
+        <label className="grid gap-1.5 text-sm font-semibold">Total odds
+          <input type="number" min="1" max="1000000000" step="0.01" {...form.register("totalOdds")} className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid={`input-total-odds-${pkg.id}`} />
+          {form.formState.errors.totalOdds?.message && <span className="text-xs text-loss">{form.formState.errors.totalOdds.message}</span>}
+        </label>
+        <label className="grid gap-1.5 text-sm font-semibold">Stake level
+          <select {...form.register("stakeLevel")} className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid={`select-stake-level-${pkg.id}`}>
+            <option value="medium">Stake medium</option>
+            <option value="high">Stake high</option>
+          </select>
+        </label>
+        <p className="rounded-xl border border-gold/25 bg-gold/5 p-3 text-xs text-muted-foreground" data-testid={`text-stake-disclaimer-${pkg.id}`}>
+          Disclaimer shown to users: Stake {form.watch("stakeLevel")}.
+        </p>
+        {formMessage && <p className={`text-sm ${formMessage === "Package matches saved." ? "text-win" : "text-loss"}`} role="status" data-testid={`package-save-status-${pkg.id}`}>{formMessage}</p>}
+        <button disabled={update.isPending} className="btn-blue rounded-xl py-3 font-bold disabled:opacity-60" data-testid={`button-save-package-${pkg.id}`}>
+          {update.isPending ? "Saving…" : "Save match details"}
+        </button>
+      </form>
+    </Form>
+  );
+}
+
+function PackageManager() {
+  const packages = useGetAdminTipPackages();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const editor = packages.data?.find((pkg) => pkg.id === editingId) ?? null;
   if (packages.isLoading) return <div className="grid gap-4 md:grid-cols-2"><Sk className="h-64" /><Sk className="h-64" /></div>;
   if (packages.error) return <ErrorCard message={errMsg(packages.error)} onRetry={() => packages.refetch()} />;
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
       <section className="glass rounded-3xl p-5 md:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div><h2 className="font-display text-xl font-extrabold">Tip packages</h2><p className="text-xs text-muted-foreground mt-1">Published picks are visible to users; archived packages stay in purchase history.</p></div>
-          <button type="button" onClick={() => { setEditing(null); setCreating(true); setFormError(""); }} className="btn-blue flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold" data-testid="button-new-package">
-            <FilePlus2 className="h-4 w-4" />New package
-          </button>
+        <div className="mb-4">
+          <h2 className="font-display text-xl font-extrabold">Weekly VIP packages</h2>
+          <p className="mt-1 text-xs text-muted-foreground">These are the only packages available to users.</p>
         </div>
         <div className="grid gap-3">
-          {(packages.data ?? []).length === 0 ? <p className="rounded-xl bg-background/40 p-4 text-sm text-muted-foreground">No packages yet. Create one to add your first tips.</p>
-            : packages.data?.map((pkg) => (
-              <article key={pkg.id} className={`rounded-2xl border p-4 ${editing?.id === pkg.id ? "border-primary/60 bg-primary/5" : "border-border bg-background/30"}`} data-testid={`admin-package-${pkg.id}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-bold truncate">{pkg.title}</h3>
-                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${pkg.status === "published" ? "bg-win/15 text-win" : pkg.status === "archived" ? "bg-muted text-muted-foreground" : "bg-gold/15 text-gold"}`}>{pkg.status}</span>
-                      {pkg.isSample && <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">Sample</span>}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{pkg.matchCount} picks · {money(pkg.price)} · Updated {new Date(pkg.updatedAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button type="button" onClick={() => selectEdit(pkg)} className="rounded-lg border border-border px-3 py-1.5 text-xs font-bold hover:bg-secondary" data-testid={`button-edit-package-${pkg.id}`}>Edit</button>
-                    {pkg.status !== "archived" && <button type="button" onClick={() => archive(pkg)} disabled={update.isPending} aria-label={`Archive ${pkg.title}`} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-loss disabled:opacity-50" data-testid={`button-archive-package-${pkg.id}`}><Archive className="h-4 w-4" /></button>}
-                  </div>
+          {(packages.data ?? []).map((pkg) => (
+            <article key={pkg.id} className={`rounded-2xl border p-4 ${editingId === pkg.id ? "border-primary/60 bg-primary/5" : "border-border bg-background/30"}`} data-testid={`admin-package-${pkg.id}`}>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="truncate font-bold">{pkg.title}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{packagePrice(pkg.price)} · {pkg.matchCount} matches added</p>
                 </div>
-              </article>
-            ))}
+                <button type="button" onClick={() => setEditingId(pkg.id)} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary" data-testid={`button-edit-package-${pkg.id}`}>
+                  {editingId === pkg.id ? "Editing" : "Edit matches"}
+                </button>
+              </div>
+            </article>
+          ))}
+          {(packages.data ?? []).length === 0 && <p className="rounded-xl bg-background/40 p-4 text-sm text-muted-foreground">The weekly package list is unavailable.</p>}
         </div>
       </section>
-
       <section className="glass rounded-3xl p-5 md:p-6">
         {editor ? (
-          <form key={editor.id || "new"} onSubmit={submit} className="grid gap-4" data-testid="form-tip-package">
-            <div className="flex items-center justify-between gap-2">
-              <div><h2 className="font-display text-xl font-extrabold">{editing ? "Edit package" : "New package"}</h2><p className="text-xs text-muted-foreground mt-1">{editing ? `Package ${editing.id}` : "Add content then choose whether to publish it."}</p></div>
-              <button type="button" onClick={resetEditor} className="text-sm text-primary underline" data-testid="button-cancel-package-edit">Cancel</button>
-            </div>
-            <label className="grid gap-1.5 text-sm font-semibold">Package title
-              <input name="title" defaultValue={editor.title} required minLength={3} maxLength={120} className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid="input-package-title" />
-            </label>
-            <label className="grid gap-1.5 text-sm font-semibold">Description
-              <input name="description" defaultValue={editor.description} required minLength={3} maxLength={300} className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid="input-package-description" />
-            </label>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-1.5 text-sm font-semibold">Price (KES)
-                <input name="price" type="number" min="0.01" max="100000" step="0.01" defaultValue={editor.price} required className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid="input-package-price" />
-              </label>
-              <label className="grid gap-1.5 text-sm font-semibold">Status
-                <select name="status" defaultValue={editor.status} className="rounded-xl border border-border bg-background/70 px-3 py-3 outline-none focus:border-primary" data-testid="select-package-status">
-                  <option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
-                </select>
-              </label>
-            </div>
-            <label className="grid gap-1.5 text-sm font-semibold">Match picks
-              <textarea
-                name="tips"
-                rows={8}
-                required
-                defaultValue={editor.tips.map((tip) => `${tip.match} | ${tip.prediction} | ${tip.league}`).join("\n")}
-                placeholder={"Man City vs Liverpool | Over 2.5 Goals | Premier League\nReal Madrid vs Barcelona | Both Teams to Score | La Liga"}
-                className="rounded-xl border border-border bg-background/70 px-3 py-3 font-mono text-sm outline-none focus:border-primary"
-                data-testid="textarea-package-picks"
-              />
-              <span className="text-xs font-normal text-muted-foreground">One pick per line, separated by | in this order: Match, Prediction, League.</span>
-            </label>
-            <label className="flex items-start gap-2 rounded-xl border border-border bg-background/30 p-3 text-sm">
-              <input type="checkbox" name="isSample" defaultChecked={editor.isSample} className="mt-1 accent-primary" data-testid="checkbox-package-sample" />
-              <span><b>Sample / illustrative package</b><span className="block text-xs text-muted-foreground mt-0.5">Sample packages can only be bought with the guest preview wallet.</span></span>
-            </label>
-            {formError && <p className="rounded-xl border border-loss/40 bg-loss/10 p-3 text-sm text-loss" role="alert" data-testid="package-form-error">{formError}</p>}
-            <button disabled={pending} className="btn-blue rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-save-package">
-              {pending ? "Saving…" : editing ? "Save changes" : "Create package"}
-            </button>
-          </form>
+          <PackageEditor key={editor.id} pkg={editor} />
         ) : (
           <div className="grid min-h-72 place-items-center text-center">
-            <div><Gem className="mx-auto h-10 w-10 text-primary" /><h2 className="font-display text-xl font-extrabold mt-3">Manage premium tips</h2><p className="mt-1 max-w-sm text-sm text-muted-foreground">Create packages, add picks, publish them, or archive old packages without removing buyers’ access.</p></div>
+            <div><Gem className="mx-auto h-10 w-10 text-primary" /><h2 className="mt-3 font-display text-xl font-extrabold">Choose a package</h2><p className="mt-1 max-w-sm text-sm text-muted-foreground">Add fixtures, enter the total odds, and select a stake level.</p></div>
           </div>
         )}
       </section>
@@ -290,7 +336,7 @@ export default function AdminPage() {
 
   return (
     <AppShell title="Admin portal" adminPortal>
-      <PageHeader title="Admin Portal" subtitle="Manage user profiles and premium tip packages." />
+      <PageHeader title="Admin Portal" subtitle="Manage user profiles and weekly VIP matches." />
       <div className="mb-5 flex gap-2 rounded-2xl border border-border bg-background/40 p-1.5" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" aria-selected={tab === "tips"} onClick={() => setTab("tips")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "tips" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-tips"><Gem className="h-4 w-4" />Tip packages</button>
         <button type="button" role="tab" aria-selected={tab === "users"} onClick={() => setTab("users")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "users" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-users"><Users className="h-4 w-4" />User profiles</button>

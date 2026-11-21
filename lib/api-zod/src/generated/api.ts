@@ -229,6 +229,20 @@ export const UpdateAdminUserResponse = zod.object({
 })
 
 
+export const getAdminTipPackagesResponseTotalOddsMax = 1000000000;
+
+export const getAdminTipPackagesResponseMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getAdminTipPackagesResponseMatchesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getAdminTipPackagesResponseMatchesItemHomeTeamMax = 120;
+
+export const getAdminTipPackagesResponseMatchesItemAwayTeamMax = 120;
+
+export const getAdminTipPackagesResponseMatchesItemOddsMin = 1.01;
+export const getAdminTipPackagesResponseMatchesItemOddsMax = 100000;
+export const getAdminTipPackagesResponseMatchesItemOddsMultipleOf = 0.01;
+
+
+
 export const GetAdminTipPackagesResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -237,59 +251,19 @@ export const GetAdminTipPackagesResponseItem = zod.object({
   "status": zod.enum(['draft', 'published', 'archived']),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
+  "totalOdds": zod.number().min(1).max(getAdminTipPackagesResponseTotalOddsMax),
+  "stakeLevel": zod.enum(['medium', 'high']),
+  "matches": zod.array(zod.object({
+  "matchDate": zod.string().regex(getAdminTipPackagesResponseMatchesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(getAdminTipPackagesResponseMatchesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(getAdminTipPackagesResponseMatchesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(getAdminTipPackagesResponseMatchesItemAwayTeamMax),
+  "odds": zod.number().min(getAdminTipPackagesResponseMatchesItemOddsMin).max(getAdminTipPackagesResponseMatchesItemOddsMax).multipleOf(getAdminTipPackagesResponseMatchesItemOddsMultipleOf)
 })),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
 export const GetAdminTipPackagesResponse = zod.array(GetAdminTipPackagesResponseItem)
-
-
-export const createAdminTipPackageBodyTitleMin = 3;
-export const createAdminTipPackageBodyTitleMax = 120;
-
-export const createAdminTipPackageBodyDescriptionMin = 3;
-export const createAdminTipPackageBodyDescriptionMax = 300;
-
-export const createAdminTipPackageBodyPriceMin = 0.01;
-export const createAdminTipPackageBodyPriceMax = 100000;
-
-export const createAdminTipPackageBodyTipsMax = 50;
-
-
-
-export const CreateAdminTipPackageBody = zod.object({
-  "title": zod.string().min(createAdminTipPackageBodyTitleMin).max(createAdminTipPackageBodyTitleMax),
-  "description": zod.string().min(createAdminTipPackageBodyDescriptionMin).max(createAdminTipPackageBodyDescriptionMax),
-  "price": zod.number().min(createAdminTipPackageBodyPriceMin).max(createAdminTipPackageBodyPriceMax),
-  "status": zod.enum(['draft', 'published', 'archived']),
-  "isSample": zod.boolean(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
-})).min(1).max(createAdminTipPackageBodyTipsMax)
-})
-
-export const CreateAdminTipPackageResponse = zod.object({
-  "id": zod.string(),
-  "title": zod.string(),
-  "description": zod.string(),
-  "price": zod.number(),
-  "status": zod.enum(['draft', 'published', 'archived']),
-  "isSample": zod.boolean(),
-  "matchCount": zod.number().int(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
-})),
-  "createdAt": zod.coerce.date(),
-  "updatedAt": zod.coerce.date()
-})
 
 
 export const updateAdminTipPackagePathIdMax = 100;
@@ -300,31 +274,48 @@ export const UpdateAdminTipPackageParams = zod.object({
   "id": zod.coerce.string().min(1).max(updateAdminTipPackagePathIdMax)
 })
 
-export const updateAdminTipPackageBodyTitleMin = 3;
-export const updateAdminTipPackageBodyTitleMax = 120;
+export const updateAdminTipPackageBodyTotalOddsMax = 1000000000;
+export const updateAdminTipPackageBodyTotalOddsMultipleOf = 0.01;
 
-export const updateAdminTipPackageBodyDescriptionMin = 3;
-export const updateAdminTipPackageBodyDescriptionMax = 300;
+export const updateAdminTipPackageBodyMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateAdminTipPackageBodyMatchesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAdminTipPackageBodyMatchesItemHomeTeamMax = 120;
 
-export const updateAdminTipPackageBodyPriceMin = 0.01;
-export const updateAdminTipPackageBodyPriceMax = 100000;
+export const updateAdminTipPackageBodyMatchesItemAwayTeamMax = 120;
 
-export const updateAdminTipPackageBodyTipsMax = 50;
+export const updateAdminTipPackageBodyMatchesItemOddsMin = 1.01;
+export const updateAdminTipPackageBodyMatchesItemOddsMax = 100000;
+export const updateAdminTipPackageBodyMatchesItemOddsMultipleOf = 0.01;
+
+export const updateAdminTipPackageBodyMatchesMax = 50;
 
 
 
 export const UpdateAdminTipPackageBody = zod.object({
-  "title": zod.string().min(updateAdminTipPackageBodyTitleMin).max(updateAdminTipPackageBodyTitleMax),
-  "description": zod.string().min(updateAdminTipPackageBodyDescriptionMin).max(updateAdminTipPackageBodyDescriptionMax),
-  "price": zod.number().min(updateAdminTipPackageBodyPriceMin).max(updateAdminTipPackageBodyPriceMax),
-  "status": zod.enum(['draft', 'published', 'archived']),
-  "isSample": zod.boolean(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
-})).min(1).max(updateAdminTipPackageBodyTipsMax)
+  "totalOdds": zod.number().min(1).max(updateAdminTipPackageBodyTotalOddsMax).multipleOf(updateAdminTipPackageBodyTotalOddsMultipleOf),
+  "stakeLevel": zod.enum(['medium', 'high']),
+  "matches": zod.array(zod.object({
+  "matchDate": zod.string().regex(updateAdminTipPackageBodyMatchesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(updateAdminTipPackageBodyMatchesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemAwayTeamMax),
+  "odds": zod.number().min(updateAdminTipPackageBodyMatchesItemOddsMin).max(updateAdminTipPackageBodyMatchesItemOddsMax).multipleOf(updateAdminTipPackageBodyMatchesItemOddsMultipleOf)
+})).min(1).max(updateAdminTipPackageBodyMatchesMax)
 })
+
+export const updateAdminTipPackageResponseTotalOddsMax = 1000000000;
+
+export const updateAdminTipPackageResponseMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const updateAdminTipPackageResponseMatchesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const updateAdminTipPackageResponseMatchesItemHomeTeamMax = 120;
+
+export const updateAdminTipPackageResponseMatchesItemAwayTeamMax = 120;
+
+export const updateAdminTipPackageResponseMatchesItemOddsMin = 1.01;
+export const updateAdminTipPackageResponseMatchesItemOddsMax = 100000;
+export const updateAdminTipPackageResponseMatchesItemOddsMultipleOf = 0.01;
+
+
 
 export const UpdateAdminTipPackageResponse = zod.object({
   "id": zod.string(),
@@ -334,14 +325,32 @@ export const UpdateAdminTipPackageResponse = zod.object({
   "status": zod.enum(['draft', 'published', 'archived']),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
+  "totalOdds": zod.number().min(1).max(updateAdminTipPackageResponseTotalOddsMax),
+  "stakeLevel": zod.enum(['medium', 'high']),
+  "matches": zod.array(zod.object({
+  "matchDate": zod.string().regex(updateAdminTipPackageResponseMatchesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(updateAdminTipPackageResponseMatchesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(updateAdminTipPackageResponseMatchesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(updateAdminTipPackageResponseMatchesItemAwayTeamMax),
+  "odds": zod.number().min(updateAdminTipPackageResponseMatchesItemOddsMin).max(updateAdminTipPackageResponseMatchesItemOddsMax).multipleOf(updateAdminTipPackageResponseMatchesItemOddsMultipleOf)
 })),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
 })
+
+
+export const getDashboardResponsePackagesItemTotalOddsMax = 1000000000;
+
+export const getDashboardResponsePackagesItemMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getDashboardResponsePackagesItemMatchesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getDashboardResponsePackagesItemMatchesItemHomeTeamMax = 120;
+
+export const getDashboardResponsePackagesItemMatchesItemAwayTeamMax = 120;
+
+export const getDashboardResponsePackagesItemMatchesItemOddsMin = 1.01;
+export const getDashboardResponsePackagesItemMatchesItemOddsMax = 100000;
+export const getDashboardResponsePackagesItemMatchesItemOddsMultipleOf = 0.01;
+
 
 
 export const GetDashboardResponse = zod.object({
@@ -362,10 +371,14 @@ export const GetDashboardResponse = zod.object({
   "purchased": zod.boolean(),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
+  "totalOdds": zod.number().min(1).max(getDashboardResponsePackagesItemTotalOddsMax),
+  "stakeLevel": zod.enum(['medium', 'high']),
+  "matches": zod.array(zod.object({
+  "matchDate": zod.string().regex(getDashboardResponsePackagesItemMatchesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(getDashboardResponsePackagesItemMatchesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(getDashboardResponsePackagesItemMatchesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(getDashboardResponsePackagesItemMatchesItemAwayTeamMax),
+  "odds": zod.number().min(getDashboardResponsePackagesItemMatchesItemOddsMin).max(getDashboardResponsePackagesItemMatchesItemOddsMax).multipleOf(getDashboardResponsePackagesItemMatchesItemOddsMultipleOf)
 }))
 })),
   "recentTransactions": zod.array(zod.object({
@@ -402,6 +415,20 @@ export const GetTransactionsResponseItem = zod.object({
 export const GetTransactionsResponse = zod.array(GetTransactionsResponseItem)
 
 
+export const getTipsResponseTotalOddsMax = 1000000000;
+
+export const getTipsResponseMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const getTipsResponseMatchesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const getTipsResponseMatchesItemHomeTeamMax = 120;
+
+export const getTipsResponseMatchesItemAwayTeamMax = 120;
+
+export const getTipsResponseMatchesItemOddsMin = 1.01;
+export const getTipsResponseMatchesItemOddsMax = 100000;
+export const getTipsResponseMatchesItemOddsMultipleOf = 0.01;
+
+
+
 export const GetTipsResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
@@ -410,10 +437,14 @@ export const GetTipsResponseItem = zod.object({
   "purchased": zod.boolean(),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
-  "tips": zod.array(zod.object({
-  "match": zod.string(),
-  "prediction": zod.string(),
-  "league": zod.string()
+  "totalOdds": zod.number().min(1).max(getTipsResponseTotalOddsMax),
+  "stakeLevel": zod.enum(['medium', 'high']),
+  "matches": zod.array(zod.object({
+  "matchDate": zod.string().regex(getTipsResponseMatchesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(getTipsResponseMatchesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(getTipsResponseMatchesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(getTipsResponseMatchesItemAwayTeamMax),
+  "odds": zod.number().min(getTipsResponseMatchesItemOddsMin).max(getTipsResponseMatchesItemOddsMax).multipleOf(getTipsResponseMatchesItemOddsMultipleOf)
 }))
 })
 export const GetTipsResponse = zod.array(GetTipsResponseItem)

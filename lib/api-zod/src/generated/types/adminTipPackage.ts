@@ -5,8 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminTipPackageStakeLevel } from './adminTipPackageStakeLevel';
 import type { AdminTipPackageStatus } from './adminTipPackageStatus';
-import type { Tip } from './tip';
+import type { Match } from './match';
 
 export interface AdminTipPackage {
   id: string;
@@ -16,7 +17,13 @@ export interface AdminTipPackage {
   status: AdminTipPackageStatus;
   isSample: boolean;
   matchCount: number;
-  tips: Tip[];
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  totalOdds: number;
+  stakeLevel: AdminTipPackageStakeLevel;
+  matches: Match[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,40 +1,48 @@
-import { db, tipEntries, tipPackages } from "@workspace/db";
+import { and, ne, notInArray } from "drizzle-orm";
+import { db, tipPackages } from "@workspace/db";
 
-// This is inserted once as an explicitly illustrative starter package. All
-// subsequent public and admin reads come from the database.
-export const tipCatalog = [
+export const weeklyTipPackages = [
   {
-    id: "champions-league",
-    title: "Champions League Top Picks",
-    description: "Expert picks for today's matches",
-    price: 10,
-    isSample: true,
-    matchCount: 3,
-    tips: [
-      { match: "Man City vs Liverpool", prediction: "Over 2.5 Goals", league: "Premier League" },
-      { match: "Real Madrid vs Barcelona", prediction: "Both Teams to Score", league: "La Liga" },
-      { match: "PSG vs Marseille", prediction: "1X", league: "Ligue 1" },
-    ],
+    id: "free-vip",
+    title: "Free VIP",
+    description: "Free weekly VIP multibet.",
+    price: 0,
   },
-];
+  {
+    id: "weekly-multibet",
+    title: "Weekly Multibet",
+    description: "Weekly multibet package.",
+    price: 50,
+  },
+  {
+    id: "weekly-premium-vip",
+    title: "Weekly Premium VIP",
+    description: "Weekly premium VIP package.",
+    price: 70,
+  },
+] as const;
+
+export const weeklyTipPackageIds: string[] = weeklyTipPackages.map((pkg) => pkg.id);
 
 export async function ensureTipCatalogSeed(): Promise<void> {
-  const starter = tipCatalog[0];
+  const now = new Date();
   await db.transaction(async (tx) => {
-    const [created] = await tx.insert(tipPackages).values({
-      id: starter.id,
-      title: starter.title,
-      description: starter.description,
-      priceCents: Math.round(starter.price * 100),
-      status: "published",
-      isSample: true,
-    }).onConflictDoNothing().returning({ id: tipPackages.id });
-    if (!created) return;
-    await tx.insert(tipEntries).values(starter.tips.map((tip, position) => ({
-      id: `${starter.id}-${position + 1}`,
-      packageId: starter.id,
-      position,
-      ...tip,
-    })));
+    for (const pkg of weeklyTipPackages) {
+      await tx.insert(tipPackages).values({
+        id: pkg.id,
+        title: pkg.title,
+        description: pkg.description,
+        priceCents: pkg.price * 100,
+        status: "published",
+        isSample: false,
+      }).onConflictDoNothing();
+    }
+
+    await tx.update(tipPackages)
+      .set({ status: "archived", updatedAt: now })
+      .where(and(
+        notInArray(tipPackages.id, [...weeklyTipPackageIds]),
+        ne(tipPackages.status, "archived"),
+      ));
   });
 }

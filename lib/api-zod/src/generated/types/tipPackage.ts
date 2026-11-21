@@ -5,7 +5,8 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { Tip } from './tip';
+import type { Match } from './match';
+import type { TipPackageStakeLevel } from './tipPackageStakeLevel';
 
 export interface TipPackage {
   id: string;
@@ -15,5 +16,11 @@ export interface TipPackage {
   purchased: boolean;
   isSample: boolean;
   matchCount: number;
-  tips: Tip[];
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  totalOdds: number;
+  stakeLevel: TipPackageStakeLevel;
+  matches: Match[];
 }

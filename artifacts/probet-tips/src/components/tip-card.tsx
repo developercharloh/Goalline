@@ -1,43 +1,55 @@
 import { Link } from "wouter";
-import { Crown, Lock, CheckSquare, Unlock } from "lucide-react";
 import type { TipPackage } from "@workspace/api-client-react";
 import { money } from "@/lib/probet";
+
+function formatMatchDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: boolean }) {
   return (
     <div className="gold-card rounded-2xl p-5 transition-transform hover:-translate-y-0.5" data-testid={`card-package-${pkg.id}`}>
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-1 rounded-md btn-gold px-2 py-0.5 text-xs font-extrabold"><Crown className="h-3.5 w-3.5" />Premium</span>
-        <div className="flex items-center gap-2">
-          {pkg.purchased ? <Unlock className="h-5 w-5 text-win" aria-label="Unlocked" /> : <Lock className="h-5 w-5 text-foreground/80" aria-label="Locked" />}
-        </div>
-      </div>
-      <h3 className="font-display text-xl font-extrabold mt-3" data-testid={`text-package-title-${pkg.id}`}>{pkg.title}</h3>
-      <p className="text-sm text-muted-foreground mt-1">{pkg.description}</p>
-      <p className="text-xs text-muted-foreground mt-1">{pkg.matchCount} matches</p>
+      <h3 className="font-display text-xl font-extrabold" data-testid={`text-package-title-${pkg.id}`}>{pkg.title}</h3>
 
       {pkg.purchased && !compact && (
-        <ul className="mt-4 space-y-2">
-          {pkg.tips.map((t, i) => (
-            <li key={i} className="flex gap-3 rounded-xl bg-[hsl(224_60%_9%)] border border-border p-3 rise" style={{ animationDelay: `${i * 70}ms` }} data-testid={`row-tip-${pkg.id}-${i}`}>
-              <CheckSquare className="h-5 w-5 text-win shrink-0 mt-0.5" />
-              <div>
-                <div className="font-bold">{t.match}</div>
-                <div className="text-sm">Tip: <span className="text-gold font-semibold">{t.prediction}</span></div>
-                <div className="text-xs text-muted-foreground">{t.league}</div>
+        <div className="mt-4 space-y-3">
+          {pkg.matches.map((match, index) => (
+            <article key={`${match.matchDate}-${match.kickoff}-${index}`} className="rounded-xl border border-border bg-[hsl(224_60%_9%)] p-4" data-testid={`card-match-${pkg.id}-${index}`}>
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <time dateTime={`${match.matchDate}T${match.kickoff}`}>{formatMatchDate(match.matchDate)}</time>
+                <time dateTime={`${match.matchDate}T${match.kickoff}`}>{match.kickoff}</time>
               </div>
-            </li>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="min-w-0 font-bold" data-testid={`text-match-teams-${pkg.id}-${index}`}>{match.homeTeam} <span className="text-muted-foreground">vs</span> {match.awayTeam}</p>
+                <p className="shrink-0 text-sm font-extrabold text-gold" data-testid={`text-match-odds-${pkg.id}-${index}`}>{match.odds.toFixed(2)}</p>
+              </div>
+            </article>
           ))}
-        </ul>
+          <div className="rounded-xl border border-border bg-background/40 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-semibold">Total odds</span>
+              <span className="font-display text-xl font-extrabold text-gold" data-testid={`text-total-odds-${pkg.id}`}>{pkg.totalOdds.toFixed(2)}</span>
+            </div>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground" data-testid={`text-stake-disclaimer-${pkg.id}`}>Disclaimer: Stake {pkg.stakeLevel}</p>
+          </div>
+        </div>
       )}
 
       <div className="mt-4 flex items-center justify-between">
-        <span className="font-display text-2xl font-extrabold" data-testid={`text-price-${pkg.id}`}>{money(pkg.price)}</span>
+        <span className="font-display text-2xl font-extrabold" data-testid={`text-price-${pkg.id}`}>{pkg.price === 0 ? "Free" : money(pkg.price)}</span>
         {pkg.purchased ? (
           compact ? <Link href="/tips" className="btn-blue rounded-lg px-4 py-2 text-sm font-bold" data-testid={`link-view-tips-${pkg.id}`}>View Tips</Link>
           : <span className="text-sm font-bold text-win">Unlocked</span>
+        ) : pkg.matchCount === 0 ? (
+          <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-no-matches-${pkg.id}`}>Fixtures pending</span>
         ) : (
-          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>Purchase Ticket</Link>
+          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>{pkg.price === 0 ? "Get Free VIP" : "Purchase"}</Link>
         )}
       </div>
     </div>

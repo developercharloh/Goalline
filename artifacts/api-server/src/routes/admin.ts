@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { desc, eq, ilike, or } from "drizzle-orm";
+import { desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { accounts, db, tipEntries, tipPackages } from "@workspace/db";
 import {
   GetAdminTipPackagesResponse,
@@ -11,27 +11,44 @@ import {
   UpdateAdminUserBody,
   UpdateAdminUserParams,
   UpdateAdminUserResponse,
-  CreateAdminTipPackageBody,
-  CreateAdminTipPackageResponse,
 } from "@workspace/api-zod";
 import { randomUUID } from "node:crypto";
 import { publicAccount } from "../lib/account-session.js";
-import { ensureTipCatalogSeed } from "../lib/tip-catalog.js";
+import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
 import { requireAdmin } from "../lib/admin-access.js";
 
 const router: IRouter = Router();
 
-function normalizePick(pick: { match: string; prediction: string; league: string }) {
+function normalizeMatch(match: { matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; odds: number }) {
   return {
-    match: pick.match.trim(),
-    prediction: pick.prediction.trim(),
-    league: pick.league.trim(),
+    matchDate: match.matchDate,
+    kickoff: match.kickoff.slice(0, 5),
+    homeTeam: match.homeTeam.trim(),
+    awayTeam: match.awayTeam.trim(),
+    odds: match.odds,
+  };
+}
+
+function isValidMatchDate(value: string): boolean {
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+function matchFromEntry(entry: typeof tipEntries.$inferSelect) {
+  if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || entry.odds == null) return null;
+  return {
+    matchDate: entry.matchDate,
+    kickoff: entry.kickoff.slice(0, 5),
+    homeTeam: entry.homeTeam,
+    awayTeam: entry.awayTeam,
+    odds: entry.odds,
   };
 }
 
 function adminPackageResponse(
   pkg: typeof tipPackages.$inferSelect,
-  tips: Array<{ match: string; prediction: string; league: string }>,
+  matches: Array<{ matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; odds: number }>,
 ) {
   return {
     id: pkg.id,
@@ -40,22 +57,29 @@ function adminPackageResponse(
     price: pkg.priceCents / 100,
     status: pkg.status,
     isSample: pkg.isSample,
-    matchCount: tips.length,
-    tips,
+    matchCount: matches.length,
+    totalOdds: pkg.totalOdds,
+    stakeLevel: pkg.stakeLevel,
+    matches,
     createdAt: pkg.createdAt.toISOString(),
     updatedAt: pkg.updatedAt.toISOString(),
   };
 }
 
 async function packagesWithEntries() {
-  const packages = await db.select().from(tipPackages).orderBy(desc(tipPackages.updatedAt));
+  const packages = await db.select().from(tipPackages).where(inArray(tipPackages.id, weeklyTipPackageIds));
   const entries = packages.length
-    ? await db.select().from(tipEntries).orderBy(tipEntries.position)
+    ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, weeklyTipPackageIds)).orderBy(tipEntries.position)
     : [];
-  return packages.map((pkg) => adminPackageResponse(
-    pkg,
-    entries.filter((entry) => entry.packageId === pkg.id),
-  ));
+  const byId = new Map(packages.map((pkg) => [pkg.id, pkg]));
+  return weeklyTipPackageIds.flatMap((id) => {
+    const pkg = byId.get(id);
+    if (!pkg) return [];
+    const matches = entries.filter((entry) => entry.packageId === pkg.id)
+      .map(matchFromEntry)
+      .filter((match): match is NonNullable<typeof match> => match !== null);
+    return [adminPackageResponse(pkg, matches)];
+  });
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -126,60 +150,35 @@ router.get("/admin/tip-packages", async (_req, res): Promise<void> => {
   res.json(GetAdminTipPackagesResponse.parse(await packagesWithEntries()));
 });
 
-router.post("/admin/tip-packages", async (req, res): Promise<void> => {
-  const input = CreateAdminTipPackageBody.safeParse(req.body);
-  if (!input.success) {
-    res.status(400).json({ error: "Check the package details and at least one match pick." });
-    return;
-  }
-  const now = new Date();
-  const [pkg] = await db.transaction(async (tx) => {
-    const [created] = await tx.insert(tipPackages).values({
-      id: randomUUID(),
-      title: input.data.title.trim(),
-      description: input.data.description.trim(),
-      priceCents: Math.round(input.data.price * 100),
-      status: input.data.status,
-      isSample: input.data.isSample,
-      createdAt: now,
-      updatedAt: now,
-    }).returning();
-    await tx.insert(tipEntries).values(input.data.tips.map((tip, position) => ({
-      id: randomUUID(),
-      packageId: created.id,
-      position,
-      ...normalizePick(tip),
-    })));
-    return [created];
-  });
-  const response = adminPackageResponse(pkg, input.data.tips.map(normalizePick));
-  res.status(201).json(CreateAdminTipPackageResponse.parse(response));
-});
-
 router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
   const params = UpdateAdminTipPackageParams.safeParse(req.params);
   const input = UpdateAdminTipPackageBody.safeParse(req.body);
   if (!params.success || !input.success) {
-    res.status(400).json({ error: "Check the package details and at least one match pick." });
+    res.status(400).json({ error: "Enter total odds, a stake level, and at least one complete match." });
+    return;
+  }
+  if (!weeklyTipPackageIds.includes(params.data.id)) {
+    res.status(404).json({ error: "Only the three weekly VIP packages can be managed." });
+    return;
+  }
+  if (input.data.matches.some((match) => !isValidMatchDate(match.matchDate))) {
+    res.status(400).json({ error: "Enter a real calendar date for each match." });
     return;
   }
   const now = new Date();
   const result = await db.transaction(async (tx) => {
     const [pkg] = await tx.update(tipPackages).set({
-      title: input.data.title.trim(),
-      description: input.data.description.trim(),
-      priceCents: Math.round(input.data.price * 100),
-      status: input.data.status,
-      isSample: input.data.isSample,
+      totalOdds: input.data.totalOdds,
+      stakeLevel: input.data.stakeLevel,
       updatedAt: now,
     }).where(eq(tipPackages.id, params.data.id)).returning();
     if (!pkg) return null;
     await tx.delete(tipEntries).where(eq(tipEntries.packageId, pkg.id));
-    await tx.insert(tipEntries).values(input.data.tips.map((tip, position) => ({
+    await tx.insert(tipEntries).values(input.data.matches.map((match, position) => ({
       id: randomUUID(),
       packageId: pkg.id,
       position,
-      ...normalizePick(tip),
+      ...normalizeMatch(match),
     })));
     return pkg;
   });
@@ -187,7 +186,7 @@ router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tip package not found." });
     return;
   }
-  const response = adminPackageResponse(result, input.data.tips.map(normalizePick));
+  const response = adminPackageResponse(result, input.data.matches.map(normalizeMatch));
   res.json(UpdateAdminTipPackageResponse.parse(response));
 });
 

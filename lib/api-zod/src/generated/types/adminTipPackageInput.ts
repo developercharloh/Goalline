@@ -5,30 +5,19 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import type { AdminTipPackageInputStatus } from './adminTipPackageInputStatus';
-import type { Tip } from './tip';
+import type { AdminTipPackageInputStakeLevel } from './adminTipPackageInputStakeLevel';
+import type { Match } from './match';
 
 export interface AdminTipPackageInput {
   /**
-     * @minLength 3
-     * @maxLength 120
+     * @minimum 1
+     * @maximum 1000000000
      */
-  title: string;
-  /**
-     * @minLength 3
-     * @maxLength 300
-     */
-  description: string;
-  /**
-     * @minimum 0.01
-     * @maximum 100000
-     */
-  price: number;
-  status: AdminTipPackageInputStatus;
-  isSample: boolean;
+  totalOdds: number;
+  stakeLevel: AdminTipPackageInputStakeLevel;
   /**
      * @minItems 1
      * @maxItems 50
      */
-  tips: Tip[];
+  matches: Match[];
 }

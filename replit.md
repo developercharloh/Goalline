@@ -35,7 +35,8 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 - Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
 - Admin roles are server-enforced. The reserved username `admin` cannot be claimed through public sign-up; public sign-up cannot set a role. Provision the first administrator through a private, secure setup.
 - Vercel production serves the admin portal on `admin-probet-tips.vercel.app`; the user site redirects `/admin` to that host, and admin APIs remain role-protected.
-- Admin-managed packages and picks are stored in `probet_tip_packages` / `probet_tip_entries`. Archive packages instead of deleting them so existing purchasers retain access.
+- The public package list is fixed to Free VIP (KES 0), Weekly Multibet (KES 50), and Weekly Premium VIP (KES 70). Admins edit match date, kickoff, teams, odds, total odds, and the stake label; prices and package names stay fixed.
+- Archived legacy package rows and purchases remain stored, but only the three fixed packages are exposed in the user tip list.
 - Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
 - PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.
 - The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
@@ -44,9 +45,9 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Product
 
-Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and tip packages, package purchase confirmation and success, unlocked tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
+Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and weekly VIP fixtures, package purchase confirmation and success, unlocked tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
 Do not configure Replit AI Integrations. Select an external AI provider with the user before enabling ChatBase. The user does not have an OpenAI API key; do not ask for one.
-No live sports feed is connected; supplied football matches are labeled as samples.
+No live sports feed is connected; administrators enter match fixtures and odds manually.
 
 ## User preferences
 

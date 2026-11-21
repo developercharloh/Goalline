@@ -1,10 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
-import { ensureTipCatalogSeed } from "../lib/tip-catalog.js";
+import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
 import { identity, linkGuestWallet, linkGuestWalletToAccount, WalletLinkError } from "../lib/wallet-identity.js";
@@ -63,17 +63,30 @@ async function tipsFor(owner: string) {
   await ensureTipCatalogSeed();
   const owned = await db.select().from(purchases).where(eq(purchases.owner, owner));
   const ownedIds = owned.map((row) => row.packageId);
-  const rows = await db.select().from(tipPackages).where(
-    ownedIds.length
-      ? or(eq(tipPackages.status, "published"), inArray(tipPackages.id, ownedIds))
-      : eq(tipPackages.status, "published"),
-  );
+  const statusFilter = ownedIds.length
+    ? or(eq(tipPackages.status, "published"), inArray(tipPackages.id, ownedIds))
+    : eq(tipPackages.status, "published");
+  const rows = await db.select().from(tipPackages).where(and(
+    inArray(tipPackages.id, weeklyTipPackageIds),
+    statusFilter,
+  ));
+  const packageOrder = new Map(weeklyTipPackageIds.map((id, index) => [id, index]));
+  rows.sort((a, b) => (packageOrder.get(a.id) ?? 0) - (packageOrder.get(b.id) ?? 0));
   const entries = rows.length
     ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, rows.map((row) => row.id))).orderBy(tipEntries.position)
     : [];
   return rows.map((pack) => {
     const purchased = ownedIds.includes(pack.id);
-    const tips = entries.filter((entry) => entry.packageId === pack.id).map(({ match, prediction, league }) => ({ match, prediction, league }));
+    const matches = entries.filter((entry) => entry.packageId === pack.id).flatMap((entry) => {
+      if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || entry.odds == null) return [];
+      return [{
+        matchDate: entry.matchDate,
+        kickoff: entry.kickoff.slice(0, 5),
+        homeTeam: entry.homeTeam,
+        awayTeam: entry.awayTeam,
+        odds: entry.odds,
+      }];
+    });
     return {
       id: pack.id,
       title: pack.title,
@@ -81,8 +94,10 @@ async function tipsFor(owner: string) {
       price: pack.priceCents / 100,
       purchased,
       isSample: pack.isSample,
-      matchCount: tips.length,
-      tips: purchased ? tips : [],
+      matchCount: matches.length,
+      totalOdds: pack.totalOdds,
+      stakeLevel: pack.stakeLevel,
+      matches: purchased ? matches : [],
     };
   });
 }
@@ -199,6 +214,19 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
     eq(tipPackages.status, "published"),
   )).limit(1);
   if (!pack) { res.status(404).json({ error: "Tip package not found or no longer available." }); return; }
+  const [availableMatch] = await db.select({ id: tipEntries.id }).from(tipEntries)
+    .where(and(
+      eq(tipEntries.packageId, pack.id),
+      isNotNull(tipEntries.matchDate),
+      isNotNull(tipEntries.kickoff),
+      isNotNull(tipEntries.homeTeam),
+      isNotNull(tipEntries.awayTeam),
+      isNotNull(tipEntries.odds),
+    )).limit(1);
+  if (!availableMatch) {
+    res.status(409).json({ error: "This package is not available until match details are added." });
+    return;
+  }
   const { owner, isDemo } = await identity(req, res);
   if (pack.isSample && !isDemo) { res.status(403).json({ error: "This sample package is available in the preview wallet only." }); return; }
   const result = await db.transaction(async tx => {
@@ -209,7 +237,13 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
       const updated = await tx.update(wallets).set({ balanceCents: sql`${wallets.balanceCents} - ${pack.priceCents}` }).where(and(eq(wallets.owner, owner), sql`${wallets.balanceCents} >= ${pack.priceCents}`)).returning();
       if (!updated.length) return null;
       await tx.insert(purchases).values({ id: randomUUID(), owner, packageId: pack.id });
-      await tx.insert(transactions).values({ id: randomUUID(), owner, title: "Premium Tips Purchase", type: "purchase", amountCents: -pack.priceCents });
+      await tx.insert(transactions).values({
+        id: randomUUID(),
+        owner,
+        title: pack.priceCents === 0 ? `${pack.title} access` : `${pack.title} purchase`,
+        type: "purchase",
+        amountCents: -pack.priceCents,
+      });
     }
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.owner, owner));
     return wallet.balanceCents / 100;
