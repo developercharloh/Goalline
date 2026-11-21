@@ -28,7 +28,7 @@ export function WalletPage({ accountLinkContent }: { accountLinkContent?: ReactN
           <div className="relative text-muted-foreground mt-1">Wallet balance</div>
           <div className="relative text-xs text-muted-foreground mt-2" data-testid="text-total-deposited">Total deposited: {money(w.data.depositedBalance ?? 0, w.data.currency)}</div>
           <button type="button" onClick={() => setOpen(true)} className="btn-green relative mt-6 w-full max-w-sm rounded-xl py-3 font-bold" data-testid="button-topup-wallet">Deposit with M-Pesa</button>
-          <p className="relative mt-2 text-xs text-muted-foreground">Real tip purchases are not available yet.</p>
+          <p className="relative mt-2 text-xs text-muted-foreground">Premium packages can be purchased with your wallet balance.</p>
           <div className="relative mt-4 flex flex-wrap justify-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1"><ShieldCheck className="h-4 w-4" />M-Pesa payments are confirmed automatically</span>
           </div>
@@ -39,12 +39,10 @@ export function WalletPage({ accountLinkContent }: { accountLinkContent?: ReactN
           <ShieldCheck className="h-5 w-5 shrink-0 text-gold" />
           <div>
             <p><b>This wallet is linked to this browser.</b> <span className="text-muted-foreground">Link an account to keep your balance, history, and purchases if you clear browser data or switch devices.</span></p>
-            {import.meta.env.VITE_CLERK_PUBLISHABLE_KEY && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link href="/sign-up" className="btn-blue rounded-lg px-4 py-2 text-xs font-bold" data-testid="link-wallet-signup">Create account and save wallet</Link>
-                <Link href="/sign-in" className="rounded-lg border border-border px-4 py-2 text-xs font-bold hover:bg-secondary" data-testid="link-wallet-signin">Sign in to save wallet</Link>
-              </div>
-            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Link href="/sign-up?returnTo=%2Fwallet%3Flink%3D1" className="btn-blue rounded-lg px-4 py-2 text-xs font-bold" data-testid="link-wallet-signup">Create account and save wallet</Link>
+              <Link href="/sign-in?returnTo=%2Fwallet%3Flink%3D1" className="rounded-lg border border-border px-4 py-2 text-xs font-bold hover:bg-secondary" data-testid="link-wallet-signin">Sign in to save wallet</Link>
+            </div>
           </div>
         </div>
       )}

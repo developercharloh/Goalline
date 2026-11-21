@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useUser } from "@clerk/react";
-import { useGetDashboard } from "@workspace/api-client-react";
+import { useGetAuthMe, useGetDashboard } from "@workspace/api-client-react";
 import { MessageCircle, Gem, Wallet, ShieldCheck, Info } from "lucide-react";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
@@ -13,7 +12,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
   const { data, isLoading, error, refetch } = useGetDashboard();
   const [topup, setTopup] = useState(false);
   const displayName = guest ? "Champion" : name || "Champion";
-  const authAvailable = Boolean(import.meta.env.VITE_CLERK_PUBLISHABLE_KEY);
+  const authAvailable = true;
 
   return (
     <>
@@ -105,6 +104,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
 }
 
 export default function DashboardPage() {
-  const { user } = useUser();
-  return <AppShell title="Dashboard"><DashboardView name={user?.firstName || "Champion"} /></AppShell>;
+  const { data: session } = useGetAuthMe();
+  const guest = !session?.account;
+  return <AppShell title="Dashboard"><DashboardView guest={guest} name={session?.account?.fullName || "Champion"} /></AppShell>;
 }

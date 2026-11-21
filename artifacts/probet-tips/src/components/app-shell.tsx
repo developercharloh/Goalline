@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Show, useUser } from "@clerk/react";
-import { Home, MessageSquare, Wallet, Gem, LogIn } from "lucide-react";
+import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield } from "lucide-react";
+import { useGetAuthMe, useSignOut } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Logo, Wordmark } from "@/components/brand";
 
 const NAV = [
@@ -24,14 +25,30 @@ function AppShellFrame({
   displayName,
   email,
   guestPreview = false,
+  account,
 }: {
   children: ReactNode;
   title?: string;
   displayName?: string;
   email?: string;
   guestPreview?: boolean;
+  account?: { username: string; fullName: string; role: "user" | "admin" } | null;
 }) {
   const isActive = useActive();
+  const queryClient = useQueryClient();
+  const signOut = useSignOut();
+  const name = account?.fullName || displayName || email || "Member";
+  const authenticated = Boolean(account || displayName || email);
+
+  function handleSignOut() {
+    signOut.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.clear();
+        window.location.assign("/");
+      },
+    });
+  }
+
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur sticky top-0 h-[100dvh] p-5">
@@ -51,21 +68,27 @@ function AppShellFrame({
           })}
         </nav>
         <div className="mt-auto glass rounded-2xl p-4 text-sm">
-          {guestPreview ? (
+          {authenticated ? (
             <>
-              <div className="font-bold">Welcome to ProBet Tips</div>
-              <p className="text-xs text-muted-foreground mt-1">Explore football tips, your wallet, and community chat.</p>
+              <div className="font-bold truncate">{name}</div>
+              {account && <div className="text-xs text-muted-foreground">@{account.username}</div>}
+              <div className="mt-3 grid gap-2">
+                <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" data-testid="link-profile">
+                  <UserRound className="h-4 w-4" />My profile
+                </Link>
+                {account?.role === "admin" && <Link href="/admin" className="flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-semibold text-gold hover:bg-sidebar-accent" data-testid="link-admin">
+                  <Shield className="h-4 w-4" />Admin portal
+                </Link>}
+                <button type="button" onClick={handleSignOut} disabled={signOut.isPending} className="flex items-center gap-2 rounded-lg px-2 py-2 text-left text-xs font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground disabled:opacity-50" data-testid="button-signout">
+                  <LogOut className="h-4 w-4" />{signOut.isPending ? "Signing out…" : "Sign out"}
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <Show when="signed-in">
-                <div className="font-bold truncate">{displayName || email || "Member"}</div>
-                <div className="text-xs text-muted-foreground">Member account</div>
-              </Show>
-              <Show when="signed-out">
-            <div className="font-bold">Welcome</div>
-            <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 font-bold" data-testid="link-sidebar-signup">Create account</Link>
-              </Show>
+              <div className="font-bold">{guestPreview ? "Welcome to ProBet Tips" : "Welcome"}</div>
+              <p className="text-xs text-muted-foreground mt-1">Explore football tips, your wallet, and community chat.</p>
+              <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 mt-3 font-bold" data-testid="link-sidebar-signup">Create account</Link>
             </>
           )}
         </div>
@@ -74,7 +97,7 @@ function AppShellFrame({
       <div className="flex-1 min-w-0 pb-10">
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b border-border/50">
           <Link href="/dashboard" className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
-          {!guestPreview && <Show when="signed-out"><Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link></Show>}
+          {!authenticated && <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>}
         </header>
         <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
           className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-[hsl(225_70%_8%/.95)] px-2 py-1.5 backdrop-blur">
@@ -97,24 +120,9 @@ function AppShellFrame({
   );
 }
 
-function ClerkAppShell({ children, title }: { children: ReactNode; title?: string }) {
-  const { user } = useUser();
-  return (
-    <AppShellFrame
-      title={title}
-      displayName={user?.firstName || undefined}
-      email={user?.primaryEmailAddress?.emailAddress}
-    >
-      {children}
-    </AppShellFrame>
-  );
-}
-
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
-  if (!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY) {
-    return <AppShellFrame title={title} guestPreview>{children}</AppShellFrame>;
-  }
-  return <ClerkAppShell title={title}>{children}</ClerkAppShell>;
+  const { data } = useGetAuthMe();
+  return <AppShellFrame title={title} account={data?.account}>{children}</AppShellFrame>;
 }
 
 export function PageHeader({ title, subtitle, back }: { title: string; subtitle?: string; back?: string }) {

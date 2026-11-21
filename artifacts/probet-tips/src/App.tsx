@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
-import { ClerkProvider, SignIn, SignUp, Show, useClerk, useUser } from "@clerk/react";
+import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, Redirect, useLocation, Router as WouterRouter } from "wouter";
-import { getGetDashboardQueryKey } from "@workspace/api-client-react";
+import { getGetAuthMeQueryKey, getGetDashboardQueryKey, useGetAuthMe } from "@workspace/api-client-react";
 import type { Dashboard } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
@@ -12,9 +12,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DashboardPage, { DashboardView } from "@/pages/dashboard";
 import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pages/pages";
+import { AdminBootstrapPage, SignInPage as CredentialSignInPage, SignUpPage as CredentialSignUpPage } from "@/pages/auth";
+import AccountPage from "@/pages/account";
+import AdminPage from "@/pages/admin";
 import DepositReviewsPage from "@/pages/deposit-reviews";
 import { AppShell } from "@/components/app-shell";
-import { Logo, Wordmark } from "@/components/brand";
+import { Logo } from "@/components/brand";
 import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -84,26 +87,15 @@ const clerkAppearance = {
   },
 };
 
-function AuthFrame({ children }: { children: ReactNode }) {
+function LegacySignInPage() {
   return (
-    <div className="min-h-[100dvh] grid lg:grid-cols-2">
-      <div className="hidden lg:flex flex-col justify-center items-center gap-6 p-12 relative overflow-hidden">
-        <div className="absolute h-96 w-96 rounded-full bg-[hsl(217_100%_50%/.3)] blur-3xl" />
-        <Logo className="relative h-40 w-40" />
-        <div className="relative text-center"><Wordmark size="lg" tagline /></div>
-        <p className="relative max-w-sm text-center text-muted-foreground">Premium football picks, a secure wallet and the ChatBase community.</p>
+    <div className="min-h-[100dvh] grid place-items-center p-4">
+      <div className="glass w-full max-w-lg rounded-3xl p-5 md:p-8">
+        <p className="mb-4 text-center text-sm text-muted-foreground">Sign in here only to link data from an older account.</p>
+        <SignIn routing="path" path={`${basePath}/legacy-sign-in`} signUpUrl={`${basePath}/sign-up`} forceRedirectUrl={`${basePath}/profile`} />
       </div>
-      <div className="flex items-center justify-center px-4 py-10">{children}</div>
     </div>
   );
-}
-
-function SignInPage() {
-  return <AuthFrame><SignIn routing="path" path={`${basePath}/sign-in`} signUpUrl={`${basePath}/sign-up`} forceRedirectUrl={`${basePath}/wallet?link=1`} /></AuthFrame>;
-}
-
-function SignUpPage() {
-  return <AuthFrame><SignUp routing="path" path={`${basePath}/sign-up`} signInUrl={`${basePath}/sign-in`} forceRedirectUrl={`${basePath}/wallet?link=1`} /></AuthFrame>;
 }
 
 function ClerkQueryClientCacheInvalidator() {
@@ -125,22 +117,10 @@ function ClerkQueryClientCacheInvalidator() {
   return null;
 }
 
-function HomeRedirect() {
-  return (
-    <>
-      <Show when="signed-in"><Redirect to="/dashboard" /></Show>
-      <Show when="signed-out"><AppShell title="ProBet Tips preview"><DashboardView guest /></AppShell></Show>
-    </>
-  );
-}
-
-function Protected({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <Show when="signed-in">{children}</Show>
-      <Show when="signed-out"><Redirect to="/" /></Show>
-    </>
-  );
+function HomeRoute() {
+  const { data } = useGetAuthMe();
+  if (data?.account) return <Redirect to="/dashboard" />;
+  return <AppShell title="ProBet Tips"><DashboardView guest /></AppShell>;
 }
 
 /** Bootstraps the guest/user session cookie once before any domain hooks mount,
@@ -207,7 +187,7 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
 }
 
 function WalletRoute() {
-  const { user } = useUser();
+  const { data: session } = useGetAuthMe();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const [linkState, setLinkState] = useState<"idle" | "linking" | "linked" | "empty" | "error">("idle");
@@ -215,7 +195,7 @@ function WalletRoute() {
   const attempted = useRef(false);
 
   useEffect(() => {
-    if (!user || attempted.current || new URLSearchParams(window.location.search).get("link") !== "1") return;
+    if (!session?.account || attempted.current || new URLSearchParams(window.location.search).get("link") !== "1") return;
     attempted.current = true;
     setLinkState("linking");
     setLocation("/wallet", { replace: true });
@@ -232,7 +212,7 @@ function WalletRoute() {
         setMessage(error instanceof Error ? error.message : "Could not link this wallet.");
       }
     })();
-  }, [user, queryClient, setLocation]);
+  }, [session?.account, queryClient, setLocation]);
 
   const accountLinkContent = linkState === "idle" ? null : (
     <div
@@ -274,16 +254,20 @@ function ClerkProviderWithRoutes() {
           <SessionBootstrap>
             <RoutedErrorBoundary>
               <Switch>
-                <Route path="/" component={HomeRedirect} />
-                <Route path="/sign-in/*?" component={SignInPage} />
-                <Route path="/sign-up/*?" component={SignUpPage} />
-                <Route path="/dashboard"><Protected><DashboardPage /></Protected></Route>
+                <Route path="/" component={HomeRoute} />
+                <Route path="/sign-in/*?" component={CredentialSignInPage} />
+                <Route path="/sign-up/*?" component={CredentialSignUpPage} />
+                <Route path="/legacy-sign-in/*?" component={LegacySignInPage} />
+                <Route path="/dashboard" component={DashboardPage} />
                 <Route path="/chat" component={ChatPage} />
                 <Route path="/wallet" component={WalletRoute} />
                 <Route path="/tips" component={TipsPage} />
                 <Route path="/purchase/:id" component={PurchasePage} />
                 <Route path="/success" component={SuccessPage} />
                 <Route path="/deposit-reviews" component={DepositReviewsPage} />
+                <Route path="/profile" component={AccountPage} />
+                <Route path="/admin/setup" component={AdminBootstrapPage} />
+                <Route path="/admin" component={AdminPage} />
                 <Route component={NotFound} />
               </Switch>
             </RoutedErrorBoundary>
@@ -295,25 +279,17 @@ function ClerkProviderWithRoutes() {
   );
 }
 
-function GuestHomePage() {
-  return <AppShell title="Dashboard"><DashboardView guest /></AppShell>;
-}
-
 function AccountUnavailablePage() {
   return (
-    <AppShell title="Account access">
+    <AppShell title="Previous account">
       <div className="glass rounded-3xl p-8 max-w-lg text-center mx-auto">
         <Logo className="h-16 w-16 mx-auto" />
-        <h2 className="font-display text-2xl font-extrabold mt-4">Sign-in is not enabled yet</h2>
-        <p className="text-sm text-muted-foreground mt-2">Explore ProBet Tips and the community while account access is unavailable.</p>
+        <h2 className="font-display text-2xl font-extrabold mt-4">Previous-account linking is unavailable</h2>
+        <p className="text-sm text-muted-foreground mt-2">You can still create and use a new email-and-password account.</p>
         <a href="/" className="btn-blue inline-block rounded-xl px-5 py-2.5 font-bold mt-5">Return home</a>
       </div>
     </AppShell>
   );
-}
-
-function GuestWalletRoute() {
-  return <WalletPage />;
 }
 
 function GuestPreviewRoutes() {
@@ -323,16 +299,20 @@ function GuestPreviewRoutes() {
         <SessionBootstrap>
           <RoutedErrorBoundary>
             <Switch>
-              <Route path="/" component={GuestHomePage} />
-              <Route path="/dashboard" component={GuestHomePage} />
-              <Route path="/sign-in/*?" component={AccountUnavailablePage} />
-              <Route path="/sign-up/*?" component={AccountUnavailablePage} />
+              <Route path="/" component={HomeRoute} />
+              <Route path="/dashboard" component={DashboardPage} />
+              <Route path="/sign-in/*?" component={CredentialSignInPage} />
+              <Route path="/sign-up/*?" component={CredentialSignUpPage} />
+              <Route path="/legacy-sign-in/*?" component={AccountUnavailablePage} />
               <Route path="/chat" component={ChatPage} />
-              <Route path="/wallet" component={GuestWalletRoute} />
+              <Route path="/wallet" component={WalletRoute} />
               <Route path="/tips" component={TipsPage} />
               <Route path="/purchase/:id" component={PurchasePage} />
               <Route path="/success" component={SuccessPage} />
-                <Route path="/deposit-reviews" component={DepositReviewsPage} />
+              <Route path="/deposit-reviews" component={DepositReviewsPage} />
+              <Route path="/profile" component={AccountPage} />
+              <Route path="/admin/setup" component={AdminBootstrapPage} />
+              <Route path="/admin" component={AdminPage} />
               <Route component={NotFound} />
             </Switch>
           </RoutedErrorBoundary>

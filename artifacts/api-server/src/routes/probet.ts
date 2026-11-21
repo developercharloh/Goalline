@@ -1,13 +1,14 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits, payheroDepositCredits } from "@workspace/db";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
 import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
-import { tipCatalog } from "../lib/tip-catalog.js";
+import { ensureTipCatalogSeed } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
-import { authenticatedUserId, identity, linkGuestWallet, WalletLinkError } from "../lib/wallet-identity.js";
+import { identity, linkGuestWallet, linkGuestWalletToAccount, WalletLinkError } from "../lib/wallet-identity.js";
+import { accountOwner } from "../lib/account-session.js";
 import manualDepositRouter from "./manual-deposits.js";
 import { payheroEnabled } from "../lib/payhero.js";
 
@@ -59,16 +60,39 @@ async function transactionsFor(owner: string, isDemo: boolean) {
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 async function tipsFor(owner: string) {
+  await ensureTipCatalogSeed();
   const owned = await db.select().from(purchases).where(eq(purchases.owner, owner));
-  return tipCatalog.map(pack => ({ ...pack, purchased: owned.some(row => row.packageId === pack.id), tips: owned.some(row => row.packageId === pack.id) ? pack.tips : [] }));
+  const ownedIds = owned.map((row) => row.packageId);
+  const rows = await db.select().from(tipPackages).where(
+    ownedIds.length
+      ? or(eq(tipPackages.status, "published"), inArray(tipPackages.id, ownedIds))
+      : eq(tipPackages.status, "published"),
+  );
+  const entries = rows.length
+    ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, rows.map((row) => row.id))).orderBy(tipEntries.position)
+    : [];
+  return rows.map((pack) => {
+    const purchased = ownedIds.includes(pack.id);
+    const tips = entries.filter((entry) => entry.packageId === pack.id).map(({ match, prediction, league }) => ({ match, prediction, league }));
+    return {
+      id: pack.id,
+      title: pack.title,
+      description: pack.description,
+      price: pack.priceCents / 100,
+      purchased,
+      isSample: pack.isSample,
+      matchCount: tips.length,
+      tips: purchased ? tips : [],
+    };
+  });
 }
 router.get("/probet/wallet", async (req, res): Promise<void> => {
   const { owner } = await identity(req, res);
   res.json(GetWalletResponse.parse(await walletFor(owner)));
 });
 router.post("/probet/wallet/link", async (req, res): Promise<void> => {
-  const userId = authenticatedUserId(req);
-  if (!userId) {
+  const owner = accountOwner(req);
+  if (!owner) {
     res.status(401).json({ error: "Sign in to link this wallet to your account." });
     return;
   }
@@ -78,7 +102,9 @@ router.post("/probet/wallet/link", async (req, res): Promise<void> => {
     return;
   }
   try {
-    const result = await linkGuestWallet(guestId, userId);
+    const result = owner.startsWith("account:")
+      ? await linkGuestWalletToAccount(guestId, owner)
+      : await linkGuestWallet(guestId, owner.slice("user:".length));
     res.json({ ...result, balance: result.balanceCents / 100 });
   } catch (error) {
     if (error instanceof WalletLinkError) {
@@ -167,19 +193,23 @@ router.post("/webhooks/cashia", (_req, res): void => {
 router.post("/probet/purchases", async (req, res): Promise<void> => {
   const input = PurchaseTipsBody.safeParse(req.body);
   if (!input.success) { res.status(400).json({ error: "Select a valid tip package." }); return; }
-  const pack = tipCatalog.find(p => p.id === input.data.packageId);
-  if (!pack) { res.status(404).json({ error: "Tip package not found." }); return; }
+  await ensureTipCatalogSeed();
+  const [pack] = await db.select().from(tipPackages).where(and(
+    eq(tipPackages.id, input.data.packageId),
+    eq(tipPackages.status, "published"),
+  )).limit(1);
+  if (!pack) { res.status(404).json({ error: "Tip package not found or no longer available." }); return; }
   const { owner, isDemo } = await identity(req, res);
-  if (!isDemo) { res.status(503).json({ error: "Real-money purchases are unavailable until Cashia and verified premium content are connected. Sample packages can only be purchased in guest demo mode." }); return; }
+  if (pack.isSample && !isDemo) { res.status(403).json({ error: "This sample package is available in the preview wallet only." }); return; }
   const result = await db.transaction(async tx => {
     // Serializes simultaneous attempts against the same wallet.
     await tx.execute(sql`SELECT owner FROM probet_wallets WHERE owner = ${owner} FOR UPDATE`);
     const prior = await tx.select().from(purchases).where(and(eq(purchases.owner, owner), eq(purchases.packageId, pack.id)));
     if (!prior.length) {
-      const updated = await tx.update(wallets).set({ balanceCents: sql`${wallets.balanceCents} - ${pack.price * 100}` }).where(and(eq(wallets.owner, owner), sql`${wallets.balanceCents} >= ${pack.price * 100}`)).returning();
+      const updated = await tx.update(wallets).set({ balanceCents: sql`${wallets.balanceCents} - ${pack.priceCents}` }).where(and(eq(wallets.owner, owner), sql`${wallets.balanceCents} >= ${pack.priceCents}`)).returning();
       if (!updated.length) return null;
       await tx.insert(purchases).values({ id: randomUUID(), owner, packageId: pack.id });
-      await tx.insert(transactions).values({ id: randomUUID(), owner, title: "Premium Tips Purchase", type: "purchase", amountCents: -pack.price * 100 });
+      await tx.insert(transactions).values({ id: randomUUID(), owner, title: "Premium Tips Purchase", type: "purchase", amountCents: -pack.priceCents });
     }
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.owner, owner));
     return wallet.balanceCents / 100;

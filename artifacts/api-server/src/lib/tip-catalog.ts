@@ -1,4 +1,7 @@
-// Reference-image examples, not a live fixture feed or verified predictions.
+import { db, tipEntries, tipPackages } from "@workspace/db";
+
+// This is inserted once as an explicitly illustrative starter package. All
+// subsequent public and admin reads come from the database.
 export const tipCatalog = [
   {
     id: "champions-league",
@@ -14,3 +17,24 @@ export const tipCatalog = [
     ],
   },
 ];
+
+export async function ensureTipCatalogSeed(): Promise<void> {
+  const starter = tipCatalog[0];
+  await db.transaction(async (tx) => {
+    const [created] = await tx.insert(tipPackages).values({
+      id: starter.id,
+      title: starter.title,
+      description: starter.description,
+      priceCents: Math.round(starter.price * 100),
+      status: "published",
+      isSample: true,
+    }).onConflictDoNothing().returning({ id: tipPackages.id });
+    if (!created) return;
+    await tx.insert(tipEntries).values(starter.tips.map((tip, position) => ({
+      id: `${starter.id}-${position + 1}`,
+      packageId: starter.id,
+      position,
+      ...tip,
+    })));
+  });
+}

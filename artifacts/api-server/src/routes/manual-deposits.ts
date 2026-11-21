@@ -17,6 +17,11 @@ router.get("/probet/manual-deposits/config", (_req, res) => {
 
 // Never trust a user ID, email or role supplied by the browser.
 async function requireReviewer(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (req.probetAccountId && req.probetAccountRole === "admin") {
+    res.locals.reviewerId = `account:${req.probetAccountId}`;
+    next();
+    return;
+  }
   if (!process.env.CLERK_SECRET_KEY || !process.env.CLERK_PUBLISHABLE_KEY) {
     res.status(403).json({ error: "Deposit review is not configured. Only an authorised reviewer may access this page." }); return;
   }

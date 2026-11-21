@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware.js";
+import { accountSessionMiddleware } from "./lib/account-session.js";
 
 const app: Express = express();
 const clerkConfigured = Boolean(process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY);
@@ -55,6 +56,27 @@ if (clerkConfigured) {
   })));
 }
 
+app.use("/api", (req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    next();
+    return;
+  }
+  const origin = req.get("origin");
+  const host = req.get("x-forwarded-host") || req.get("host");
+  if (origin) {
+    try {
+      if (!host || new URL(origin).host !== host) {
+        res.status(403).json({ error: "Cross-site requests are not allowed." });
+        return;
+      }
+    } catch {
+      res.status(403).json({ error: "Invalid request origin." });
+      return;
+    }
+  }
+  next();
+});
+app.use("/api", accountSessionMiddleware);
 app.use("/api", router);
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   req.log.error({ err }, "Request failed");

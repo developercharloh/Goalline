@@ -5,6 +5,203 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type AccountRole = typeof AccountRole[keyof typeof AccountRole];
+
+
+export const AccountRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface Account {
+  id: string;
+  email: string;
+  username: string;
+  fullName: string;
+  phone: string;
+  country: string;
+  role: AccountRole;
+  legacyLinked: boolean;
+}
+
+export interface AuthSession {
+  account: Account;
+}
+
+export interface AuthMe {
+  account: Account | null;
+  legacySession: boolean;
+}
+
+export interface AuthAction {
+  success: boolean;
+}
+
+export interface AccountLinkResult {
+  linked: boolean;
+  message: string;
+}
+
+export interface SignUpInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 10
+     * @maxLength 128
+     */
+  password: string;
+  /**
+     * @minLength 10
+     * @maxLength 128
+     */
+  confirmPassword: string;
+  /**
+     * @minLength 3
+     * @maxLength 24
+     * @pattern ^[a-zA-Z0-9_]+$
+     */
+  username: string;
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  fullName: string;
+  /**
+     * @minLength 7
+     * @maxLength 24
+     */
+  phone: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  country: string;
+}
+
+export interface SignInInput {
+  /** @maxLength 254 */
+  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 128
+     */
+  password: string;
+}
+
+export interface ProfileInput {
+  /**
+     * @minLength 3
+     * @maxLength 24
+     * @pattern ^[a-zA-Z0-9_]+$
+     */
+  username: string;
+  /**
+     * @minLength 2
+     * @maxLength 100
+     */
+  fullName: string;
+  /**
+     * @minLength 7
+     * @maxLength 24
+     */
+  phone: string;
+  /**
+     * @minLength 2
+     * @maxLength 80
+     */
+  country: string;
+}
+
+export interface AdminBootstrapInput {
+  /**
+     * @minLength 12
+     * @maxLength 256
+     */
+  token: string;
+}
+
+export type AdminUserRole = typeof AdminUserRole[keyof typeof AdminUserRole];
+
+
+export const AdminUserRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  username: string;
+  fullName: string;
+  phone: string;
+  country: string;
+  role: AdminUserRole;
+  createdAt: string;
+  legacyLinked: boolean;
+}
+
+export type AdminTipPackageStatus = typeof AdminTipPackageStatus[keyof typeof AdminTipPackageStatus];
+
+
+export const AdminTipPackageStatus = {
+  draft: 'draft',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export interface Tip {
+  match: string;
+  prediction: string;
+  league: string;
+}
+
+export interface AdminTipPackage {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  status: AdminTipPackageStatus;
+  isSample: boolean;
+  matchCount: number;
+  tips: Tip[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminTipPackageInputStatus = typeof AdminTipPackageInputStatus[keyof typeof AdminTipPackageInputStatus];
+
+
+export const AdminTipPackageInputStatus = {
+  draft: 'draft',
+  published: 'published',
+  archived: 'archived',
+} as const;
+
+export interface AdminTipPackageInput {
+  /**
+     * @minLength 3
+     * @maxLength 120
+     */
+  title: string;
+  /**
+     * @minLength 3
+     * @maxLength 300
+     */
+  description: string;
+  /**
+     * @minimum 0.01
+     * @maximum 100000
+     */
+  price: number;
+  status: AdminTipPackageInputStatus;
+  isSample: boolean;
+  /**
+     * @minItems 1
+     * @maxItems 50
+     */
+  tips: Tip[];
+}
+
 export interface Wallet {
   balance: number;
   currency: string;
@@ -30,12 +227,6 @@ export interface Transaction {
   type: TransactionType;
   createdAt: string;
   isDemo: boolean;
-}
-
-export interface Tip {
-  match: string;
-  prediction: string;
-  league: string;
 }
 
 export interface TipPackage {
@@ -263,4 +454,11 @@ export interface ChatMessage {
 export interface HealthStatus {
   status: string;
 }
+
+export type GetAdminUsersParams = {
+/**
+ * @maxLength 80
+ */
+q?: string;
+};
 

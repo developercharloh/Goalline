@@ -8,6 +8,342 @@
 import * as zod from 'zod';
 
 
+export const signUpBodyEmailMax = 254;
+
+export const signUpBodyPasswordMin = 10;
+export const signUpBodyPasswordMax = 128;
+
+export const signUpBodyConfirmPasswordMin = 10;
+export const signUpBodyConfirmPasswordMax = 128;
+
+export const signUpBodyUsernameMin = 3;
+export const signUpBodyUsernameMax = 24;
+
+
+export const signUpBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_]+$');
+export const signUpBodyFullNameMin = 2;
+export const signUpBodyFullNameMax = 100;
+
+export const signUpBodyPhoneMin = 7;
+export const signUpBodyPhoneMax = 24;
+
+export const signUpBodyCountryMin = 2;
+export const signUpBodyCountryMax = 80;
+
+
+
+export const SignUpBody = zod.object({
+  "email": zod.string().email().max(signUpBodyEmailMax),
+  "password": zod.string().min(signUpBodyPasswordMin).max(signUpBodyPasswordMax),
+  "confirmPassword": zod.string().min(signUpBodyConfirmPasswordMin).max(signUpBodyConfirmPasswordMax),
+  "username": zod.string().min(signUpBodyUsernameMin).max(signUpBodyUsernameMax).regex(signUpBodyUsernameRegExp),
+  "fullName": zod.string().min(signUpBodyFullNameMin).max(signUpBodyFullNameMax),
+  "phone": zod.string().min(signUpBodyPhoneMin).max(signUpBodyPhoneMax),
+  "country": zod.string().min(signUpBodyCountryMin).max(signUpBodyCountryMax)
+})
+
+export const SignUpResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "legacyLinked": zod.boolean()
+})
+})
+
+
+export const signInBodyEmailMax = 254;
+
+export const signInBodyPasswordMax = 128;
+
+
+
+export const SignInBody = zod.object({
+  "email": zod.string().email().max(signInBodyEmailMax),
+  "password": zod.string().min(1).max(signInBodyPasswordMax)
+})
+
+export const SignInResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "legacyLinked": zod.boolean()
+})
+})
+
+
+export const SignOutResponse = zod.object({
+  "success": zod.boolean()
+})
+
+
+export const GetAuthMeResponse = zod.object({
+  "account": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "legacyLinked": zod.boolean()
+}),zod.null()]),
+  "legacySession": zod.boolean()
+})
+
+
+export const updateAccountProfileBodyUsernameMin = 3;
+export const updateAccountProfileBodyUsernameMax = 24;
+
+
+export const updateAccountProfileBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_]+$');
+export const updateAccountProfileBodyFullNameMin = 2;
+export const updateAccountProfileBodyFullNameMax = 100;
+
+export const updateAccountProfileBodyPhoneMin = 7;
+export const updateAccountProfileBodyPhoneMax = 24;
+
+export const updateAccountProfileBodyCountryMin = 2;
+export const updateAccountProfileBodyCountryMax = 80;
+
+
+
+export const UpdateAccountProfileBody = zod.object({
+  "username": zod.string().min(updateAccountProfileBodyUsernameMin).max(updateAccountProfileBodyUsernameMax).regex(updateAccountProfileBodyUsernameRegExp),
+  "fullName": zod.string().min(updateAccountProfileBodyFullNameMin).max(updateAccountProfileBodyFullNameMax),
+  "phone": zod.string().min(updateAccountProfileBodyPhoneMin).max(updateAccountProfileBodyPhoneMax),
+  "country": zod.string().min(updateAccountProfileBodyCountryMin).max(updateAccountProfileBodyCountryMax)
+})
+
+export const UpdateAccountProfileResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "legacyLinked": zod.boolean()
+})
+})
+
+
+export const LinkLegacyAccountResponse = zod.object({
+  "linked": zod.boolean(),
+  "message": zod.string()
+})
+
+
+export const bootstrapAdminBodyTokenMin = 12;
+export const bootstrapAdminBodyTokenMax = 256;
+
+
+
+export const BootstrapAdminBody = zod.object({
+  "token": zod.string().min(bootstrapAdminBodyTokenMin).max(bootstrapAdminBodyTokenMax)
+})
+
+export const BootstrapAdminResponse = zod.object({
+  "account": zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "legacyLinked": zod.boolean()
+})
+})
+
+
+export const getAdminUsersQueryQMax = 80;
+
+
+
+export const GetAdminUsersQueryParams = zod.object({
+  "q": zod.coerce.string().max(getAdminUsersQueryQMax).optional()
+})
+
+export const GetAdminUsersResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "createdAt": zod.coerce.date(),
+  "legacyLinked": zod.boolean()
+})
+export const GetAdminUsersResponse = zod.array(GetAdminUsersResponseItem)
+
+
+export const UpdateAdminUserParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const updateAdminUserBodyUsernameMin = 3;
+export const updateAdminUserBodyUsernameMax = 24;
+
+
+export const updateAdminUserBodyUsernameRegExp = new RegExp('^[a-zA-Z0-9_]+$');
+export const updateAdminUserBodyFullNameMin = 2;
+export const updateAdminUserBodyFullNameMax = 100;
+
+export const updateAdminUserBodyPhoneMin = 7;
+export const updateAdminUserBodyPhoneMax = 24;
+
+export const updateAdminUserBodyCountryMin = 2;
+export const updateAdminUserBodyCountryMax = 80;
+
+
+
+export const UpdateAdminUserBody = zod.object({
+  "username": zod.string().min(updateAdminUserBodyUsernameMin).max(updateAdminUserBodyUsernameMax).regex(updateAdminUserBodyUsernameRegExp),
+  "fullName": zod.string().min(updateAdminUserBodyFullNameMin).max(updateAdminUserBodyFullNameMax),
+  "phone": zod.string().min(updateAdminUserBodyPhoneMin).max(updateAdminUserBodyPhoneMax),
+  "country": zod.string().min(updateAdminUserBodyCountryMin).max(updateAdminUserBodyCountryMax)
+})
+
+export const UpdateAdminUserResponse = zod.object({
+  "id": zod.string().uuid(),
+  "email": zod.string().email(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "phone": zod.string(),
+  "country": zod.string(),
+  "role": zod.enum(['user', 'admin']),
+  "createdAt": zod.coerce.date(),
+  "legacyLinked": zod.boolean()
+})
+
+
+export const GetAdminTipPackagesResponseItem = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "price": zod.number(),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "isSample": zod.boolean(),
+  "matchCount": zod.number().int(),
+  "tips": zod.array(zod.object({
+  "match": zod.string(),
+  "prediction": zod.string(),
+  "league": zod.string()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const GetAdminTipPackagesResponse = zod.array(GetAdminTipPackagesResponseItem)
+
+
+export const createAdminTipPackageBodyTitleMin = 3;
+export const createAdminTipPackageBodyTitleMax = 120;
+
+export const createAdminTipPackageBodyDescriptionMin = 3;
+export const createAdminTipPackageBodyDescriptionMax = 300;
+
+export const createAdminTipPackageBodyPriceMin = 0.01;
+export const createAdminTipPackageBodyPriceMax = 100000;
+
+export const createAdminTipPackageBodyTipsMax = 50;
+
+
+
+export const CreateAdminTipPackageBody = zod.object({
+  "title": zod.string().min(createAdminTipPackageBodyTitleMin).max(createAdminTipPackageBodyTitleMax),
+  "description": zod.string().min(createAdminTipPackageBodyDescriptionMin).max(createAdminTipPackageBodyDescriptionMax),
+  "price": zod.number().min(createAdminTipPackageBodyPriceMin).max(createAdminTipPackageBodyPriceMax),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "isSample": zod.boolean(),
+  "tips": zod.array(zod.object({
+  "match": zod.string(),
+  "prediction": zod.string(),
+  "league": zod.string()
+})).min(1).max(createAdminTipPackageBodyTipsMax)
+})
+
+export const CreateAdminTipPackageResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "price": zod.number(),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "isSample": zod.boolean(),
+  "matchCount": zod.number().int(),
+  "tips": zod.array(zod.object({
+  "match": zod.string(),
+  "prediction": zod.string(),
+  "league": zod.string()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+export const updateAdminTipPackagePathIdMax = 100;
+
+
+
+export const UpdateAdminTipPackageParams = zod.object({
+  "id": zod.coerce.string().min(1).max(updateAdminTipPackagePathIdMax)
+})
+
+export const updateAdminTipPackageBodyTitleMin = 3;
+export const updateAdminTipPackageBodyTitleMax = 120;
+
+export const updateAdminTipPackageBodyDescriptionMin = 3;
+export const updateAdminTipPackageBodyDescriptionMax = 300;
+
+export const updateAdminTipPackageBodyPriceMin = 0.01;
+export const updateAdminTipPackageBodyPriceMax = 100000;
+
+export const updateAdminTipPackageBodyTipsMax = 50;
+
+
+
+export const UpdateAdminTipPackageBody = zod.object({
+  "title": zod.string().min(updateAdminTipPackageBodyTitleMin).max(updateAdminTipPackageBodyTitleMax),
+  "description": zod.string().min(updateAdminTipPackageBodyDescriptionMin).max(updateAdminTipPackageBodyDescriptionMax),
+  "price": zod.number().min(updateAdminTipPackageBodyPriceMin).max(updateAdminTipPackageBodyPriceMax),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "isSample": zod.boolean(),
+  "tips": zod.array(zod.object({
+  "match": zod.string(),
+  "prediction": zod.string(),
+  "league": zod.string()
+})).min(1).max(updateAdminTipPackageBodyTipsMax)
+})
+
+export const UpdateAdminTipPackageResponse = zod.object({
+  "id": zod.string(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "price": zod.number(),
+  "status": zod.enum(['draft', 'published', 'archived']),
+  "isSample": zod.boolean(),
+  "matchCount": zod.number().int(),
+  "tips": zod.array(zod.object({
+  "match": zod.string(),
+  "prediction": zod.string(),
+  "league": zod.string()
+})),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
 export const GetDashboardResponse = zod.object({
   "wallet": zod.object({
   "balance": zod.number(),

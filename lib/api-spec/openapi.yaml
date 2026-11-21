@@ -10,7 +10,184 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Account authentication and profile
+  - name: admin
+    description: Admin-only profile and tip management
 paths:
+  /auth/signup:
+    post:
+      operationId: signUp
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignUpInput" }
+      responses:
+        "201":
+          description: Account created and signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+  /auth/signin:
+    post:
+      operationId: signIn
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SignInInput" }
+      responses:
+        "200":
+          description: Signed in
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+  /auth/signout:
+    post:
+      operationId: signOut
+      tags: [auth]
+      responses:
+        "200":
+          description: Signed out
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthAction" }
+  /auth/me:
+    get:
+      operationId: getAuthMe
+      tags: [auth]
+      responses:
+        "200":
+          description: Current account session, if any
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthMe" }
+  /auth/profile:
+    patch:
+      operationId: updateAccountProfile
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Updated account profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+  /auth/link-legacy:
+    post:
+      operationId: linkLegacyAccount
+      tags: [auth]
+      responses:
+        "200":
+          description: Existing authenticated Clerk-owned data linked
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AccountLinkResult" }
+  /auth/admin/bootstrap:
+    post:
+      operationId: bootstrapAdmin
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminBootstrapInput" }
+      responses:
+        "200":
+          description: Initial admin access granted once
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuthSession" }
+  /admin/users:
+    get:
+      operationId: getAdminUsers
+      tags: [admin]
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema: { type: string, maxLength: 80 }
+      responses:
+        "200":
+          description: Matching user profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminUser" }
+  /admin/users/{id}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProfileInput" }
+      responses:
+        "200":
+          description: Updated user profile
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminUser" }
+  /admin/tip-packages:
+    get:
+      operationId: getAdminTipPackages
+      tags: [admin]
+      responses:
+        "200":
+          description: All tip packages, including drafts and archived packages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdminTipPackage" }
+    post:
+      operationId: createAdminTipPackage
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTipPackageInput" }
+      responses:
+        "201":
+          description: Tip package created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTipPackage" }
+  /admin/tip-packages/{id}:
+    patch:
+      operationId: updateAdminTipPackage
+      tags: [admin]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 100 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminTipPackageInput" }
+      responses:
+        "200":
+          description: Tip package updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminTipPackage" }
   /probet/dashboard:
     get:
       operationId: getDashboard
@@ -232,6 +409,113 @@ paths:
                 $ref: "#/components/schemas/HealthStatus"
 components:
   schemas:
+    Account:
+      type: object
+      required: [id, email, username, fullName, phone, country, role, legacyLinked]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        username: { type: string }
+        fullName: { type: string }
+        phone: { type: string }
+        country: { type: string }
+        role: { type: string, enum: [user, admin] }
+        legacyLinked: { type: boolean }
+    AuthSession:
+      type: object
+      required: [account]
+      properties:
+        account: { $ref: "#/components/schemas/Account" }
+    AuthMe:
+      type: object
+      required: [account, legacySession]
+      properties:
+        account: { oneOf: [{ $ref: "#/components/schemas/Account" }, { type: "null" }] }
+        legacySession: { type: boolean }
+    AuthAction:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean }
+    AccountLinkResult:
+      type: object
+      required: [linked, message]
+      properties:
+        linked: { type: boolean }
+        message: { type: string }
+    SignUpInput:
+      type: object
+      required: [email, password, confirmPassword, username, fullName, phone, country]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 10, maxLength: 128 }
+        confirmPassword: { type: string, minLength: 10, maxLength: 128 }
+        username: { type: string, minLength: 3, maxLength: 24, pattern: "^[a-zA-Z0-9_]+$" }
+        fullName: { type: string, minLength: 2, maxLength: 100 }
+        phone: { type: string, minLength: 7, maxLength: 24 }
+        country: { type: string, minLength: 2, maxLength: 80 }
+    SignInInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 1, maxLength: 128 }
+    ProfileInput:
+      type: object
+      required: [username, fullName, phone, country]
+      properties:
+        username: { type: string, minLength: 3, maxLength: 24, pattern: "^[a-zA-Z0-9_]+$" }
+        fullName: { type: string, minLength: 2, maxLength: 100 }
+        phone: { type: string, minLength: 7, maxLength: 24 }
+        country: { type: string, minLength: 2, maxLength: 80 }
+    AdminBootstrapInput:
+      type: object
+      required: [token]
+      properties:
+        token: { type: string, minLength: 12, maxLength: 256 }
+    AdminUser:
+      type: object
+      required: [id, email, username, fullName, phone, country, role, createdAt, legacyLinked]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        username: { type: string }
+        fullName: { type: string }
+        phone: { type: string }
+        country: { type: string }
+        role: { type: string, enum: [user, admin] }
+        createdAt: { type: string, format: date-time }
+        legacyLinked: { type: boolean }
+    AdminTipPackage:
+      type: object
+      required: [id, title, description, price, status, isSample, tips, matchCount, createdAt, updatedAt]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        price: { type: number }
+        status: { type: string, enum: [draft, published, archived] }
+        isSample: { type: boolean }
+        matchCount: { type: integer }
+        tips:
+          type: array
+          items: { $ref: "#/components/schemas/Tip" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    AdminTipPackageInput:
+      type: object
+      required: [title, description, price, status, isSample, tips]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 120 }
+        description: { type: string, minLength: 3, maxLength: 300 }
+        price: { type: number, minimum: 0.01, maximum: 100000 }
+        status: { type: string, enum: [draft, published, archived] }
+        isSample: { type: boolean }
+        tips:
+          type: array
+          minItems: 1
+          maxItems: 50
+          items: { $ref: "#/components/schemas/Tip" }
     Wallet:
       type: object
       required: [balance, currency, isDemo, paymentsEnabled, provider]
