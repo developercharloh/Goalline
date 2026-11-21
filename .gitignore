@@ -13,6 +13,9 @@ out-tsc
 .nuxt
 .output
 .vercel
+generated-artifacts/
+**/build/
+.gradle/
 
 # dependencies
 node_modules

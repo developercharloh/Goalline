@@ -1,0 +1,22 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.goalline.probettips"
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.goalline.probettips"
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+}
