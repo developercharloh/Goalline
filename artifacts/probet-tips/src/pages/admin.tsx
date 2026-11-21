@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Link, Redirect } from "wouter";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetAdminTipPackagesQueryKey,
@@ -282,7 +282,24 @@ export default function AdminPage() {
 
   if (auth.isLoading) return <AppShell><Sk className="h-20" /></AppShell>;
   if (auth.error) return <AppShell><ErrorCard message={errMsg(auth.error)} onRetry={() => auth.refetch()} /></AppShell>;
-  if (!auth.data?.account) return <Redirect to="/sign-in?returnTo=%2Fadmin" />;
+  if (!auth.data?.account) {
+    return (
+      <AppShell title="Admin portal">
+        <PageHeader title="Admin Portal" subtitle="User and tip management will be enabled later." />
+        <section className="glass mx-auto max-w-xl rounded-3xl p-7 text-center md:p-9">
+          <Shield className="mx-auto h-11 w-11 text-gold" />
+          <h1 className="font-display mt-4 text-2xl font-extrabold">Admin setup is deferred</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            This portal page is open to view. Profile data and editing tools stay unavailable until admin access is set up.
+          </p>
+          <p className="mt-4 rounded-2xl border border-border bg-background/40 p-3 text-xs text-muted-foreground">
+            Public sign-up cannot view or change user profiles, wallet balances, payment records, or tip packages.
+          </p>
+          <Link href="/" className="btn-blue mt-5 inline-block rounded-xl px-5 py-2.5 font-bold">Back to home</Link>
+        </section>
+      </AppShell>
+    );
+  }
   if (auth.data.account.role !== "admin") {
     return <AppShell title="Admin access"><div className="glass max-w-xl rounded-3xl p-8 text-center"><Shield className="mx-auto h-10 w-10 text-gold" /><h1 className="font-display text-2xl font-extrabold mt-3">Admin access required</h1><p className="mt-2 text-sm text-muted-foreground">Your account cannot manage users or tip packages.</p><Link href="/profile" className="btn-blue inline-block mt-5 rounded-xl px-5 py-2.5 font-bold">Back to profile</Link></div></AppShell>;
   }
