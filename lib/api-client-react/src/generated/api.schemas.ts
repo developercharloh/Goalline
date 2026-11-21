@@ -79,8 +79,11 @@ export interface SignUpInput {
 }
 
 export interface SignInInput {
-  /** @maxLength 254 */
-  email: string;
+  /**
+     * @minLength 1
+     * @maxLength 254
+     */
+  identifier: string;
   /**
      * @minLength 1
      * @maxLength 128

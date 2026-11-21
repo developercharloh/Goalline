@@ -7,7 +7,7 @@ import cookieParser from "cookie-parser";
 import { clerkMiddleware } from "@clerk/express";
 import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware.js";
-import { accountSessionMiddleware } from "./lib/account-session.js";
+import { accountSessionMiddleware, requireAccountSession } from "./lib/account-session.js";
 
 const app: Express = express();
 const clerkConfigured = Boolean(process.env.CLERK_SECRET_KEY && process.env.CLERK_PUBLISHABLE_KEY);
@@ -95,6 +95,7 @@ app.use("/api", (req, res, next) => {
   next();
 });
 app.use("/api", accountSessionMiddleware);
+app.use("/api/probet", requireAccountSession);
 app.use("/api", router);
 app.use((err: unknown, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   req.log.error({ err }, "Request failed");

@@ -194,4 +194,16 @@ export async function accountSessionMiddleware(
   }
 }
 
+export function requireAccountSession(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  if (!req.probetAccountId) {
+    res.status(401).json({ error: "Sign in to continue." });
+    return;
+  }
+  next();
+}
+
 export const accountSessionCookieName = SESSION_COOKIE;

@@ -4,19 +4,18 @@ import { ClerkProvider, SignIn, useClerk } from "@clerk/react";
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Switch, Route, Redirect, useLocation, Router as WouterRouter } from "wouter";
-import { getGetDashboardQueryKey, useGetAuthMe } from "@workspace/api-client-react";
-import type { Dashboard } from "@workspace/api-client-react";
+import { getGetAuthMeQueryKey, useGetAuthMe } from "@workspace/api-client-react";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
-import DashboardPage, { DashboardView } from "@/pages/dashboard";
+import DashboardPage from "@/pages/dashboard";
 import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pages/pages";
 import { AdminBootstrapPage, SignInPage as CredentialSignInPage, SignUpPage as CredentialSignUpPage } from "@/pages/auth";
 import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
 import DepositReviewsPage from "@/pages/deposit-reviews";
-import { AppShell } from "@/components/app-shell";
+import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { Logo } from "@/components/brand";
 import { AppBootstrapScreen } from "@/components/app-bootstrap-screen";
 
@@ -119,8 +118,8 @@ function ClerkQueryClientCacheInvalidator() {
 
 function HomeRoute() {
   const { data } = useGetAuthMe();
-  if (data?.account) return <Redirect to="/dashboard" />;
-  return <AppShell title="ProBet Tips"><DashboardView guest /></AppShell>;
+  if (data?.account?.role === "admin") return <Redirect to="/admin" />;
+  return <Redirect to="/dashboard" />;
 }
 
 /** Bootstraps the guest/user session cookie once before any domain hooks mount,
@@ -153,14 +152,14 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const res = await fetch("/api/probet/dashboard", {
+        const res = await fetch("/api/auth/me", {
           credentials: "same-origin",
           signal: controller.signal,
         });
-        if (!res.ok) throw new Error("Could not load your wallet.");
-        const data = (await res.json()) as Dashboard;
+        if (!res.ok) throw new Error("Could not check your sign-in.");
+        const data = await res.json();
         if (!alive) return;
-        qc.setQueryData(getGetDashboardQueryKey(), data);
+        qc.setQueryData(getGetAuthMeQueryKey(), data);
         bootstrapResult = "ready";
       } catch {
         if (alive) bootstrapResult = "error";
@@ -184,6 +183,47 @@ function SessionBootstrap({ children }: { children: ReactNode }) {
       setAttempt((a) => a + 1);
     }}
   />;
+}
+
+function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
+  const auth = useGetAuthMe();
+  const [location] = useLocation();
+  const path = location.split("?")[0];
+  const isPublicAuthRoute = ["/sign-in", "/sign-up", "/legacy-sign-in"]
+    .some((prefix) => path === prefix || path.startsWith(`${prefix}/`));
+
+  if (auth.isLoading) return <div className="grid min-h-[60vh] place-items-center text-sm text-muted-foreground">Checking your account…</div>;
+  if (auth.error) {
+    return (
+      <AppShell title="Account access">
+        <ErrorCard message="Could not verify your sign-in. Please try again." onRetry={() => void auth.refetch()} />
+      </AppShell>
+    );
+  }
+  if (!isPublicAuthRoute && !auth.data?.account) {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    return <Redirect to={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`} />;
+  }
+
+  return (
+    <Switch>
+      <Route path="/" component={HomeRoute} />
+      <Route path="/sign-in/*?" component={CredentialSignInPage} />
+      <Route path="/sign-up/*?" component={CredentialSignUpPage} />
+      <Route path="/legacy-sign-in/*?" component={legacyAvailable ? LegacySignInPage : AccountUnavailablePage} />
+      <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/chat" component={ChatPage} />
+      <Route path="/wallet" component={WalletRoute} />
+      <Route path="/tips" component={TipsPage} />
+      <Route path="/purchase/:id" component={PurchasePage} />
+      <Route path="/success" component={SuccessPage} />
+      <Route path="/deposit-reviews" component={DepositReviewsPage} />
+      <Route path="/profile" component={AccountPage} />
+      <Route path="/admin/setup" component={AdminBootstrapPage} />
+      <Route path="/admin" component={AdminPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
 }
 
 function WalletRoute() {
@@ -253,23 +293,7 @@ function ClerkProviderWithRoutes() {
         <TooltipProvider>
           <SessionBootstrap>
             <RoutedErrorBoundary>
-              <Switch>
-                <Route path="/" component={HomeRoute} />
-                <Route path="/sign-in/*?" component={CredentialSignInPage} />
-                <Route path="/sign-up/*?" component={CredentialSignUpPage} />
-                <Route path="/legacy-sign-in/*?" component={LegacySignInPage} />
-                <Route path="/dashboard" component={DashboardPage} />
-                <Route path="/chat" component={ChatPage} />
-                <Route path="/wallet" component={WalletRoute} />
-                <Route path="/tips" component={TipsPage} />
-                <Route path="/purchase/:id" component={PurchasePage} />
-                <Route path="/success" component={SuccessPage} />
-                <Route path="/deposit-reviews" component={DepositReviewsPage} />
-                <Route path="/profile" component={AccountPage} />
-                <Route path="/admin/setup" component={AdminBootstrapPage} />
-                <Route path="/admin" component={AdminPage} />
-                <Route component={NotFound} />
-              </Switch>
+              <AppRoutes legacyAvailable />
             </RoutedErrorBoundary>
           </SessionBootstrap>
           <Toaster />
@@ -298,23 +322,7 @@ function GuestPreviewRoutes() {
       <TooltipProvider>
         <SessionBootstrap>
           <RoutedErrorBoundary>
-            <Switch>
-              <Route path="/" component={HomeRoute} />
-              <Route path="/dashboard" component={DashboardPage} />
-              <Route path="/sign-in/*?" component={CredentialSignInPage} />
-              <Route path="/sign-up/*?" component={CredentialSignUpPage} />
-              <Route path="/legacy-sign-in/*?" component={AccountUnavailablePage} />
-              <Route path="/chat" component={ChatPage} />
-              <Route path="/wallet" component={WalletRoute} />
-              <Route path="/tips" component={TipsPage} />
-              <Route path="/purchase/:id" component={PurchasePage} />
-              <Route path="/success" component={SuccessPage} />
-              <Route path="/deposit-reviews" component={DepositReviewsPage} />
-              <Route path="/profile" component={AccountPage} />
-              <Route path="/admin/setup" component={AdminBootstrapPage} />
-              <Route path="/admin" component={AdminPage} />
-              <Route component={NotFound} />
-            </Switch>
+            <AppRoutes legacyAvailable={false} />
           </RoutedErrorBoundary>
         </SessionBootstrap>
         <Toaster />

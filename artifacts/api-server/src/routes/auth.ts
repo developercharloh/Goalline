@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
-import { eq, sql } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { accounts, accountSessions, db } from "@workspace/db";
 import { clerkClient, getAuth } from "@clerk/express";
@@ -97,6 +97,10 @@ router.post("/auth/signup", signUpLimit, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Complete each profile field." });
     return;
   }
+  if (profile.username === "admin") {
+    res.status(409).json({ error: "That username is reserved." });
+    return;
+  }
 
   const passwordHash = await hashPassword(input.password);
   const id = randomUUID();
@@ -126,17 +130,22 @@ router.post("/auth/signup", signUpLimit, async (req, res): Promise<void> => {
 router.post("/auth/signin", signInLimit, async (req, res): Promise<void> => {
   const parsed = SignInBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Enter your email and password." });
+    res.status(400).json({ error: "Enter your email or username and password." });
     return;
   }
-  const [account] = await db.select().from(accounts).where(eq(accounts.email, normalizeEmail(parsed.data.email))).limit(1);
+  const identifier = parsed.data.identifier.trim().toLowerCase();
+  const [account] = await db.select().from(accounts).where(
+    identifier.includes("@")
+      ? eq(accounts.email, identifier)
+      : or(eq(accounts.email, identifier), eq(accounts.username, identifier)),
+  ).limit(1);
   if (!account) {
     await hashPassword(parsed.data.password);
-    res.status(401).json({ error: "Email or password is incorrect." });
+    res.status(401).json({ error: "Username, email, or password is incorrect." });
     return;
   }
   if (!(await verifyPassword(parsed.data.password, account.passwordHash))) {
-    res.status(401).json({ error: "Email or password is incorrect." });
+    res.status(401).json({ error: "Username, email, or password is incorrect." });
     return;
   }
   await insertSession(account.id, req, res);
@@ -174,6 +183,10 @@ router.patch("/auth/profile", requireAccount, async (req, res): Promise<void> =>
     return;
   }
   const profile = normalizeProfile(parsed.data);
+  if (profile.username === "admin" && req.probetAccountRole !== "admin") {
+    res.status(409).json({ error: "That username is reserved." });
+    return;
+  }
   try {
     const [account] = await db.update(accounts)
       .set({ ...profile, updatedAt: new Date() })

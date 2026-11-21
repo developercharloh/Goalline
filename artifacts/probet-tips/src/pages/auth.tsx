@@ -27,7 +27,7 @@ function AuthFrame({ children, title }: { children: ReactNode; title: string }) 
           <div className="text-center mb-6">
             <Logo className="h-14 w-14 mx-auto lg:hidden" />
             <h1 className="font-display text-3xl font-extrabold mt-2">{title}</h1>
-            <p className="text-sm text-muted-foreground mt-2">Use your email and password. No verification codes.</p>
+            <p className="text-sm text-muted-foreground mt-2">Use your email or username and password. No verification codes.</p>
           </div>
           {children}
         </div>
@@ -63,7 +63,7 @@ function Field({
   minLength?: number;
   maxLength?: number;
 }) {
-  const icons = name === "email" ? <Mail className="h-4 w-4" /> : name === "username" || name === "fullName" ? <UserRound className="h-4 w-4" /> : name.includes("password") ? <LockKeyhole className="h-4 w-4" /> : null;
+  const icons = name === "email" || name === "identifier" ? <Mail className="h-4 w-4" /> : name === "username" || name === "fullName" ? <UserRound className="h-4 w-4" /> : name.includes("password") ? <LockKeyhole className="h-4 w-4" /> : null;
   return (
     <label className="grid gap-1.5 text-sm font-semibold">
       {label}
@@ -90,7 +90,8 @@ export function SignUpPage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const params = new URLSearchParams(window.location.search);
-  const returnTo = safeReturnTo(params.get("returnTo"));
+  const requestedReturnTo = params.get("returnTo");
+  const returnTo = safeReturnTo(requestedReturnTo);
   const [validationError, setValidationError] = useState("");
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -160,21 +161,22 @@ export function SignInPage() {
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
   const params = new URLSearchParams(window.location.search);
-  const returnTo = safeReturnTo(params.get("returnTo"));
+  const requestedReturnTo = params.get("returnTo");
+  const returnTo = safeReturnTo(requestedReturnTo);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = Object.fromEntries(new FormData(event.currentTarget).entries());
     signIn.mutate({
       data: {
-        email: String(values.email ?? "").trim(),
+        identifier: String(values.identifier ?? "").trim(),
         password: String(values.password ?? ""),
       },
     }, {
       onSuccess: (result) => {
         queryClient.setQueryData(getGetAuthMeQueryKey(), { account: result.account, legacySession: false });
         queryClient.invalidateQueries();
-        setLocation(returnTo);
+        setLocation(requestedReturnTo ? returnTo : result.account.role === "admin" ? "/admin" : returnTo);
       },
     });
   }
@@ -182,7 +184,7 @@ export function SignInPage() {
   return (
     <AuthFrame title="Welcome Back">
       <form onSubmit={submit} className="grid gap-4" data-testid="form-signin">
-        <Field label="Email address" name="email" type="email" autoComplete="email" maxLength={254} />
+        <Field label="Email or username" name="identifier" autoComplete="username" placeholder="Email address or username" maxLength={254} />
         <Field label="Password" name="password" type="password" autoComplete="current-password" minLength={1} maxLength={128} />
         <FormError message={signIn.error ? errMsg(signIn.error) : ""} />
         <button disabled={signIn.isPending} className="btn-blue rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-signin">

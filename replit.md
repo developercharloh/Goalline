@@ -29,11 +29,11 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-- Signed-out visitors can explore a clearly labeled $25 demo wallet. Demo credits are not money and never transfer into real accounts.
+- All dashboard, wallet, tip, chat, purchase, profile, and admin data requires a signed-in account. Only sign-in, sign-up, health checks, and provider callbacks remain public.
 - Real accounts start at $0. Sample tip packages are never sold for real money.
-- New accounts use email/password with no verification codes; username, full name, phone and country are stored as unverified profile details.
+- New accounts use email/password with no verification codes. Users can sign in with email or username; username, full name, phone and country are stored as unverified profile details.
 - Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
-- Admin roles are server-enforced. Only the first-account bootstrap route can create an admin, and it requires `ADMIN_BOOTSTRAP_TOKEN`; sign-up cannot set a role.
+- Admin roles are server-enforced. The reserved username `admin` cannot be claimed through public sign-up; public sign-up cannot set a role. Provision the first administrator through a private, secure setup.
 - Admin-managed packages and picks are stored in `probet_tip_packages` / `probet_tip_entries`. Archive packages instead of deleting them so existing purchasers retain access.
 - Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
 - PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.

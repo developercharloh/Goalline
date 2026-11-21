@@ -56,14 +56,14 @@ export const SignUpResponse = zod.object({
 })
 
 
-export const signInBodyEmailMax = 254;
+export const signInBodyIdentifierMax = 254;
 
 export const signInBodyPasswordMax = 128;
 
 
 
 export const SignInBody = zod.object({
-  "email": zod.string().email().max(signInBodyEmailMax),
+  "identifier": zod.string().min(1).max(signInBodyIdentifierMax),
   "password": zod.string().min(1).max(signInBodyPasswordMax)
 })
 
