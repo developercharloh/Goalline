@@ -1,7 +1,10 @@
 import { Router, type IRouter } from "express";
-import { desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
 import { accounts, db, tipEntries, tipPackages } from "@workspace/db";
 import {
+  UpdateAdminTipEntryResultBody,
+  UpdateAdminTipEntryResultParams,
+  UpdateAdminTipEntryResultResponse,
   GetAdminTipPackagesResponse,
   GetAdminUsersQueryParams,
   GetAdminUsersResponse,
@@ -18,6 +21,8 @@ import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js
 import { requireAdmin } from "../lib/admin-access.js";
 
 const router: IRouter = Router();
+
+class MatchSetChangedError extends Error {}
 
 function normalizeMatch(match: { matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; selection: string; odds: number }) {
   return {
@@ -39,18 +44,20 @@ function isValidMatchDate(value: string): boolean {
 function matchFromEntry(entry: typeof tipEntries.$inferSelect) {
   if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || !entry.selection || entry.odds == null) return null;
   return {
+    id: entry.id,
     matchDate: entry.matchDate,
     kickoff: entry.kickoff.slice(0, 5),
     homeTeam: entry.homeTeam,
     awayTeam: entry.awayTeam,
     selection: entry.selection,
     odds: entry.odds,
+    result: entry.result,
   };
 }
 
 function adminPackageResponse(
   pkg: typeof tipPackages.$inferSelect,
-  matches: Array<{ matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; selection: string; odds: number }>,
+  matches: Array<{ id: string; matchDate: string; kickoff: string; homeTeam: string; awayTeam: string; selection: string; odds: number; result: "pending" | "won" | "lost" }>,
 ) {
   return {
     id: pkg.id,
@@ -171,29 +178,92 @@ router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Each match needs two teams and a prediction selection." });
     return;
   }
+  const requestedIds = input.data.matches.flatMap((match) => match.id ? [match.id] : []);
+  if (new Set(requestedIds).size !== requestedIds.length) {
+    res.status(400).json({ error: "A match cannot appear more than once in a package." });
+    return;
+  }
   const now = new Date();
-  const result = await db.transaction(async (tx) => {
-    const [pkg] = await tx.update(tipPackages).set({
-      totalOdds: input.data.totalOdds,
-      stakeLevel: input.data.stakeLevel,
-      updatedAt: now,
-    }).where(eq(tipPackages.id, params.data.id)).returning();
-    if (!pkg) return null;
-    await tx.delete(tipEntries).where(eq(tipEntries.packageId, pkg.id));
-    await tx.insert(tipEntries).values(input.data.matches.map((match, position) => ({
-      id: randomUUID(),
-      packageId: pkg.id,
-      position,
-      ...normalizeMatch(match),
-    })));
-    return pkg;
-  });
-  if (!result) {
+  let updated: { pkg: typeof tipPackages.$inferSelect; matches: Array<NonNullable<ReturnType<typeof matchFromEntry>>> } | null;
+  try {
+    updated = await db.transaction(async (tx) => {
+      const [pkg] = await tx.update(tipPackages).set({
+        totalOdds: input.data.totalOdds,
+        stakeLevel: input.data.stakeLevel,
+        updatedAt: now,
+      }).where(eq(tipPackages.id, params.data.id)).returning();
+      if (!pkg) return null;
+
+      const existing = await tx.select().from(tipEntries).where(eq(tipEntries.packageId, pkg.id));
+      const existingById = new Map(existing.map((entry) => [entry.id, entry]));
+      if (requestedIds.some((id) => !existingById.has(id))) {
+        throw new MatchSetChangedError("The package contains a match that no longer exists. Reload and try again.");
+      }
+
+      // Move positions out of the active range first so reordered matches never
+      // collide with the package-position unique index.
+      for (const [index, entry] of existing.entries()) {
+        await tx.update(tipEntries).set({ position: -index - 1 }).where(eq(tipEntries.id, entry.id));
+      }
+
+      const retainedIds = new Set(requestedIds);
+      const removedIds = existing.filter((entry) => !retainedIds.has(entry.id)).map((entry) => entry.id);
+      if (removedIds.length) {
+        await tx.delete(tipEntries).where(inArray(tipEntries.id, removedIds));
+      }
+
+      for (const [position, match] of input.data.matches.entries()) {
+        const fields = { position, ...normalizeMatch(match) };
+        if (match.id) {
+          await tx.update(tipEntries).set(fields).where(eq(tipEntries.id, match.id));
+        } else {
+          await tx.insert(tipEntries).values({
+            id: randomUUID(),
+            packageId: pkg.id,
+            ...fields,
+          });
+        }
+      }
+
+      const rows = await tx.select().from(tipEntries).where(eq(tipEntries.packageId, pkg.id)).orderBy(tipEntries.position);
+      return {
+        pkg,
+        matches: rows.map(matchFromEntry).filter((match): match is NonNullable<typeof match> => match !== null),
+      };
+    });
+  } catch (error) {
+    if (error instanceof MatchSetChangedError) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
+  if (!updated) {
     res.status(404).json({ error: "Tip package not found." });
     return;
   }
-  const response = adminPackageResponse(result, input.data.matches.map(normalizeMatch));
+  const response = adminPackageResponse(updated.pkg, updated.matches);
   res.json(UpdateAdminTipPackageResponse.parse(response));
+});
+
+router.patch("/admin/tip-entries/:id/result", async (req, res): Promise<void> => {
+  const params = UpdateAdminTipEntryResultParams.safeParse(req.params);
+  const input = UpdateAdminTipEntryResultBody.safeParse(req.body);
+  if (!params.success || !input.success) {
+    res.status(400).json({ error: "Choose a valid match result." });
+    return;
+  }
+  const [entry] = await db.update(tipEntries).set({ result: input.data.result })
+    .where(and(
+      eq(tipEntries.id, params.data.id),
+      inArray(tipEntries.packageId, weeklyTipPackageIds),
+    ))
+    .returning({ id: tipEntries.id, result: tipEntries.result });
+  if (!entry) {
+    res.status(404).json({ error: "Match not found." });
+    return;
+  }
+  res.json(UpdateAdminTipEntryResultResponse.parse(entry));
 });
 
 export default router;

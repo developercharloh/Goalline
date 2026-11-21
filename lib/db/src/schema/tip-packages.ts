@@ -26,6 +26,7 @@ export const tipEntries = pgTable("probet_tip_entries", {
   awayTeam: text("away_team"),
   selection: text("selection"),
   odds: numeric("odds", { precision: 8, scale: 2, mode: "number" }),
+  result: text("result").$type<"pending" | "won" | "lost">().notNull().default("pending"),
 }, (table) => [
   uniqueIndex("probet_tip_entries_package_position_unique").on(table.packageId, table.position),
 ]);

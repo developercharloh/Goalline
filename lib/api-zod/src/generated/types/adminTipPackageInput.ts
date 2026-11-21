@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { AdminTipPackageInputStakeLevel } from './adminTipPackageInputStakeLevel';
-import type { Match } from './match';
+import type { MatchInput } from './matchInput';
 
 export interface AdminTipPackageInput {
   /**
@@ -19,5 +19,5 @@ export interface AdminTipPackageInput {
      * @minItems 1
      * @maxItems 50
      */
-  matches: Match[];
+  matches: MatchInput[];
 }

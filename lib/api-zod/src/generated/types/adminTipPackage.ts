@@ -5,9 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { AdminMatch } from './adminMatch';
 import type { AdminTipPackageStakeLevel } from './adminTipPackageStakeLevel';
 import type { AdminTipPackageStatus } from './adminTipPackageStatus';
-import type { Match } from './match';
 
 export interface AdminTipPackage {
   id: string;
@@ -23,7 +23,7 @@ export interface AdminTipPackage {
      */
   totalOdds: number;
   stakeLevel: AdminTipPackageStakeLevel;
-  matches: Match[];
+  matches: AdminMatch[];
   createdAt: Date;
   updatedAt: Date;
 }

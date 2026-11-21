@@ -12,11 +12,13 @@ import {
   useGetAdminTipPackages,
   useGetAdminUsers,
   useGetAuthMe,
+  useUpdateAdminTipEntryResult,
   useUpdateAdminTipPackage,
   useUpdateAdminUser,
   type AdminTipPackage,
   type AdminTipPackageInput,
   type AdminUser,
+  type MatchResult,
 } from "@workspace/api-client-react";
 import { Check, Search, Shield, Users, Gem, Plus, Trash2 } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
@@ -37,6 +39,7 @@ const decimalInput = z.string()
   .refine((value) => Number(value) >= 1 && Number(value) <= 1_000_000_000, "Enter a total odds value of at least 1.");
 
 const matchEditorSchema = z.object({
+  id: z.string().uuid().optional(),
   matchDate: z.string().min(1, "Enter the match date."),
   kickoff: z.string().regex(/^([01][0-9]|2[0-3]):[0-5][0-9]$/, "Enter the kickoff time."),
   homeTeam: z.string().trim().min(1, "Enter the home team.").max(120),
@@ -72,6 +75,7 @@ function packagePrice(price: number) {
 function toEditorMatch(match: AdminTipPackage["matches"][number]) {
   const isPreset = isPresetMatchSelection(match.selection);
   return {
+    id: match.id,
     matchDate: match.matchDate,
     kickoff: match.kickoff,
     homeTeam: match.homeTeam,
@@ -80,6 +84,95 @@ function toEditorMatch(match: AdminTipPackage["matches"][number]) {
     customSelection: isPreset ? "" : match.selection,
     odds: String(match.odds),
   };
+}
+
+function MatchResultControls({
+  id,
+  result,
+  homeTeam,
+  awayTeam,
+}: {
+  id: string;
+  result: MatchResult;
+  homeTeam: string;
+  awayTeam: string;
+}) {
+  const updateResult = useUpdateAdminTipEntryResult();
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState("");
+
+  function saveResult(nextResult: MatchResult) {
+    setMessage("");
+    updateResult.mutate({ id, data: { result: nextResult } }, {
+      onSuccess: () => {
+        void queryClient.invalidateQueries({ queryKey: getGetAdminTipPackagesQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetTipsQueryKey() });
+        void queryClient.invalidateQueries({ queryKey: getGetDashboardQueryKey() });
+      },
+      onError: (error: unknown) => setMessage(errMsg(error)),
+    });
+  }
+
+  const resultLabel = result === "won" ? "✅ Won" : result === "lost" ? "❌ Lost" : "⏳ Pending";
+
+  return (
+    <div className="mt-3 grid gap-2 border-t border-border pt-3" data-testid={`match-result-controls-${id}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-muted-foreground">Match result</span>
+        <span
+          className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
+            result === "won" ? "border-win/40 bg-win/10 text-win"
+              : result === "lost" ? "border-loss/40 bg-loss/10 text-loss"
+                : "border-border bg-background/40 text-muted-foreground"
+          }`}
+          role="status"
+          data-testid={`text-match-result-${id}`}
+        >
+          {resultLabel}
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={updateResult.isPending}
+          aria-pressed={result === "won"}
+          aria-label={`Mark ${homeTeam} vs ${awayTeam} as won`}
+          onClick={() => saveResult("won")}
+          className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-60 ${
+            result === "won" ? "border-win bg-win/15 text-win" : "border-border text-muted-foreground hover:bg-secondary"
+          }`}
+          data-testid={`button-mark-won-${id}`}
+        >
+          ✅ Won
+        </button>
+        <button
+          type="button"
+          disabled={updateResult.isPending}
+          aria-pressed={result === "lost"}
+          aria-label={`Mark ${homeTeam} vs ${awayTeam} as lost`}
+          onClick={() => saveResult("lost")}
+          className={`rounded-lg border px-3 py-2 text-xs font-bold disabled:opacity-60 ${
+            result === "lost" ? "border-loss bg-loss/15 text-loss" : "border-border text-muted-foreground hover:bg-secondary"
+          }`}
+          data-testid={`button-mark-lost-${id}`}
+        >
+          ❌ Lost
+        </button>
+        {result !== "pending" && (
+          <button
+            type="button"
+            disabled={updateResult.isPending}
+            onClick={() => saveResult("pending")}
+            className="rounded-lg border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:bg-secondary disabled:opacity-60"
+            data-testid={`button-reset-result-${id}`}
+          >
+            Reset to pending
+          </button>
+        )}
+      </div>
+      {message && <p className="text-xs text-loss" role="alert">{message}</p>}
+    </div>
+  );
 }
 
 function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
@@ -103,6 +196,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
       totalOdds: Number(values.totalOdds),
       stakeLevel: values.stakeLevel,
       matches: values.matches.map((match) => ({
+        ...(match.id ? { id: match.id } : {}),
         matchDate: match.matchDate,
         kickoff: match.kickoff,
         homeTeam: match.homeTeam.trim(),
@@ -155,6 +249,8 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
           {matches.fields.length === 0 && <p className="rounded-xl bg-background/40 p-3 text-sm text-muted-foreground">Add the first match to this package.</p>}
           {matches.fields.map((field, index) => {
             const errors = form.formState.errors.matches?.[index];
+            const savedMatchId = form.watch(`matches.${index}.id`);
+            const savedMatch = pkg.matches.find((match) => match.id === savedMatchId);
             return (
               <fieldset key={field.id} className="grid gap-3 rounded-2xl border border-border bg-background/30 p-4" data-testid={`match-editor-${pkg.id}-${index}`}>
                 <legend className="px-1 text-sm font-semibold">Match {index + 1}</legend>
@@ -205,6 +301,16 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
                     </button>
                   </div>
                 </div>
+                {savedMatch ? (
+                  <MatchResultControls
+                    id={savedMatch.id}
+                    result={savedMatch.result}
+                    homeTeam={savedMatch.homeTeam}
+                    awayTeam={savedMatch.awayTeam}
+                  />
+                ) : (
+                  <p className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">Save this match before recording its result.</p>
+                )}
               </fieldset>
             );
           })}

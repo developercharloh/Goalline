@@ -160,7 +160,76 @@ export const AdminTipPackageStakeLevel = {
   high: 'high',
 } as const;
 
+export type MatchResult = typeof MatchResult[keyof typeof MatchResult];
+
+
+export const MatchResult = {
+  pending: 'pending',
+  won: 'won',
+  lost: 'lost',
+} as const;
+
 export interface Match {
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  matchDate: string;
+  /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
+  kickoff: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  homeTeam: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  awayTeam: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  selection: string;
+  /**
+     * @minimum 1.01
+     * @maximum 100000
+     */
+  odds: number;
+  result: MatchResult;
+}
+
+export type AdminMatch = Match & {
+  id: string;
+};
+
+export interface AdminTipPackage {
+  id: string;
+  title: string;
+  description: string;
+  price: number;
+  status: AdminTipPackageStatus;
+  isSample: boolean;
+  matchCount: number;
+  /**
+     * @minimum 1
+     * @maximum 1000000000
+     */
+  totalOdds: number;
+  stakeLevel: AdminTipPackageStakeLevel;
+  matches: AdminMatch[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AdminTipPackageInputStakeLevel = typeof AdminTipPackageInputStakeLevel[keyof typeof AdminTipPackageInputStakeLevel];
+
+
+export const AdminTipPackageInputStakeLevel = {
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export interface MatchInput {
+  id?: string;
   /** @pattern ^\d{4}-\d{2}-\d{2}$ */
   matchDate: string;
   /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
@@ -187,33 +256,6 @@ export interface Match {
   odds: number;
 }
 
-export interface AdminTipPackage {
-  id: string;
-  title: string;
-  description: string;
-  price: number;
-  status: AdminTipPackageStatus;
-  isSample: boolean;
-  matchCount: number;
-  /**
-     * @minimum 1
-     * @maximum 1000000000
-     */
-  totalOdds: number;
-  stakeLevel: AdminTipPackageStakeLevel;
-  matches: Match[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type AdminTipPackageInputStakeLevel = typeof AdminTipPackageInputStakeLevel[keyof typeof AdminTipPackageInputStakeLevel];
-
-
-export const AdminTipPackageInputStakeLevel = {
-  medium: 'medium',
-  high: 'high',
-} as const;
-
 export interface AdminTipPackageInput {
   /**
      * @minimum 1
@@ -225,7 +267,7 @@ export interface AdminTipPackageInput {
      * @minItems 1
      * @maxItems 50
      */
-  matches: Match[];
+  matches: MatchInput[];
 }
 
 export interface Wallet {
@@ -253,6 +295,15 @@ export interface Transaction {
   type: TransactionType;
   createdAt: string;
   isDemo: boolean;
+}
+
+export interface MatchResultInput {
+  result: MatchResult;
+}
+
+export interface AdminMatchResult {
+  id: string;
+  result: MatchResult;
 }
 
 export type TipPackageStakeLevel = typeof TipPackageStakeLevel[keyof typeof TipPackageStakeLevel];

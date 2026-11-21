@@ -34,6 +34,15 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
                 <span className="text-muted-foreground">Selection: </span>
                 {formatMatchSelection(match.selection, match.homeTeam, match.awayTeam)}
               </p>
+              <p
+                className={`mt-2 text-xs font-bold ${
+                  match.result === "won" ? "text-win" : match.result === "lost" ? "text-loss" : "text-muted-foreground"
+                }`}
+                aria-label={`Match result: ${match.result}`}
+                data-testid={`text-match-result-${pkg.id}-${index}`}
+              >
+                {match.result === "won" ? "✅ Won" : match.result === "lost" ? "❌ Lost" : "⏳ Pending"}
+              </p>
             </article>
           ))}
           <div className="rounded-xl border border-border bg-background/40 p-4">

@@ -86,6 +86,7 @@ async function tipsFor(owner: string) {
         awayTeam: entry.awayTeam,
         selection: entry.selection,
         odds: entry.odds,
+        result: entry.result,
       }];
     });
     return {
