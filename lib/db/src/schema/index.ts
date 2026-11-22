@@ -27,3 +27,4 @@ export * from "./manual-deposits";
 export * from "./payhero-deposits";
 export * from "./accounts";
 export * from "./tip-packages";
+export * from "./support-messages";

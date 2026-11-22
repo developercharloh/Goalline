@@ -1,8 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
-import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse } from "@workspace/api-zod";
+import { db, wallets, transactions, purchases, communityMessages, supportMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
+import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse, GetSupportMessagesResponse, SendSupportMessageBody, SendSupportMessageResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
@@ -301,6 +301,50 @@ router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: f
     content: message.content,
     createdAt: message.createdAt.toISOString(),
     isMine: true,
+  }));
+});
+router.get("/probet/support/messages", async (req, res): Promise<void> => {
+  const accountId = req.probetAccountId;
+  if (!accountId) {
+    res.status(401).json({ error: "Sign in to contact support." });
+    return;
+  }
+  const rows = await db.select().from(supportMessages)
+    .where(eq(supportMessages.accountId, accountId))
+    .orderBy(desc(supportMessages.createdAt))
+    .limit(300);
+  res.json(GetSupportMessagesResponse.parse(rows.reverse().map((message) => ({
+    id: message.id,
+    accountId: message.accountId,
+    senderRole: message.senderRole,
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
+  }))));
+});
+router.post("/probet/support/messages", rateLimit({ windowMs: 60_000, limit: 10, validate: false }), async (req, res): Promise<void> => {
+  const accountId = req.probetAccountId;
+  if (!accountId) {
+    res.status(401).json({ error: "Sign in to contact support." });
+    return;
+  }
+  const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
+  const input = SendSupportMessageBody.safeParse({ content });
+  if (!input.success) {
+    res.status(400).json({ error: "Write a support message of up to 2,000 characters." });
+    return;
+  }
+  const [message] = await db.insert(supportMessages).values({
+    id: randomUUID(),
+    accountId,
+    senderRole: "user",
+    content: input.data.content,
+  }).returning();
+  res.status(201).json(SendSupportMessageResponse.parse({
+    id: message.id,
+    accountId: message.accountId,
+    senderRole: message.senderRole,
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
   }));
 });
 export default router;

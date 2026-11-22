@@ -20,8 +20,9 @@ import {
   type AdminUser,
   type MatchResult,
 } from "@workspace/api-client-react";
-import { Check, Search, Shield, Users, Gem, Plus, Trash2 } from "lucide-react";
+import { Check, Search, Shield, Users, Gem, Plus, Trash2, Headset } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
+import AdminSupportInbox from "@/pages/admin-support";
 import { Form } from "@/components/ui/form";
 import { errMsg, money } from "@/lib/probet";
 import {
@@ -31,7 +32,7 @@ import {
 } from "@/lib/match-selections";
 import { USER_APP_URL } from "@/lib/portal-host";
 
-type AdminTab = "tips" | "users";
+type AdminTab = "tips" | "users" | "support";
 
 const decimalInput = z.string()
   .trim()
@@ -470,7 +471,7 @@ function UserManager() {
 export default function AdminPage() {
   const auth = useGetAuthMe();
   const [tab, setTab] = useState<AdminTab>("tips");
-  const heading = useMemo(() => tab === "tips" ? "Tips" : "Profiles", [tab]);
+  const heading = useMemo(() => tab === "tips" ? "Tips" : tab === "users" ? "Profiles" : "Support", [tab]);
 
   if (auth.isLoading) return <AppShell adminPortal><Sk className="h-20" /></AppShell>;
   if (auth.error) return <AppShell adminPortal><ErrorCard message={errMsg(auth.error)} onRetry={() => auth.refetch()} /></AppShell>;
@@ -481,13 +482,14 @@ export default function AdminPage() {
 
   return (
     <AppShell title="Admin portal" adminPortal>
-      <PageHeader title="Admin Portal" subtitle="Manage user profiles and weekly VIP matches." />
+      <PageHeader title="Admin Portal" subtitle="Manage user profiles, weekly VIP matches, and support conversations." />
       <div className="mb-5 flex gap-2 rounded-2xl border border-border bg-background/40 p-1.5" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" aria-selected={tab === "tips"} onClick={() => setTab("tips")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "tips" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-tips"><Gem className="h-4 w-4" />Tip packages</button>
         <button type="button" role="tab" aria-selected={tab === "users"} onClick={() => setTab("users")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "users" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-users"><Users className="h-4 w-4" />User profiles</button>
+        <button type="button" role="tab" aria-selected={tab === "support"} onClick={() => setTab("support")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "support" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-support"><Headset className="h-4 w-4" />Support</button>
       </div>
       <h2 className="sr-only">{heading}</h2>
-      {tab === "tips" ? <PackageManager /> : <UserManager />}
+      {tab === "tips" ? <PackageManager /> : tab === "users" ? <UserManager /> : <AdminSupportInbox />}
       <p className="mt-5 flex items-start gap-2 text-xs text-muted-foreground"><Check className="h-4 w-4 shrink-0 text-win" />Wallet balances and payment records cannot be changed from this portal. Archived packages remain available to existing purchasers.</p>
     </AppShell>
   );

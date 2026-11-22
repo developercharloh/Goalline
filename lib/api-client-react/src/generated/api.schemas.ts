@@ -544,6 +544,52 @@ export interface ChatMessage {
   isMine: boolean;
 }
 
+export interface SupportMessageInput {
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  content: string;
+}
+
+export type SupportMessageSenderRole = typeof SupportMessageSenderRole[keyof typeof SupportMessageSenderRole];
+
+
+export const SupportMessageSenderRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface SupportMessage {
+  id: string;
+  accountId: string;
+  senderRole: SupportMessageSenderRole;
+  /**
+     * @minLength 1
+     * @maxLength 2000
+     */
+  content: string;
+  createdAt: string;
+}
+
+export type SupportConversationLastMessageRole = typeof SupportConversationLastMessageRole[keyof typeof SupportConversationLastMessageRole];
+
+
+export const SupportConversationLastMessageRole = {
+  user: 'user',
+  admin: 'admin',
+} as const;
+
+export interface SupportConversation {
+  accountId: string;
+  username: string;
+  fullName: string;
+  email: string;
+  lastMessage: string;
+  lastMessageRole: SupportConversationLastMessageRole;
+  lastMessageAt: string;
+}
+
 export interface HealthStatus {
   status: string;
 }

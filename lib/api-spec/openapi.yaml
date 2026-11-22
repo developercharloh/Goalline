@@ -194,6 +194,49 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/AdminMatchResult" }
+  /admin/support/conversations:
+    get:
+      operationId: getAdminSupportConversations
+      tags: [admin]
+      responses:
+        "200":
+          description: Support conversations ordered by most recent message
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SupportConversation" }
+  /admin/support/conversations/{accountId}/messages:
+    parameters:
+      - in: path
+        name: accountId
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 100 }
+    get:
+      operationId: getAdminSupportMessages
+      tags: [admin]
+      responses:
+        "200":
+          description: Messages in a user's private support conversation
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SupportMessage" }
+    post:
+      operationId: sendAdminSupportMessage
+      tags: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportMessageInput" }
+      responses:
+        "201":
+          description: Reply sent to the user's support conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportMessage" }
   /probet/dashboard:
     get:
       operationId: getDashboard
@@ -400,6 +443,30 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ChatMessage" }
+  /probet/support/messages:
+    get:
+      operationId: getSupportMessages
+      responses:
+        "200":
+          description: Messages in the signed-in user's private support conversation
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SupportMessage" }
+    post:
+      operationId: sendSupportMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SupportMessageInput" }
+      responses:
+        "201":
+          description: Support message sent
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SupportMessage" }
   /healthz:
     get:
       operationId: healthCheck
@@ -728,6 +795,31 @@ components:
         content: { type: string }
         createdAt: { type: string }
         isMine: { type: boolean }
+    SupportMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content: { type: string, minLength: 1, maxLength: 2000 }
+    SupportMessage:
+      type: object
+      required: [id, accountId, senderRole, content, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        accountId: { type: string }
+        senderRole: { type: string, enum: [user, admin] }
+        content: { type: string, minLength: 1, maxLength: 2000 }
+        createdAt: { type: string, format: date-time }
+    SupportConversation:
+      type: object
+      required: [accountId, username, fullName, email, lastMessage, lastMessageRole, lastMessageAt]
+      properties:
+        accountId: { type: string }
+        username: { type: string }
+        fullName: { type: string }
+        email: { type: string, format: email }
+        lastMessage: { type: string }
+        lastMessageRole: { type: string, enum: [user, admin] }
+        lastMessageAt: { type: string, format: date-time }
     HealthStatus:
       type: object
       properties:

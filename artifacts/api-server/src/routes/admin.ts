@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
-import { accounts, db, tipEntries, tipPackages } from "@workspace/db";
+import { accounts, db, supportMessages, tipEntries, tipPackages } from "@workspace/db";
 import {
   UpdateAdminTipEntryResultBody,
   UpdateAdminTipEntryResultParams,
@@ -14,6 +14,12 @@ import {
   UpdateAdminUserBody,
   UpdateAdminUserParams,
   UpdateAdminUserResponse,
+  GetAdminSupportConversationsResponse,
+  GetAdminSupportMessagesParams,
+  GetAdminSupportMessagesResponse,
+  SendAdminSupportMessageBody,
+  SendAdminSupportMessageParams,
+  SendAdminSupportMessageResponse,
 } from "@workspace/api-zod";
 import { randomUUID } from "node:crypto";
 import { publicAccount } from "../lib/account-session.js";
@@ -96,6 +102,79 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 router.use("/admin", requireAdmin);
+
+router.get("/admin/support/conversations", async (_req, res): Promise<void> => {
+  const rows = await db.selectDistinctOn([supportMessages.accountId], {
+    accountId: supportMessages.accountId,
+    username: accounts.username,
+    fullName: accounts.fullName,
+    email: accounts.email,
+    lastMessage: supportMessages.content,
+    lastMessageRole: supportMessages.senderRole,
+    lastMessageAt: supportMessages.createdAt,
+  })
+    .from(supportMessages)
+    .innerJoin(accounts, eq(supportMessages.accountId, accounts.id))
+    .orderBy(supportMessages.accountId, desc(supportMessages.createdAt));
+  const conversations = rows
+    .map((row) => ({ ...row, lastMessageAt: row.lastMessageAt.toISOString() }))
+    .sort((a, b) => b.lastMessageAt.localeCompare(a.lastMessageAt));
+  res.json(GetAdminSupportConversationsResponse.parse(conversations));
+});
+
+router.get("/admin/support/conversations/:accountId/messages", async (req, res): Promise<void> => {
+  const params = GetAdminSupportMessagesParams.safeParse(req.params);
+  if (!params.success) {
+    res.status(400).json({ error: "Choose a valid support conversation." });
+    return;
+  }
+  const rows = await db.select().from(supportMessages)
+    .where(eq(supportMessages.accountId, params.data.accountId))
+    .orderBy(desc(supportMessages.createdAt))
+    .limit(300);
+  res.json(GetAdminSupportMessagesResponse.parse(rows.reverse().map((message) => ({
+    id: message.id,
+    accountId: message.accountId,
+    senderRole: message.senderRole,
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
+  }))));
+});
+
+router.post("/admin/support/conversations/:accountId/messages", async (req, res): Promise<void> => {
+  const params = SendAdminSupportMessageParams.safeParse(req.params);
+  const content = typeof req.body?.content === "string" ? req.body.content.trim() : "";
+  const input = SendAdminSupportMessageBody.safeParse({ content });
+  if (!params.success || !input.success) {
+    res.status(400).json({ error: "Write a support reply of up to 2,000 characters." });
+    return;
+  }
+  const [account] = await db.select({ id: accounts.id }).from(accounts)
+    .where(eq(accounts.id, params.data.accountId))
+    .limit(1);
+  if (!account) {
+    res.status(404).json({ error: "Support conversation not found." });
+    return;
+  }
+  const adminId = req.probetAccountId;
+  if (!adminId) {
+    res.status(401).json({ error: "Sign in to continue." });
+    return;
+  }
+  const [message] = await db.insert(supportMessages).values({
+    id: randomUUID(),
+    accountId: account.id,
+    senderRole: "admin",
+    content: input.data.content,
+  }).returning();
+  res.status(201).json(SendAdminSupportMessageResponse.parse({
+    id: message.id,
+    accountId: message.accountId,
+    senderRole: message.senderRole,
+    content: message.content,
+    createdAt: message.createdAt.toISOString(),
+  }));
+});
 
 router.get("/admin/users", async (req, res): Promise<void> => {
   const query = GetAdminUsersQueryParams.safeParse(req.query);

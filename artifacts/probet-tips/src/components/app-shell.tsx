@@ -4,6 +4,7 @@ import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield, Ref
 import { useGetAuthMe, useSignOut } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo, Wordmark } from "@/components/brand";
+import { SupportWidget } from "@/components/support-widget";
 import { ADMIN_PORTAL_URL } from "@/lib/portal-host";
 
 const NAV = [
@@ -141,7 +142,7 @@ function AppShellFrame({
         {title && <h1 className="sr-only">{title}</h1>}
         <main className="mx-auto max-w-5xl px-4 md:px-8 pt-5 md:pt-10">{children}</main>
       </div>
-
+      {!adminPortal && authenticated && <SupportWidget />}
     </div>
   );
 }

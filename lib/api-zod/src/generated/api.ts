@@ -369,6 +369,69 @@ export const UpdateAdminTipEntryResultResponse = zod.object({
 })
 
 
+export const GetAdminSupportConversationsResponseItem = zod.object({
+  "accountId": zod.string(),
+  "username": zod.string(),
+  "fullName": zod.string(),
+  "email": zod.string().email(),
+  "lastMessage": zod.string(),
+  "lastMessageRole": zod.enum(['user', 'admin']),
+  "lastMessageAt": zod.coerce.date()
+})
+export const GetAdminSupportConversationsResponse = zod.array(GetAdminSupportConversationsResponseItem)
+
+
+export const getAdminSupportMessagesPathAccountIdMax = 100;
+
+
+
+export const GetAdminSupportMessagesParams = zod.object({
+  "accountId": zod.coerce.string().min(1).max(getAdminSupportMessagesPathAccountIdMax)
+})
+
+export const getAdminSupportMessagesResponseContentMax = 2000;
+
+
+
+export const GetAdminSupportMessagesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "accountId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "content": zod.string().min(1).max(getAdminSupportMessagesResponseContentMax),
+  "createdAt": zod.coerce.date()
+})
+export const GetAdminSupportMessagesResponse = zod.array(GetAdminSupportMessagesResponseItem)
+
+
+export const sendAdminSupportMessagePathAccountIdMax = 100;
+
+
+
+export const SendAdminSupportMessageParams = zod.object({
+  "accountId": zod.coerce.string().min(1).max(sendAdminSupportMessagePathAccountIdMax)
+})
+
+export const sendAdminSupportMessageBodyContentMax = 2000;
+
+
+
+export const SendAdminSupportMessageBody = zod.object({
+  "content": zod.string().min(1).max(sendAdminSupportMessageBodyContentMax)
+})
+
+export const sendAdminSupportMessageResponseContentMax = 2000;
+
+
+
+export const SendAdminSupportMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "accountId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "content": zod.string().min(1).max(sendAdminSupportMessageResponseContentMax),
+  "createdAt": zod.coerce.date()
+})
+
+
 export const getDashboardResponsePackagesItemTotalOddsMax = 1000000000;
 
 export const getDashboardResponsePackagesItemMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -721,6 +784,41 @@ export const SendChatResponse = zod.object({
   "content": zod.string(),
   "createdAt": zod.string(),
   "isMine": zod.boolean()
+})
+
+
+export const getSupportMessagesResponseContentMax = 2000;
+
+
+
+export const GetSupportMessagesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "accountId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "content": zod.string().min(1).max(getSupportMessagesResponseContentMax),
+  "createdAt": zod.coerce.date()
+})
+export const GetSupportMessagesResponse = zod.array(GetSupportMessagesResponseItem)
+
+
+export const sendSupportMessageBodyContentMax = 2000;
+
+
+
+export const SendSupportMessageBody = zod.object({
+  "content": zod.string().min(1).max(sendSupportMessageBodyContentMax)
+})
+
+export const sendSupportMessageResponseContentMax = 2000;
+
+
+
+export const SendSupportMessageResponse = zod.object({
+  "id": zod.string().uuid(),
+  "accountId": zod.string(),
+  "senderRole": zod.enum(['user', 'admin']),
+  "content": zod.string().min(1).max(sendSupportMessageResponseContentMax),
+  "createdAt": zod.coerce.date()
 })
 
 
