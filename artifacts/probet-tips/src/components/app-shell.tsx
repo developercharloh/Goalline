@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield } from "lucide-react";
+import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield, RefreshCw } from "lucide-react";
 import { useGetAuthMe, useSignOut } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo, Wordmark } from "@/components/brand";
@@ -53,6 +53,10 @@ function AppShellFrame({
     });
   }
 
+  function handleRefreshApp() {
+    window.location.reload();
+  }
+
   return (
     <div className="min-h-[100dvh] md:flex">
       <aside className="hidden md:flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/80 backdrop-blur sticky top-0 h-[100dvh] p-5">
@@ -75,6 +79,9 @@ function AppShellFrame({
             );
           })}
         </nav>
+        <button type="button" onClick={handleRefreshApp} className="mt-3 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-sidebar-accent hover:text-foreground" aria-label="Refresh app" title="Refresh app" data-testid="button-refresh-app-desktop">
+          <RefreshCw className="h-[18px] w-[18px]" />Refresh app
+        </button>
         <div className="mt-auto glass rounded-2xl p-4 text-sm">
           {authenticated ? (
             <>
@@ -106,9 +113,13 @@ function AppShellFrame({
         <header className="md:hidden sticky top-0 z-40 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b border-border/50">
           <Link href={adminPortal ? "/" : "/dashboard"} className="flex items-center gap-2"><Logo className="h-8 w-8" /><Wordmark size="sm" /></Link>
           {!authenticated ? (
-            <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={handleRefreshApp} aria-label="Refresh app" title="Refresh app" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" data-testid="button-refresh-app-mobile"><RefreshCw className="h-5 w-5" /></button>
+              <Link href="/sign-in" className="text-sm font-bold text-primary flex items-center gap-1" data-testid="link-header-signin"><LogIn className="h-4 w-4" />Sign in</Link>
+            </div>
           ) : (
             <div className="flex items-center gap-2">
+              <button type="button" onClick={handleRefreshApp} aria-label="Refresh app" title="Refresh app" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary" data-testid="button-refresh-app-mobile"><RefreshCw className="h-5 w-5" /></button>
               {!adminPortal && <Link href="/profile" aria-label="My profile" className="rounded-lg p-2 text-primary hover:bg-secondary" data-testid="link-header-profile"><UserRound className="h-5 w-5" /></Link>}
               <button type="button" onClick={handleSignOut} disabled={signOut.isPending} aria-label="Sign out" className="rounded-lg p-2 text-muted-foreground hover:bg-secondary disabled:opacity-50" data-testid="button-header-signout"><LogOut className="h-5 w-5" /></button>
             </div>
