@@ -1,6 +1,6 @@
 export const ADMIN_PORTAL_HOST = "admin-probet-tips.vercel.app";
 export const ADMIN_PORTAL_URL = `https://${ADMIN_PORTAL_HOST}`;
-export const USER_APP_URL = "https://probet-tips.vercel.app";
+export const USER_APP_URL = "https://probet-tips.site";
 
 export function isAdminPortalHost(): boolean {
   return window.location.hostname === ADMIN_PORTAL_HOST;

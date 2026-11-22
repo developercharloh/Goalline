@@ -2,7 +2,7 @@
 
 This lightweight Android app opens the production ProBet Tips website in a secure Android WebView. It uses the same live account, community, tips, wallet, and payment services as the website, so an internet connection is required.
 
-- APK download: `https://probet-tips.vercel.app/downloads/probet-tips.apk`
+- APK download: `https://probet-tips.site/downloads/probet-tips.apk`
 - The app clears its web cache and loads the live site each time it starts. Website deployments therefore appear in the installed app without replacing the APK.
 - Changes to the Android wrapper itself (for example its icon or native behavior) still require a newly built APK.
 
@@ -18,6 +18,6 @@ Install `app/build/outputs/apk/debug/app-debug.apk` on an Android device. The de
 
 - Application ID: `com.goalline.probettips`
 - Android minimum: Android 6.0 (API 23)
-- Website: `https://probet-tips.vercel.app/`
+- Website: `https://probet-tips.site/`
 
 External payment and support links open in the device browser. The app only permits HTTPS navigation within the ProBet Tips site.

@@ -25,6 +25,17 @@
       "has": [
         {
           "type": "host",
+          "value": "^probet-tips\\.site$"
+        }
+      ],
+      "status": 308,
+      "dest": "https://admin-probet-tips.vercel.app/"
+    },
+    {
+      "src": "/admin(?:/.*)?",
+      "has": [
+        {
+          "type": "host",
           "value": "^admin-probet-tips\\.vercel\\.app$"
         }
       ],
