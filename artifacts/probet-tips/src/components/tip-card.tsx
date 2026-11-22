@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import type { TipPackage } from "@workspace/api-client-react";
 import { money } from "@/lib/probet";
@@ -13,12 +14,42 @@ function formatMatchDate(value: string) {
   });
 }
 
+function formatRemaining(ms: number) {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const days = Math.floor(totalSeconds / 86_400);
+  const hours = Math.floor((totalSeconds % 86_400) / 3_600);
+  const minutes = Math.floor((totalSeconds % 3_600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+}
+
 export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: boolean }) {
+  const expiry = pkg.accessExpiresAt ? Date.parse(pkg.accessExpiresAt) : null;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!pkg.purchased || expiry === null || expiry <= Date.now()) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [expiry, pkg.purchased]);
+
+  const hasAccess = pkg.purchased && (expiry === null || expiry > now);
+  const accessExpired = expiry !== null && expiry <= now;
+
   return (
     <div className="gold-card rounded-2xl p-5 transition-transform hover:-translate-y-0.5" data-testid={`card-package-${pkg.id}`}>
       <h3 className="font-display text-xl font-extrabold" data-testid={`text-package-title-${pkg.id}`}>{pkg.title}</h3>
+      {hasAccess && expiry !== null && (
+        <p className="mt-2 text-xs font-semibold text-primary" data-testid={`text-access-countdown-${pkg.id}`}>
+          Premium access ends in <span className="tabular-nums">{formatRemaining(expiry - now)}</span>
+        </p>
+      )}
+      {accessExpired && (
+        <p className="mt-3 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2 text-xs font-semibold text-loss" role="status" data-testid={`status-access-expired-${pkg.id}`}>
+          Your 7-day access has expired. Purchase again to continue viewing these tips.
+        </p>
+      )}
 
-      {pkg.purchased && !compact && (
+      {hasAccess && !compact && (
         <div className="mt-4 space-y-3">
           {pkg.matches.map((match, index) => (
             <article key={`${match.matchDate}-${match.kickoff}-${index}`} className="rounded-xl border border-border bg-[hsl(224_60%_9%)] p-4" data-testid={`card-match-${pkg.id}-${index}`}>
@@ -57,13 +88,13 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
 
       <div className="mt-4 flex items-center justify-between">
         <span className="font-display text-2xl font-extrabold" data-testid={`text-price-${pkg.id}`}>{pkg.price === 0 ? "Free" : money(pkg.price)}</span>
-        {pkg.purchased ? (
+        {hasAccess ? (
           compact ? <Link href="/tips" className="btn-blue rounded-lg px-4 py-2 text-sm font-bold" data-testid={`link-view-tips-${pkg.id}`}>View Tips</Link>
           : <span className="text-sm font-bold text-win">Unlocked</span>
         ) : pkg.matchCount === 0 ? (
           <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-no-matches-${pkg.id}`}>Fixtures pending</span>
         ) : (
-          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>{pkg.price === 0 ? "Get Free VIP" : "Purchase"}</Link>
+          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>{accessExpired ? "Renew access" : pkg.price === 0 ? "Get Free VIP" : "Purchase"}</Link>
         )}
       </div>
     </div>

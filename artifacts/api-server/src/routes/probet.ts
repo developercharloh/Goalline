@@ -11,6 +11,7 @@ import { identity, linkGuestWallet, linkGuestWalletToAccount, WalletLinkError } 
 import { accountOwner } from "../lib/account-session.js";
 import manualDepositRouter from "./manual-deposits.js";
 import { payheroEnabled } from "../lib/payhero.js";
+import { hasActiveTipAccess, tipAccessExpiresAt } from "../lib/tip-access.js";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
@@ -62,7 +63,9 @@ async function transactionsFor(owner: string, isDemo: boolean) {
 async function tipsFor(owner: string) {
   await ensureTipCatalogSeed();
   const owned = await db.select().from(purchases).where(eq(purchases.owner, owner));
+  const purchaseByPackageId = new Map(owned.map((row) => [row.packageId, row]));
   const ownedIds = owned.map((row) => row.packageId);
+  const now = new Date();
   const statusFilter = ownedIds.length
     ? or(eq(tipPackages.status, "published"), inArray(tipPackages.id, ownedIds))
     : eq(tipPackages.status, "published");
@@ -76,7 +79,11 @@ async function tipsFor(owner: string) {
     ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, rows.map((row) => row.id))).orderBy(tipEntries.position)
     : [];
   return rows.map((pack) => {
-    const purchased = ownedIds.includes(pack.id);
+    const purchase = purchaseByPackageId.get(pack.id);
+    const purchased = hasActiveTipAccess(purchase, pack.priceCents, now);
+    const accessExpiresAt = purchase && pack.priceCents > 0
+      ? tipAccessExpiresAt(purchase.createdAt).toISOString()
+      : null;
     const matches = entries.filter((entry) => entry.packageId === pack.id).flatMap((entry) => {
       if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || !entry.selection || entry.odds == null) return [];
       return [{
@@ -95,6 +102,7 @@ async function tipsFor(owner: string) {
       description: pack.description,
       price: pack.priceCents / 100,
       purchased,
+      accessExpiresAt,
       isSample: pack.isSample,
       matchCount: matches.length,
       totalOdds: pack.totalOdds,
@@ -236,23 +244,32 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
     // Serializes simultaneous attempts against the same wallet.
     await tx.execute(sql`SELECT owner FROM probet_wallets WHERE owner = ${owner} FOR UPDATE`);
     const prior = await tx.select().from(purchases).where(and(eq(purchases.owner, owner), eq(purchases.packageId, pack.id)));
-    if (!prior.length) {
-      const updated = await tx.update(wallets).set({ balanceCents: sql`${wallets.balanceCents} - ${pack.priceCents}` }).where(and(eq(wallets.owner, owner), sql`${wallets.balanceCents} >= ${pack.priceCents}`)).returning();
-      if (!updated.length) return null;
-      await tx.insert(purchases).values({ id: randomUUID(), owner, packageId: pack.id });
-      await tx.insert(transactions).values({
-        id: randomUUID(),
-        owner,
-        title: pack.priceCents === 0 ? `${pack.title} access` : `${pack.title} purchase`,
-        type: "purchase",
-        amountCents: -pack.priceCents,
-      });
+    const now = new Date();
+    if (hasActiveTipAccess(prior[0], pack.priceCents, now)) return { kind: "already-active" as const };
+    const [updated] = await tx.update(wallets)
+      .set({ balanceCents: sql`${wallets.balanceCents} - ${pack.priceCents}` })
+      .where(and(eq(wallets.owner, owner), sql`${wallets.balanceCents} >= ${pack.priceCents}`))
+      .returning({ balanceCents: wallets.balanceCents });
+    if (!updated) return { kind: "insufficient" as const };
+    if (prior.length) {
+      await tx.update(purchases).set({ createdAt: now })
+        .where(and(eq(purchases.owner, owner), eq(purchases.packageId, pack.id)));
+    } else {
+      await tx.insert(purchases).values({ id: randomUUID(), owner, packageId: pack.id, createdAt: now });
     }
+    await tx.insert(transactions).values({
+      id: randomUUID(),
+      owner,
+      title: pack.priceCents === 0 ? `${pack.title} access` : `${pack.title} purchase`,
+      type: "purchase",
+      amountCents: -pack.priceCents,
+    });
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.owner, owner));
-    return wallet.balanceCents / 100;
+    return { kind: "purchased" as const, balance: wallet.balanceCents / 100 };
   });
-  if (result === null) { res.status(409).json({ error: "Insufficient wallet balance." }); return; }
-  res.json(PurchaseTipsResponse.parse({ success: true, balance: result, packageId: pack.id, isDemo }));
+  if (result.kind === "already-active") { res.status(409).json({ error: "You already have access to this package." }); return; }
+  if (result.kind === "insufficient") { res.status(409).json({ error: "Insufficient wallet balance." }); return; }
+  res.json(PurchaseTipsResponse.parse({ success: true, balance: result.balance, packageId: pack.id, isDemo }));
 });
 router.get("/probet/chat", async (req, res): Promise<void> => {
   const { owner } = await identity(req, res);

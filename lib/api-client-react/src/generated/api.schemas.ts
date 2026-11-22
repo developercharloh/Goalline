@@ -320,6 +320,8 @@ export interface TipPackage {
   description: string;
   price: number;
   purchased: boolean;
+  /** @nullable */
+  accessExpiresAt: string | null;
   isSample: boolean;
   matchCount: number;
   /**

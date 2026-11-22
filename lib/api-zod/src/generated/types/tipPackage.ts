@@ -14,6 +14,8 @@ export interface TipPackage {
   description: string;
   price: number;
   purchased: boolean;
+  /** @nullable */
+  accessExpiresAt: Date | null;
   isSample: boolean;
   matchCount: number;
   /**

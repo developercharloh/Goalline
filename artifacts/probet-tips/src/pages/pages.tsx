@@ -119,10 +119,11 @@ export function PurchasePage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
-  const tips = useGetTips();
+  const tips = useGetTips({ query: { refetchOnMount: "always" } });
   const w = useGetWallet();
   const purchase = usePurchaseTips();
   const pkg = tips.data?.find((p) => p.id === id);
+  const previousAccessExpired = Boolean(pkg?.accessExpiresAt && Date.parse(pkg.accessExpiresAt) <= Date.now());
   const bal = w.data?.balance ?? 0;
   const after = pkg ? bal - pkg.price : bal;
   const short = !!pkg && after < 0;
@@ -150,11 +151,13 @@ export function PurchasePage() {
               <div className="mt-6 text-center"><p className="font-bold text-win">You already own this package.</p><Link href="/tips" className="btn-blue inline-block mt-4 rounded-xl px-6 py-2.5 font-bold">View My Tips</Link></div>
             ) : (
               <>
+                {previousAccessExpired && <p className="mt-4 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2 text-sm font-semibold text-loss" role="status" data-testid="status-renewal-required">Your 7-day access expired. Purchase again to continue viewing these tips.</p>}
                 <dl className="mt-6 rounded-2xl bg-[hsl(224_60%_9%)] border border-border p-4 space-y-2 text-sm">
                   <div className="flex justify-between"><dt>Ticket Price</dt><dd className="font-bold" data-testid="text-ticket-price">{pkg.price === 0 ? "Free" : money(pkg.price)}</dd></div>
                   <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
                 </dl>
+                {pkg.price > 0 && <p className="mt-3 text-xs text-muted-foreground">Premium access lasts 7 days from purchase.</p>}
                 {purchase.error && <p className="mt-3 text-sm text-loss" data-testid="text-purchase-error">{errMsg(purchase.error)}</p>}
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
@@ -176,11 +179,12 @@ export function PurchasePage() {
 }
 
 export function SuccessPage() {
-  const tips = useGetTips();
+  const tips = useGetTips({ query: { refetchOnMount: "always" } });
   const packageId = new URLSearchParams(window.location.search).get("pkg");
+  const purchasedPackage = tips.data?.find(pkg => pkg.id === packageId);
   if (tips.isLoading) return <AppShell><Sk className="h-72 max-w-lg" /></AppShell>;
   if (tips.error) return <AppShell><ErrorCard message={errMsg(tips.error)} onRetry={() => tips.refetch()} /></AppShell>;
-  if (!packageId || !tips.data?.some(pkg => pkg.id === packageId && pkg.purchased)) return <Redirect to="/tips" />;
+  if (!packageId || !purchasedPackage?.purchased) return <Redirect to="/tips" />;
   return (
     <AppShell>
       <div className="min-h-[70dvh] grid place-items-center">
@@ -192,7 +196,11 @@ export function SuccessPage() {
           </div>
           <div className="relative mx-auto grid h-20 w-20 place-items-center rounded-full border-4 border-[hsl(142_72%_50%)] pop"><Check className="h-10 w-10 text-win" strokeWidth={3} /></div>
           <h1 className="relative font-display text-3xl font-extrabold mt-5" data-testid="text-success">Purchase Successful!</h1>
-          <p className="relative text-muted-foreground mt-1">Your VIP package is now available.</p>
+          <p className="relative text-muted-foreground mt-1">
+            {purchasedPackage.accessExpiresAt
+              ? `Your premium access is available for 7 days, until ${new Date(purchasedPackage.accessExpiresAt).toLocaleString()}.`
+              : "Your package is now available in My Picks."}
+          </p>
           <Link href="/tips" className="relative btn-blue block mt-6 rounded-xl py-3 font-bold" data-testid="link-view-my-tips">View My Tips</Link>
           <Link href="/dashboard" className="relative block mt-3 text-sm text-primary font-semibold" data-testid="link-back-home">Back to Home</Link>
         </div>
