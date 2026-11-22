@@ -3,8 +3,8 @@ name: Community direction
 description: User decisions for ChatBase and account access.
 ---
 
-ChatBase should be a community like WhatsApp where people chat with others, not an AI assistant. Do not request an OpenAI API key for it.
+The public ChatBase/community chat has been removed from the app. Private user-to-support conversations are the current contact channel. Retain existing community-message records; do not delete them unless the user explicitly requests it.
 
-**Why:** The user chose people-to-people chat and explicitly asked that app data be hidden until users sign in.
+**Why:** The user asked to remove ChatBase; the private support inbox is a separate feature, and removing the public chat does not require deleting its stored history.
 
-**How to apply:** Keep chat independent of AI services. Require a signed-in account before showing any app data; only sign-in and sign-up pages are public.
+**How to apply:** Do not restore public chat navigation, pages, or API endpoints unless requested. Keep support conversations private and role-protected.

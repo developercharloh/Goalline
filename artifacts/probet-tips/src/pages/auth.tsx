@@ -18,7 +18,7 @@ function AuthFrame({ children, title, subtitle }: { children: ReactNode; title: 
         <div className="absolute h-96 w-96 rounded-full bg-[hsl(217_100%_50%/.3)] blur-3xl" />
         <Logo className="relative h-40 w-40" />
         <div className="relative text-center"><Wordmark size="lg" tagline /></div>
-        <p className="relative max-w-sm text-center text-muted-foreground">Premium football picks, a secure wallet and the ChatBase community.</p>
+        <p className="relative max-w-sm text-center text-muted-foreground">Premium football picks and a secure wallet.</p>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <div className="glass w-full max-w-lg rounded-3xl p-6 md:p-8">

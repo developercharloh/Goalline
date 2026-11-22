@@ -22,8 +22,6 @@ export * from './adminUserRole';
 export * from './authAction';
 export * from './authMe';
 export * from './authSession';
-export * from './chatInput';
-export * from './chatMessage';
 export * from './dashboard';
 export * from './depositCheckout';
 export * from './depositCheckoutCurrency';

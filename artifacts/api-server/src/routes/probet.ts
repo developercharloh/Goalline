@@ -1,8 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, communityMessages, supportMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
-import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, SendChatBody, SendChatResponse, GetChatResponse, GetSupportMessagesResponse, SendSupportMessageBody, SendSupportMessageResponse } from "@workspace/api-zod";
+import { db, wallets, transactions, purchases, supportMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
+import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, GetSupportMessagesResponse, SendSupportMessageBody, SendSupportMessageResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
 import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
@@ -270,38 +270,6 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
   if (result.kind === "already-active") { res.status(409).json({ error: "You already have access to this package." }); return; }
   if (result.kind === "insufficient") { res.status(409).json({ error: "Insufficient wallet balance." }); return; }
   res.json(PurchaseTipsResponse.parse({ success: true, balance: result.balance, packageId: pack.id, isDemo }));
-});
-router.get("/probet/chat", async (req, res): Promise<void> => {
-  const { owner } = await identity(req, res);
-  const rows = await db.select().from(communityMessages).orderBy(desc(communityMessages.createdAt)).limit(100);
-  res.json(GetChatResponse.parse(rows.reverse().map(row => ({
-    id: row.id,
-    displayName: row.displayName,
-    content: row.content,
-    createdAt: row.createdAt.toISOString(),
-    isMine: row.owner === owner,
-  }))));
-});
-router.post("/probet/chat", rateLimit({ windowMs: 60_000, limit: 10, validate: false }), async (req, res): Promise<void> => {
-  const input = SendChatBody.safeParse(req.body);
-  if (!input.success || !input.data.content.trim() || !input.data.displayName.trim()) {
-    res.status(400).json({ error: "Enter a display name and a message." });
-    return;
-  }
-  const { owner } = await identity(req, res);
-  const [message] = await db.insert(communityMessages).values({
-    id: randomUUID(),
-    owner,
-    displayName: input.data.displayName.trim(),
-    content: input.data.content.trim(),
-  }).returning();
-  res.status(201).json(SendChatResponse.parse({
-    id: message.id,
-    displayName: message.displayName,
-    content: message.content,
-    createdAt: message.createdAt.toISOString(),
-    isMine: true,
-  }));
 });
 router.get("/probet/support/messages", async (req, res): Promise<void> => {
   const accountId = req.probetAccountId;

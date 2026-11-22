@@ -756,37 +756,6 @@ export const ReviewManualDepositResponse = zod.object({
 })
 
 
-export const GetChatResponseItem = zod.object({
-  "id": zod.string(),
-  "displayName": zod.string(),
-  "content": zod.string(),
-  "createdAt": zod.string(),
-  "isMine": zod.boolean()
-})
-export const GetChatResponse = zod.array(GetChatResponseItem)
-
-
-export const sendChatBodyDisplayNameMin = 2;
-export const sendChatBodyDisplayNameMax = 24;
-
-export const sendChatBodyContentMax = 500;
-
-
-
-export const SendChatBody = zod.object({
-  "displayName": zod.string().min(sendChatBodyDisplayNameMin).max(sendChatBodyDisplayNameMax),
-  "content": zod.string().min(1).max(sendChatBodyContentMax)
-})
-
-export const SendChatResponse = zod.object({
-  "id": zod.string(),
-  "displayName": zod.string(),
-  "content": zod.string(),
-  "createdAt": zod.string(),
-  "isMine": zod.boolean()
-})
-
-
 export const getSupportMessagesResponseContentMax = 2000;
 
 

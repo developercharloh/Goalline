@@ -1,5 +1,5 @@
 - [Cashia payments](cashia-payments.md) — Cashia is the chosen provider; uploaded checkout examples lack settlement verification and use KES.
-- [Community direction](community-direction.md) — ChatBase is people-to-people chat, not AI; defer account gates until the app is confirmed working.
+- [Community direction](community-direction.md) — Public ChatBase chat was removed; private support inbox remains, and old messages are retained.
 - [Vercel guest sessions](vercel-guest-sessions.md) — Vercel pre-parses cookies, which can prevent cookie-parser from configuring signed guest sessions.
 - [PayHero payments](payhero-payments.md) — Add PayHero STK push alongside Cashia; verify status through its API before crediting.
 - [React Hook Form and Zod](react-hook-form-zod.md) — The resolver may type against a different Zod peer copy than the artifact imports directly.

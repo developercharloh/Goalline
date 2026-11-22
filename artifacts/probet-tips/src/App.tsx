@@ -10,7 +10,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import DashboardPage from "@/pages/dashboard";
-import { WalletPage, TipsPage, PurchasePage, SuccessPage, ChatPage } from "@/pages/pages";
+import { WalletPage, TipsPage, PurchasePage, SuccessPage } from "@/pages/pages";
 import { SignInPage as CredentialSignInPage, SignUpPage as CredentialSignUpPage } from "@/pages/auth";
 import AccountPage from "@/pages/account";
 import AdminPage from "@/pages/admin";
@@ -227,7 +227,7 @@ function AppRoutes({ legacyAvailable }: { legacyAvailable: boolean }) {
       <Route path="/sign-up/*?" component={CredentialSignUpPage} />
       <Route path="/legacy-sign-in/*?" component={legacyAvailable ? LegacySignInPage : AccountUnavailablePage} />
       <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/chat" component={ChatPage} />
+      <Route path="/chat" component={() => <Redirect to="/dashboard" />} />
       <Route path="/wallet" component={WalletRoute} />
       <Route path="/tips" component={TipsPage} />
       <Route path="/purchase/:id" component={PurchasePage} />

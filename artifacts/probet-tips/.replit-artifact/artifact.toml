@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "ProBet Tips"
-description = "Premium football tips with ChatBase AI, a top-up-only wallet, purchases and transaction history, matching the supplied ProBet Tips reference."
+description = "Premium football tips, secure wallet, purchases and transaction history, with a private support inbox."
 version = "1.0.0"
 id = "artifacts/probet-tips"
 router = "path"

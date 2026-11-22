@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { Home, MessageSquare, Wallet, Gem, LogIn, LogOut, UserRound, Shield, RefreshCw } from "lucide-react";
+import { Home, Wallet, Gem, LogIn, LogOut, UserRound, Shield, RefreshCw } from "lucide-react";
 import { useGetAuthMe, useSignOut } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Logo, Wordmark } from "@/components/brand";
@@ -9,7 +9,6 @@ import { ADMIN_PORTAL_URL } from "@/lib/portal-host";
 
 const NAV = [
   { href: "/dashboard", label: "Home", icon: Home },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/tips", label: "Tips", icon: Gem },
   { href: "/wallet", label: "Wallet", icon: Wallet },
 ];
@@ -103,7 +102,7 @@ function AppShellFrame({
           ) : (
             <>
               <div className="font-bold">{guestPreview ? "Welcome to ProBet Tips" : "Welcome"}</div>
-              <p className="text-xs text-muted-foreground mt-1">Explore football tips, your wallet, and community chat.</p>
+              <p className="text-xs text-muted-foreground mt-1">Explore football tips and manage your wallet.</p>
               <Link href="/sign-up" className="btn-gold block text-center rounded-lg py-2 mt-3 font-bold" data-testid="link-sidebar-signup">Create account</Link>
             </>
           )}

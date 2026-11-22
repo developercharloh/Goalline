@@ -523,27 +523,6 @@ export interface ManualDeposit {
   reviewedAt: string | null;
 }
 
-export interface ChatInput {
-  /**
-     * @minLength 2
-     * @maxLength 24
-     */
-  displayName: string;
-  /**
-     * @minLength 1
-     * @maxLength 500
-     */
-  content: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  displayName: string;
-  content: string;
-  createdAt: string;
-  isMine: boolean;
-}
-
 export interface SupportMessageInput {
   /**
      * @minLength 1

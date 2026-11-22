@@ -419,30 +419,6 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ManualDeposit" }
-  /probet/chat:
-    get:
-      operationId: getChat
-      responses:
-        "200":
-          description: Recent public community messages
-          content:
-            application/json:
-              schema:
-                type: array
-                items: { $ref: "#/components/schemas/ChatMessage" }
-    post:
-      operationId: sendChat
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: "#/components/schemas/ChatInput" }
-      responses:
-        "201":
-          description: Community message posted
-          content:
-            application/json:
-              schema: { $ref: "#/components/schemas/ChatMessage" }
   /probet/support/messages:
     get:
       operationId: getSupportMessages
@@ -780,21 +756,6 @@ components:
         note: { type: ["string", "null"] }
         createdAt: { type: string }
         reviewedAt: { type: ["string", "null"] }
-    ChatInput:
-      type: object
-      required: [displayName, content]
-      properties:
-        displayName: { type: string, minLength: 2, maxLength: 24 }
-        content: { type: string, minLength: 1, maxLength: 500 }
-    ChatMessage:
-      type: object
-      required: [id, displayName, content, createdAt, isMine]
-      properties:
-        id: { type: string }
-        displayName: { type: string }
-        content: { type: string }
-        createdAt: { type: string }
-        isMine: { type: boolean }
     SupportMessageInput:
       type: object
       required: [content]

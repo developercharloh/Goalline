@@ -1,6 +1,6 @@
 # ProBet Tips
 
-Football-tip packages, a top-up-only wallet, ChatBase, and transaction history, based on the user's supplied reference.
+Football-tip packages, a top-up-only wallet, a private support inbox, and transaction history, based on the user's supplied reference.
 
 ## Run & Operate
 
@@ -29,7 +29,7 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-- All dashboard, wallet, tip, chat, purchase, profile, and admin data requires a signed-in account. Only sign-in, sign-up, health checks, and provider callbacks remain public.
+- All dashboard, wallet, tip, purchase, profile, support, and admin data requires a signed-in account. Only sign-in, sign-up, health checks, and provider callbacks remain public.
 - Real accounts start at $0. Sample tip packages are never sold for real money.
 - New accounts use email/password with a four-character minimum and no verification step; after sign-up, users sign in separately. Users can sign in with email or username; username, full name, phone and country are stored as unverified profile details.
 - On the user site, signed-out visitors opening `/` go to sign-up; signed-in visitors go to the dashboard. The separate admin host keeps its own sign-in flow.
@@ -46,8 +46,8 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Product
 
-Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and weekly VIP fixtures, package purchase confirmation and success, unlocked tips, wallet and transaction history, and ChatBase. No withdrawals or bet placement.
-Do not configure Replit AI Integrations. Select an external AI provider with the user before enabling ChatBase. The user does not have an OpenAI API key; do not ask for one.
+Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and weekly VIP fixtures, package purchase confirmation and success, unlocked tips, wallet, transaction history, and a private support inbox. No withdrawals or bet placement.
+The public ChatBase/community chat was removed; users contact staff through the private support inbox. Stored community messages are retained unless the user explicitly asks to delete them.
 No live sports feed is connected; administrators enter match fixtures and odds manually.
 
 ## User preferences

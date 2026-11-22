@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
 import { useGetAuthMe, useGetDashboard } from "@workspace/api-client-react";
-import { MessageCircle, Gem, Wallet, ShieldCheck } from "lucide-react";
+import { Gem, Wallet, ShieldCheck } from "lucide-react";
 import { AppShell, ErrorCard, Sk } from "@/components/app-shell";
 import { Logo, Wordmark } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -23,7 +23,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
               <Wordmark size="lg" tagline />
-              <p className="mt-4 max-w-lg text-muted-foreground">Explore premium football picks, manage your wallet, and chat with the ProBet Tips community.</p>
+              <p className="mt-4 max-w-lg text-muted-foreground">Explore premium football picks and manage your wallet.</p>
               {authAvailable ? (
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Link href="/sign-up" className="btn-blue rounded-xl px-6 py-3 font-bold" data-testid="link-hero-signup">Sign Up</Link>
@@ -33,9 +33,9 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
                 <p className="mt-5 text-sm text-muted-foreground">Explore the app without signing in.</p>
               )}
             </div>
-            <div className="hidden lg:grid grid-cols-2 gap-2 text-sm">
-              {[[MessageCircle, "ChatBase", "Community"], [Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "M-Pesa Express", "Fast Deposits"]].map(([I, a, b], i) => {
-                const Icon = I as typeof MessageCircle;
+            <div className="hidden lg:grid grid-cols-3 gap-2 text-sm">
+              {[[Gem, "Premium", "Tips Only"], [Wallet, "Secure", "Wallet"], [ShieldCheck, "M-Pesa Express", "Fast Deposits"]].map(([I, a, b], i) => {
+                const Icon = I as typeof Gem;
                 return (
                   <div key={i} className="glass rounded-xl px-3 py-2.5 flex items-center gap-2">
                     <Icon className="h-6 w-6 text-primary" /><div><div className="font-bold leading-tight">{a as string}</div><div className="text-xs text-muted-foreground">{b as string}</div></div>
@@ -83,11 +83,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
           <div className="lg:col-span-2 space-y-6">
             <div>
               <h3 className="font-display text-xl font-extrabold mb-3">Today's Features</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <Link href="/chat" className="glass rounded-2xl p-4 text-center hover:-translate-y-0.5 transition-transform" data-testid="link-feature-chat">
-                  <MessageCircle className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">ChatBase</div>
-                  <div className="text-xs text-muted-foreground">Chat with the community</div>
-                </Link>
+              <div className="grid grid-cols-1 gap-3">
                 <Link href="/tips" className="glass rounded-2xl p-4 text-center hover:-translate-y-0.5 transition-transform" data-testid="link-feature-tips">
                   <Gem className="h-8 w-8 mx-auto text-primary" /><div className="font-bold mt-2">VIP Packages</div>
                   <div className="text-xs text-muted-foreground">{data.purchasedCount} unlocked</div>

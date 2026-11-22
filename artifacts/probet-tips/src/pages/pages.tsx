@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link, Redirect, useLocation, useParams } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips, useGetChat, useSendChat, getGetChatQueryKey,
+  useGetWallet, useGetTransactions, useGetTips, usePurchaseTips,
 } from "@workspace/api-client-react";
-import type { ChatMessage } from "@workspace/api-client-react";
-import { MessageCircle, Send, Check, Wallet, Gem, ShieldCheck, Crown, Users } from "lucide-react";
+import { Check, Wallet, Gem, ShieldCheck, Crown } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { Logo } from "@/components/brand";
 import { TipCard } from "@/components/tip-card";
@@ -206,126 +205,6 @@ export function SuccessPage() {
         </div>
       </div>
     </AppShell>
-  );
-}
-
-export function ChatPage() {
-  const qc = useQueryClient();
-  const chat = useGetChat({ query: { refetchInterval: 5000, refetchIntervalInBackground: false } });
-  const send = useSendChat();
-  const [text, setText] = useState("");
-  const [displayName, setDisplayName] = useState(() => window.localStorage.getItem("probet-community-name") ?? "");
-  const [pending, setPending] = useState<string | null>(null);
-  const endRef = useRef<HTMLDivElement>(null);
-  const msgs: ChatMessage[] = chat.data ?? [];
-
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs.length, pending]);
-
-  function submit() {
-    const content = text.trim();
-    const name = displayName.trim();
-    if (!content || !name || send.isPending) return;
-    setPending(content);
-    send.mutate({ data: { displayName: name, content } }, {
-      onSuccess: () => {
-        setText("");
-        qc.invalidateQueries({ queryKey: getGetChatQueryKey() });
-      },
-      onSettled: () => setPending(null),
-    });
-  }
-
-  return (
-    <AppShell>
-      <div className="flex flex-col h-[calc(100dvh-10rem)] md:h-[calc(100dvh-5rem)]">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-xl btn-blue"><MessageCircle className="h-6 w-6" /></div>
-            <div><h1 className="font-display text-2xl font-extrabold">ChatBase</h1><p className="text-xs text-muted-foreground">ProBet Tips community</p></div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2 rounded-full border border-[hsl(142_72%_50%/.25)] bg-[hsl(142_72%_50%/.08)] px-3 py-1.5 text-xs font-semibold text-win">
-            <span className="h-2 w-2 rounded-full bg-win" /> Public room
-          </div>
-        </div>
-        <div className="glass mb-3 flex flex-wrap items-center gap-3 rounded-2xl p-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-secondary text-primary"><Users className="h-5 w-5" /></div>
-          <div className="min-w-[9rem] flex-1">
-            <p className="text-sm font-semibold">One room for everyone</p>
-            <p className="text-xs text-muted-foreground">Messages are public and shared with the community.</p>
-          </div>
-          <label className="flex min-w-40 items-center gap-2 text-xs text-muted-foreground">
-            <span className="shrink-0">Your name</span>
-            <input
-              value={displayName}
-              onChange={(e) => {
-                setDisplayName(e.target.value);
-                window.localStorage.setItem("probet-community-name", e.target.value);
-              }}
-              maxLength={24}
-              minLength={2}
-              placeholder="Choose a name"
-              className="w-full rounded-lg border border-border bg-background/70 px-2.5 py-2 text-sm text-foreground outline-none focus:border-primary"
-              aria-label="Your display name"
-              data-testid="input-chat-name"
-            />
-          </label>
-        </div>
-        <div className="flex-1 overflow-y-auto space-y-3 rounded-2xl border border-border/60 bg-[hsl(225_65%_6%/.45)] p-3 md:p-4" data-testid="list-chat">
-          {chat.isLoading ? <><Sk className="h-16 w-2/3" /><Sk className="h-14 w-1/2 ml-auto" /></> : chat.error ? <ErrorCard message={errMsg(chat.error)} onRetry={() => chat.refetch()} /> : (
-            <>
-              {msgs.length === 0 && !pending && (
-                <div className="grid h-full min-h-40 place-items-center text-center">
-                  <div>
-                    <MessageCircle className="mx-auto h-9 w-9 text-primary" />
-                    <p className="mt-2 font-semibold">Start the conversation</p>
-                    <p className="mt-1 text-sm text-muted-foreground">Say hello or talk football with the community.</p>
-                  </div>
-                </div>
-              )}
-              {msgs.map((m) => <CommunityBubble key={m.id} message={m} />)}
-              {pending && <PendingBubble displayName={displayName.trim()} content={pending} />}
-            </>
-          )}
-          <div ref={endRef} />
-        </div>
-        {send.error && <div className="mt-2 rounded-xl border border-[hsl(0_84%_60%/.5)] bg-[hsl(0_84%_60%/.1)] p-3 text-sm text-loss" data-testid="text-chat-error">{errMsg(send.error)}</div>}
-        <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="mt-3 flex gap-2 rounded-2xl border border-border glass p-2">
-          <input value={text} onChange={(e) => setText(e.target.value)} maxLength={500} placeholder={displayName.trim() ? "Message the community..." : "Choose your name to join the chat"} className="min-w-0 flex-1 bg-transparent px-3 outline-none" data-testid="input-chat" />
-          <button type="submit" disabled={!text.trim() || !displayName.trim() || send.isPending} aria-label="Send message" className="btn-blue grid h-11 w-11 shrink-0 place-items-center rounded-xl disabled:opacity-50" data-testid="button-send-chat">
-            {send.isPending ? <span className="animate-pulse">…</span> : <Send className="h-5 w-5" />}
-          </button>
-        </form>
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">Keep it respectful. Public messages are visible to everyone in this room.</p>
-      </div>
-    </AppShell>
-  );
-}
-
-function CommunityBubble({ message }: { message: ChatMessage }) {
-  const me = message.isMine;
-  const time = new Date(message.createdAt);
-  return (
-    <div className={`flex items-end gap-2 rise ${me ? "justify-end" : ""}`}>
-      {!me && <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-secondary text-sm font-bold text-primary">{message.displayName.slice(0, 1).toUpperCase()}</div>}
-      <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${me ? "btn-blue rounded-br-sm" : "glass rounded-bl-sm"}`}>
-        <div className={`mb-1 flex items-center gap-2 text-[11px] ${me ? "text-white/75" : "text-muted-foreground"}`}>
-          <span className="font-bold">{me ? "You" : message.displayName}</span>
-          <time dateTime={message.createdAt}>{Number.isNaN(time.getTime()) ? "" : time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time>
-        </div>
-        <p className="whitespace-pre-wrap break-words text-sm">{message.content}</p>
-      </div>
-    </div>
-  );
-}
-
-function PendingBubble({ displayName, content }: { displayName: string; content: string }) {
-  return (
-    <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-sm btn-blue px-4 py-2.5 opacity-70">
-        <div className="mb-1 text-[11px] font-bold text-white/75">{displayName} · Sending</div>
-        <p className="whitespace-pre-wrap break-words text-sm">{content}</p>
-      </div>
-    </div>
   );
 }
 
