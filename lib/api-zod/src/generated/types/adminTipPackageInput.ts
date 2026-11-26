@@ -15,9 +15,6 @@ export interface AdminTipPackageInput {
      */
   totalOdds: number;
   stakeLevel: AdminTipPackageInputStakeLevel;
-  /**
-     * @minItems 1
-     * @maxItems 50
-     */
+  /** @minItems 1 */
   matches: MatchInput[];
 }

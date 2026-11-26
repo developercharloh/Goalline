@@ -1,19 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-<defs>
-<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE27A"/><stop offset="1" stop-color="#E9A512"/></linearGradient>
-<radialGradient id="b" cx=".38" cy=".35" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".7" stop-color="#e3ebf7"/><stop offset="1" stop-color="#9fb2cf"/></radialGradient>
-<linearGradient id="s" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e6bff" stop-opacity="0"/><stop offset="1" stop-color="#2f8bff"/></linearGradient>
-</defs>
-<path d="M8 92 Q40 104 86 70" stroke="url(#s)" stroke-width="7" fill="none" stroke-linecap="round"/>
-<circle cx="62" cy="72" r="34" fill="url(#b)" stroke="#0b1840" stroke-width="2"/>
-<g fill="#0b1840">
-<path d="M62 60 l11 8 -4 13 h-14 l-4 -13z"/>
-<path d="M62 38 l9 5 -2 9 -7 4 -7 -4 -2 -9z" opacity=".95"/>
-<path d="M30 66 l8 -6 8 6 -2 10 -9 3 -6 -5z"/>
-<path d="M94 66 l-8 -6 -8 6 2 10 9 3 6 -5z"/>
-<path d="M46 98 l5 -9 h12 l4 9 -10 6z"/>
-</g>
-<path d="M36 34 L30 10 L46 22 L60 4 L74 22 L90 10 L84 34 Z" fill="url(#g)" stroke="#a86a00" stroke-width="2" stroke-linejoin="round"/>
-<circle cx="30" cy="10" r="3.5" fill="#FFE27A"/><circle cx="60" cy="4" r="3.5" fill="#FFE27A"/><circle cx="90" cy="10" r="3.5" fill="#FFE27A"/>
-<rect x="36" y="30" width="48" height="5" rx="2" fill="#E9A512"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="ProBet Tips crown, football and rising chart">
+  <defs>
+    <linearGradient id="crown" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFE27A"/>
+      <stop offset="1" stop-color="#E9A512"/>
+    </linearGradient>
+    <radialGradient id="ball" cx=".38" cy=".35" r=".75">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset=".7" stop-color="#e3ebf7"/>
+      <stop offset="1" stop-color="#9fb2cf"/>
+    </radialGradient>
+    <linearGradient id="trend" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#23C94B"/>
+      <stop offset="1" stop-color="#8BFF37"/>
+    </linearGradient>
+  </defs>
+  <path d="M8 96 Q36 105 68 86" stroke="url(#trend)" stroke-width="6" fill="none" stroke-linecap="round"/>
+  <g fill="url(#trend)" opacity=".95">
+    <rect x="79" y="63" width="8" height="20" rx="2"/>
+    <rect x="90" y="53" width="8" height="30" rx="2"/>
+    <rect x="101" y="42" width="8" height="41" rx="2"/>
+  </g>
+  <path d="M75 66 L101 39 L99 49 L113 33 L111 51 L104 46 L81 72 Z" fill="url(#trend)" stroke="#0B1840" stroke-width="1.5" stroke-linejoin="round"/>
+  <circle cx="60" cy="73" r="33" fill="url(#ball)" stroke="#0b1840" stroke-width="2"/>
+  <g fill="#0b1840">
+    <path d="M60 61 l11 8 -4 13 h-14 l-4 -13z"/>
+    <path d="M60 39 l9 5 -2 9 -7 4 -7 -4 -2 -9z" opacity=".95"/>
+    <path d="M28 67 l8 -6 8 6 -2 10 -9 3 -6 -5z"/>
+    <path d="M92 67 l-8 -6 -8 6 2 10 9 3 6 -5z"/>
+    <path d="M44 99 l5 -9 h12 l4 9 -10 6z"/>
+  </g>
+  <path d="M34 35 L28 11 L44 23 L58 5 L72 23 L88 11 L82 35 Z" fill="url(#crown)" stroke="#a86a00" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="28" cy="11" r="3.5" fill="#FFE27A"/>
+  <circle cx="58" cy="5" r="3.5" fill="#FFE27A"/>
+  <circle cx="88" cy="11" r="3.5" fill="#FFE27A"/>
+  <rect x="34" y="31" width="48" height="5" rx="2" fill="#E9A512"/>
 </svg>

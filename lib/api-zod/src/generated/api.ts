@@ -30,6 +30,11 @@ export const signUpBodyPhoneMax = 24;
 export const signUpBodyCountryMin = 2;
 export const signUpBodyCountryMax = 80;
 
+export const signUpBodyReferralCodeMin = 16;
+export const signUpBodyReferralCodeMax = 16;
+
+
+export const signUpBodyReferralCodeRegExp = new RegExp('^[A-F0-9]{16}$');
 
 
 export const SignUpBody = zod.object({
@@ -39,7 +44,8 @@ export const SignUpBody = zod.object({
   "username": zod.string().min(signUpBodyUsernameMin).max(signUpBodyUsernameMax).regex(signUpBodyUsernameRegExp),
   "fullName": zod.string().min(signUpBodyFullNameMin).max(signUpBodyFullNameMax),
   "phone": zod.string().min(signUpBodyPhoneMin).max(signUpBodyPhoneMax),
-  "country": zod.string().min(signUpBodyCountryMin).max(signUpBodyCountryMax)
+  "country": zod.string().min(signUpBodyCountryMin).max(signUpBodyCountryMax),
+  "referralCode": zod.string().min(signUpBodyReferralCodeMin).max(signUpBodyReferralCodeMax).regex(signUpBodyReferralCodeRegExp).optional()
 })
 
 export const SignUpResponse = zod.object({
@@ -229,6 +235,7 @@ export const UpdateAdminUserResponse = zod.object({
 })
 
 
+
 export const getAdminTipPackagesResponseTotalOddsMax = 1000000000;
 
 export const getAdminTipPackagesResponseMatchesItemOneMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -250,6 +257,9 @@ export const GetAdminTipPackagesResponseItem = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "price": zod.number(),
+  "priceDiamonds": zod.number().int(),
+  "durationDays": zod.number().int().min(1),
+  "bestValue": zod.boolean(),
   "status": zod.enum(['draft', 'published', 'archived']),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
@@ -270,6 +280,38 @@ export const GetAdminTipPackagesResponseItem = zod.object({
   "updatedAt": zod.coerce.date()
 })
 export const GetAdminTipPackagesResponse = zod.array(GetAdminTipPackagesResponseItem)
+
+
+export const configureAdminFixturesBodyLookaheadDaysMax = 14;
+
+
+
+export const ConfigureAdminFixturesBody = zod.object({
+  "lookaheadDays": zod.number().int().min(1).max(configureAdminFixturesBodyLookaheadDaysMax)
+})
+
+export const configureAdminFixturesResponseFixturesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
+export const configureAdminFixturesResponseFixturesItemKickoffRegExp = new RegExp('^([01][0-9]|2[0-3]):[0-5][0-9]$');
+export const configureAdminFixturesResponseFixturesItemHomeTeamMax = 120;
+
+export const configureAdminFixturesResponseFixturesItemAwayTeamMax = 120;
+
+
+
+export const ConfigureAdminFixturesResponse = zod.object({
+  "fixtures": zod.array(zod.object({
+  "fixtureId": zod.string(),
+  "competition": zod.string(),
+  "matchDate": zod.string().regex(configureAdminFixturesResponseFixturesItemMatchDateRegExp),
+  "kickoff": zod.string().regex(configureAdminFixturesResponseFixturesItemKickoffRegExp),
+  "homeTeam": zod.string().min(1).max(configureAdminFixturesResponseFixturesItemHomeTeamMax),
+  "awayTeam": zod.string().min(1).max(configureAdminFixturesResponseFixturesItemAwayTeamMax),
+  "suggestedSelection": zod.string().nullable(),
+  "rationale": zod.string()
+})),
+  "unavailableCompetitions": zod.array(zod.string()),
+  "sourceNote": zod.string()
+})
 
 
 export const updateAdminTipPackagePathIdMax = 100;
@@ -295,7 +337,6 @@ export const updateAdminTipPackageBodyMatchesItemOddsMin = 1.01;
 export const updateAdminTipPackageBodyMatchesItemOddsMax = 100000;
 export const updateAdminTipPackageBodyMatchesItemOddsMultipleOf = 0.01;
 
-export const updateAdminTipPackageBodyMatchesMax = 50;
 
 
 
@@ -310,8 +351,9 @@ export const UpdateAdminTipPackageBody = zod.object({
   "awayTeam": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemAwayTeamMax),
   "selection": zod.string().min(1).max(updateAdminTipPackageBodyMatchesItemSelectionMax),
   "odds": zod.number().min(updateAdminTipPackageBodyMatchesItemOddsMin).max(updateAdminTipPackageBodyMatchesItemOddsMax).multipleOf(updateAdminTipPackageBodyMatchesItemOddsMultipleOf)
-})).min(1).max(updateAdminTipPackageBodyMatchesMax)
+})).min(1)
 })
+
 
 export const updateAdminTipPackageResponseTotalOddsMax = 1000000000;
 
@@ -334,6 +376,9 @@ export const UpdateAdminTipPackageResponse = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "price": zod.number(),
+  "priceDiamonds": zod.number().int(),
+  "durationDays": zod.number().int().min(1),
+  "bestValue": zod.boolean(),
   "status": zod.enum(['draft', 'published', 'archived']),
   "isSample": zod.boolean(),
   "matchCount": zod.number().int(),
@@ -432,6 +477,7 @@ export const SendAdminSupportMessageResponse = zod.object({
 })
 
 
+
 export const getDashboardResponsePackagesItemTotalOddsMax = 1000000000;
 
 export const getDashboardResponsePackagesItemMatchesItemMatchDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
@@ -463,6 +509,10 @@ export const GetDashboardResponse = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "price": zod.number(),
+  "priceDiamonds": zod.number().int(),
+  "durationDays": zod.number().int().min(1),
+  "bestValue": zod.boolean(),
+  "availableForPurchase": zod.boolean(),
   "purchased": zod.boolean(),
   "accessExpiresAt": zod.coerce.date().nullable(),
   "isSample": zod.boolean(),
@@ -483,7 +533,7 @@ export const GetDashboardResponse = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "amount": zod.number(),
-  "type": zod.enum(['topup', 'purchase']),
+  "type": zod.enum(['topup', 'purchase', 'referral']),
   "createdAt": zod.string(),
   "isDemo": zod.boolean()
 })),
@@ -506,11 +556,12 @@ export const GetTransactionsResponseItem = zod.object({
   "id": zod.string(),
   "title": zod.string(),
   "amount": zod.number(),
-  "type": zod.enum(['topup', 'purchase']),
+  "type": zod.enum(['topup', 'purchase', 'referral']),
   "createdAt": zod.string(),
   "isDemo": zod.boolean()
 })
 export const GetTransactionsResponse = zod.array(GetTransactionsResponseItem)
+
 
 
 export const getTipsResponseTotalOddsMax = 1000000000;
@@ -534,6 +585,10 @@ export const GetTipsResponseItem = zod.object({
   "title": zod.string(),
   "description": zod.string(),
   "price": zod.number(),
+  "priceDiamonds": zod.number().int(),
+  "durationDays": zod.number().int().min(1),
+  "bestValue": zod.boolean(),
+  "availableForPurchase": zod.boolean(),
   "purchased": zod.boolean(),
   "accessExpiresAt": zod.coerce.date().nullable(),
   "isSample": zod.boolean(),
@@ -553,6 +608,25 @@ export const GetTipsResponseItem = zod.object({
 export const GetTipsResponse = zod.array(GetTipsResponseItem)
 
 
+export const getReferralSummaryResponseCodeMin = 16;
+export const getReferralSummaryResponseCodeMax = 16;
+
+export const getReferralSummaryResponseInvitedCountMin = 0;
+
+export const getReferralSummaryResponseConvertedCountMin = 0;
+
+export const getReferralSummaryResponseDiamondsEarnedMin = 0;
+
+
+
+export const GetReferralSummaryResponse = zod.object({
+  "code": zod.string().min(getReferralSummaryResponseCodeMin).max(getReferralSummaryResponseCodeMax),
+  "invitedCount": zod.number().int().min(getReferralSummaryResponseInvitedCountMin),
+  "convertedCount": zod.number().int().min(getReferralSummaryResponseConvertedCountMin),
+  "diamondsEarned": zod.number().int().min(getReferralSummaryResponseDiamondsEarnedMin)
+})
+
+
 
 
 
@@ -560,11 +634,16 @@ export const PurchaseTipsBody = zod.object({
   "packageId": zod.string().min(1)
 })
 
+export const purchaseTipsResponseReferrerRewardDiamondsMin = 0;
+
+
+
 export const PurchaseTipsResponse = zod.object({
   "success": zod.boolean(),
   "balance": zod.number(),
   "packageId": zod.string(),
-  "isDemo": zod.boolean()
+  "isDemo": zod.boolean(),
+  "referrerRewardDiamonds": zod.number().int().min(purchaseTipsResponseReferrerRewardDiamondsMin)
 })
 
 

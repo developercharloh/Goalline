@@ -13,6 +13,11 @@ export interface TipPackage {
   title: string;
   description: string;
   price: number;
+  priceDiamonds: number;
+  /** @minimum 1 */
+  durationDays: number;
+  bestValue: boolean;
+  availableForPurchase: boolean;
   purchased: boolean;
   /** @nullable */
   accessExpiresAt: Date | null;

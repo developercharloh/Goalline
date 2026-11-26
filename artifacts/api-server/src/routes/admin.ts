@@ -1,7 +1,10 @@
 import { Router, type IRouter } from "express";
 import { and, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import { rateLimit } from "express-rate-limit";
 import { accounts, db, supportMessages, tipEntries, tipPackages } from "@workspace/db";
 import {
+  ConfigureAdminFixturesBody,
+  ConfigureAdminFixturesResponse,
   UpdateAdminTipEntryResultBody,
   UpdateAdminTipEntryResultParams,
   UpdateAdminTipEntryResultResponse,
@@ -23,10 +26,18 @@ import {
 } from "@workspace/api-zod";
 import { randomUUID } from "node:crypto";
 import { publicAccount } from "../lib/account-session.js";
-import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
+import { ensureTipCatalogSeed, vipPackageMetadata, vipTipPackageIds } from "../lib/tip-catalog.js";
 import { requireAdmin } from "../lib/admin-access.js";
+import { configureUpcomingFixtures, FixtureProviderError } from "../lib/football-data.js";
 
 const router: IRouter = Router();
+const fixtureConfigureLimit = rateLimit({
+  windowMs: 60_000,
+  limit: 2,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Please wait before configuring fixtures again." },
+});
 
 class MatchSetChangedError extends Error {}
 
@@ -70,6 +81,9 @@ function adminPackageResponse(
     title: pkg.title,
     description: pkg.description,
     price: pkg.priceCents / 100,
+    priceDiamonds: Math.round(pkg.priceCents / 100),
+    durationDays: vipPackageMetadata(pkg.id)?.durationDays ?? 7,
+    bestValue: vipPackageMetadata(pkg.id)?.bestValue ?? false,
     status: pkg.status,
     isSample: pkg.isSample,
     matchCount: matches.length,
@@ -82,12 +96,12 @@ function adminPackageResponse(
 }
 
 async function packagesWithEntries() {
-  const packages = await db.select().from(tipPackages).where(inArray(tipPackages.id, weeklyTipPackageIds));
+  const packages = await db.select().from(tipPackages).where(inArray(tipPackages.id, vipTipPackageIds));
   const entries = packages.length
-    ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, weeklyTipPackageIds)).orderBy(tipEntries.position)
+    ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, vipTipPackageIds)).orderBy(tipEntries.position)
     : [];
   const byId = new Map(packages.map((pkg) => [pkg.id, pkg]));
-  return weeklyTipPackageIds.flatMap((id) => {
+  return vipTipPackageIds.flatMap((id) => {
     const pkg = byId.get(id);
     if (!pkg) return [];
     const matches = entries.filter((entry) => entry.packageId === pkg.id)
@@ -238,6 +252,30 @@ router.get("/admin/tip-packages", async (_req, res): Promise<void> => {
   res.json(GetAdminTipPackagesResponse.parse(await packagesWithEntries()));
 });
 
+router.post("/admin/fixtures/configure", fixtureConfigureLimit, async (req, res): Promise<void> => {
+  const input = ConfigureAdminFixturesBody.safeParse(req.body);
+  if (!input.success) {
+    res.status(400).json({ error: "Choose a fixture look-ahead between 1 and 14 days." });
+    return;
+  }
+  const token = process.env.FOOTBALL_DATA_API_TOKEN;
+  if (!token) {
+    res.status(503).json({ error: "Fixture configuration needs a free Football-Data.org API token in FOOTBALL_DATA_API_TOKEN." });
+    return;
+  }
+  try {
+    res.json(ConfigureAdminFixturesResponse.parse(
+      await configureUpcomingFixtures(token, input.data.lookaheadDays),
+    ));
+  } catch (error) {
+    if (error instanceof FixtureProviderError) {
+      res.status(error.statusCode).json({ error: error.message });
+      return;
+    }
+    throw error;
+  }
+});
+
 router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
   const params = UpdateAdminTipPackageParams.safeParse(req.params);
   const input = UpdateAdminTipPackageBody.safeParse(req.body);
@@ -245,8 +283,8 @@ router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Enter total odds, a stake level, and at least one complete match." });
     return;
   }
-  if (!weeklyTipPackageIds.includes(params.data.id)) {
-    res.status(404).json({ error: "Only the three weekly VIP packages can be managed." });
+  if (!vipTipPackageIds.includes(params.data.id)) {
+    res.status(404).json({ error: "Only the three VIP packages can be managed." });
     return;
   }
   if (input.data.matches.some((match) => !isValidMatchDate(match.matchDate))) {
@@ -335,7 +373,7 @@ router.patch("/admin/tip-entries/:id/result", async (req, res): Promise<void> =>
   const [entry] = await db.update(tipEntries).set({ result: input.data.result })
     .where(and(
       eq(tipEntries.id, params.data.id),
-      inArray(tipEntries.packageId, weeklyTipPackageIds),
+      inArray(tipEntries.packageId, vipTipPackageIds),
     ))
     .returning({ id: tipEntries.id, result: tipEntries.result });
   if (!entry) {

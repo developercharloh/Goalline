@@ -36,8 +36,11 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 - Clerk remains only as an optional authenticated bridge for older accounts. Never link a legacy Clerk account by matching its email; require both the legacy session and the new account session.
 - Admin roles are server-enforced. The reserved username `admin` cannot be claimed through public sign-up; public sign-up cannot set a role. Provision the first administrator through a private, secure setup.
 - Vercel production serves the admin portal on `admin-probet-tips.vercel.app`; the user site redirects `/admin` to that host, and admin APIs remain role-protected.
-- The public package list is fixed to Free VIP (KES 0), Weekly Multibet (KES 50), and Weekly Premium VIP (KES 70). Admins edit match date, kickoff, teams, prediction selection (result, double chance, draw no bet, goals, both teams to score, half-time, or custom), odds, total odds, and the stake label; prices and package names stay fixed.
-- Archived legacy package rows and purchases remain stored, but only the three fixed packages are exposed in the user tip list.
+- The only purchasable plans are Daily VIP (40 Diamonds for 1 day), Weekly VIP (100 Diamonds for 7 days), and Monthly VIP (300 Diamonds for 30 days). One Diamond is worth KES 1; Weekly VIP is marked Best Value. There is no free VIP plan.
+- VIP access expires independently of login sessions. Account sessions use a rolling one-year expiry; premium expiry does not sign users out.
+- A referral reward of 10 Diamonds is credited to the inviter's wallet once, after each referred account makes its first successful VIP purchase. The reward is spendable wallet credit.
+- Archived legacy package rows and purchases remain stored. Existing paid access remains visible only until its original expiry; archived plans cannot be repurchased.
+- Admins can add any number of matches to each VIP plan. They can manually enter fixture details or configure upcoming fixtures from Football-Data.org; odds and overall package odds remain administrator-reviewed before saving. Suggested selections are estimates based on current standings and recent form, not guarantees. `FOOTBALL_DATA_API_TOKEN` is required for fixture configuration; manual entry remains available without it.
 - Cashia remains under integration; PayHero is also being added for Safaricom M-Pesa Express while Cashia work continues. Never replace either provider without the user's request.
 - PayHero STK deposits must be checked with PayHero's authenticated transaction-status API and credited idempotently; never trust a browser redirect or callback by itself.
 - The Cashia staging sample uses KES while the design uses USD. Do not assume an exchange rate or send USD values as KES.
@@ -46,9 +49,9 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Product
 
-Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and weekly VIP fixtures, package purchase confirmation and success, unlocked tips, wallet, transaction history, and a private support inbox. No withdrawals or bet placement.
+Responsive dashboard, email/password signup and login, profile management, an admin portal for profiles and VIP fixtures, package purchase confirmation and success, package-specific unlocked tips, referral rewards, wallet, transaction history, and a private support inbox. No withdrawals or bet placement.
 The public ChatBase/community chat was removed; users contact staff through the private support inbox. Stored community messages are retained unless the user explicitly asks to delete them.
-No live sports feed is connected; administrators enter match fixtures and odds manually.
+The Android app is a WebView wrapper that loads `https://probet-tips.site/`, so website deployments appear without an APK update. Native wrapper changes such as launcher icons require rebuilding the APK.
 
 ## User preferences
 

@@ -10,7 +10,8 @@ import { accountSessions, accounts, db } from "@workspace/db";
 import { getAuth } from "@clerk/express";
 
 const SESSION_COOKIE = "probet_session";
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 365 * 24 * 60 * 60 * 1000;
+const SESSION_RENEW_WINDOW_MS = 60 * 24 * 60 * 60 * 1000;
 const SCRYPT_N = 32768;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
@@ -149,7 +150,7 @@ export function accountOwner(req: Request): string | null {
 
 export async function accountSessionMiddleware(
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction,
 ): Promise<void> {
   try {
@@ -159,6 +160,7 @@ export async function accountSessionMiddleware(
       const [session] = await db.select({
         accountId: accountSessions.accountId,
         tokenHash: accountSessions.tokenHash,
+        expiresAt: accountSessions.expiresAt,
         role: accounts.role,
       })
         .from(accountSessions)
@@ -172,6 +174,13 @@ export async function accountSessionMiddleware(
         req.probetAccountId = session.accountId;
         req.probetAccountRole = session.role;
         req.probetSessionHash = session.tokenHash;
+        if (session.expiresAt.getTime() - Date.now() < SESSION_RENEW_WINDOW_MS) {
+          const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+          await db.update(accountSessions)
+            .set({ expiresAt })
+            .where(eq(accountSessions.tokenHash, session.tokenHash));
+          setSessionCookie(req, res, token);
+        }
       }
     }
 

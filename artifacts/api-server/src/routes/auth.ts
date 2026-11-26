@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { eq, or, sql } from "drizzle-orm";
 import { randomUUID, timingSafeEqual } from "node:crypto";
-import { accounts, accountSessions, db } from "@workspace/db";
+import { accounts, accountSessions, db, referrals } from "@workspace/db";
 import { clerkClient, getAuth } from "@clerk/express";
 import {
   BootstrapAdminBody,
@@ -27,6 +27,7 @@ import {
   verifyPassword,
 } from "../lib/account-session.js";
 import { linkLegacyAccountData } from "../lib/wallet-identity.js";
+import { createReferralCode } from "../lib/referrals.js";
 
 const router: IRouter = Router();
 const signUpLimit = rateLimit({ windowMs: 15 * 60_000, limit: 5, standardHeaders: true, legacyHeaders: false, validate: false });
@@ -102,15 +103,40 @@ router.post("/auth/signup", signUpLimit, async (req, res): Promise<void> => {
     return;
   }
 
+  let referrerAccountId: string | null = null;
+  if (input.referralCode) {
+    const referralCode = input.referralCode.trim().toUpperCase();
+    const [referrer] = await db.select({ id: accounts.id })
+      .from(accounts)
+      .where(eq(accounts.referralCode, referralCode))
+      .limit(1);
+    if (!referrer) {
+      res.status(400).json({ error: "This invite link is invalid or has expired." });
+      return;
+    }
+    referrerAccountId = referrer.id;
+  }
+
   const passwordHash = await hashPassword(input.password);
   const id = randomUUID();
   try {
-    const [account] = await db.insert(accounts).values({
-      id,
-      email,
-      passwordHash,
-      ...profile,
-    }).returning();
+    const account = await db.transaction(async (tx) => {
+      const [created] = await tx.insert(accounts).values({
+        id,
+        email,
+        passwordHash,
+        referralCode: createReferralCode(),
+        ...profile,
+      }).returning();
+      if (referrerAccountId) {
+        await tx.insert(referrals).values({
+          id: randomUUID(),
+          referrerAccountId,
+          referredAccountId: id,
+        });
+      }
+      return created;
+    });
     res.status(201).json(SignUpResponse.parse({ account: publicAccount(account) }));
   } catch (error) {
     if ((error as { code?: string }).code === "23505") {

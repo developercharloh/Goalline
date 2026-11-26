@@ -7,7 +7,7 @@ import {
   useSignUp,
 } from "@workspace/api-client-react";
 import { AlertCircle, Eye, EyeOff, LockKeyhole, Mail, UserRound } from "lucide-react";
-import { Logo, Wordmark } from "@/components/brand";
+import { BrandArtwork, Logo } from "@/components/brand";
 import { errMsg } from "@/lib/probet";
 import { isAdminPortalHost } from "@/lib/portal-host";
 
@@ -15,10 +15,9 @@ function AuthFrame({ children, title, subtitle }: { children: ReactNode; title: 
   return (
     <main className="min-h-[100dvh] grid lg:grid-cols-2">
       <section className="hidden lg:flex flex-col justify-center items-center gap-6 p-12 relative overflow-hidden">
-        <div className="absolute h-96 w-96 rounded-full bg-[hsl(217_100%_50%/.3)] blur-3xl" />
-        <Logo className="relative h-40 w-40" />
-        <div className="relative text-center"><Wordmark size="lg" tagline /></div>
-        <p className="relative max-w-sm text-center text-muted-foreground">Premium football picks and a secure wallet.</p>
+        <div className="absolute h-96 w-96 rounded-full bg-[hsl(143_50%_35%/.24)] blur-3xl" />
+        <BrandArtwork className="relative w-full max-w-[26rem] rounded-3xl shadow-2xl" />
+        <p className="relative max-w-sm text-center text-muted-foreground">Football insights, VIP predictions, and a secure wallet.</p>
       </section>
       <section className="flex items-center justify-center px-4 py-10">
         <div className="glass w-full max-w-lg rounded-3xl p-6 md:p-8">
@@ -129,6 +128,7 @@ export function SignUpPage() {
         country: String(values.country ?? "").trim(),
         password,
         confirmPassword,
+        ...(params.get("ref") ? { referralCode: params.get("ref")!.trim().toUpperCase() } : {}),
       },
     }, {
       onSuccess: () => {

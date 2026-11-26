@@ -15,6 +15,18 @@ test("paid tip access is active until the expiry instant, then expires", () => {
   assert.equal(hasActiveTipAccess({ createdAt: purchasedAt }, 5000, expiresAt), false);
 });
 
+test("daily and monthly VIP access use their own expiry periods", () => {
+  const purchasedAt = new Date("2026-11-01T12:00:00.000Z");
+  const dailyExpiry = tipAccessExpiresAt(purchasedAt, "daily-vip");
+  const monthlyExpiry = tipAccessExpiresAt(purchasedAt, "monthly-vip");
+  assert.equal(dailyExpiry.getTime() - purchasedAt.getTime(), 24 * 60 * 60 * 1000);
+  assert.equal(monthlyExpiry.getTime() - purchasedAt.getTime(), 30 * 24 * 60 * 60 * 1000);
+  assert.equal(
+    hasActiveTipAccess({ createdAt: purchasedAt, packageId: "daily-vip" }, 4000, dailyExpiry),
+    false,
+  );
+});
+
 test("free access does not expire, and missing purchases grant no access", () => {
   const oldPurchase = { createdAt: new Date("2020-01-01T00:00:00.000Z") };
   const now = new Date("2026-11-01T12:00:00.000Z");

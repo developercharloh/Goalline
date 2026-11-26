@@ -14,6 +14,10 @@ export interface AdminTipPackage {
   title: string;
   description: string;
   price: number;
+  priceDiamonds: number;
+  /** @minimum 1 */
+  durationDays: number;
+  bestValue: boolean;
   status: AdminTipPackageStatus;
   isSample: boolean;
   matchCount: number;

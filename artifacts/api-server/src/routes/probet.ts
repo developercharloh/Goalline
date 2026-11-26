@@ -1,17 +1,18 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
-import { db, wallets, transactions, purchases, supportMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
-import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, PurchaseTipsBody, PurchaseTipsResponse, GetSupportMessagesResponse, SendSupportMessageBody, SendSupportMessageResponse } from "@workspace/api-zod";
+import { and, count, desc, eq, inArray, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { accounts, db, referrals, wallets, transactions, purchases, supportMessages, cashiaDeposits, depositCredits, payheroDepositCredits, tipEntries, tipPackages } from "@workspace/db";
+import { GetDashboardResponse, GetWalletResponse, GetTransactionsResponse, GetTipsResponse, GetReferralSummaryResponse, PurchaseTipsBody, PurchaseTipsResponse, GetSupportMessagesResponse, SendSupportMessageBody, SendSupportMessageResponse } from "@workspace/api-zod";
 import { rateLimit } from "express-rate-limit";
-import { ensureTipCatalogSeed, weeklyTipPackageIds } from "../lib/tip-catalog.js";
+import { ensureTipCatalogSeed, vipPackageMetadata, vipTipPackageIds } from "../lib/tip-catalog.js";
 import { CashiaApiError, cashiaStagingCheckoutEnabled, createCashiaStagingSession } from "../lib/cashia.js";
 import { CreateCashiaDepositBody, CreateCashiaDepositResponse, GetCashiaDepositStatusParams, GetCashiaDepositStatusResponse } from "@workspace/api-zod";
 import { identity, linkGuestWallet, linkGuestWalletToAccount, WalletLinkError } from "../lib/wallet-identity.js";
 import { accountOwner } from "../lib/account-session.js";
 import manualDepositRouter from "./manual-deposits.js";
 import { payheroEnabled } from "../lib/payhero.js";
-import { hasActiveTipAccess, tipAccessExpiresAt } from "../lib/tip-access.js";
+import { hasActiveTipAccess, tipAccessExpiresAt, tipPackageDurationDays } from "../lib/tip-access.js";
+import { createReferralCode, REFERRAL_BONUS_CENTS, REFERRAL_BONUS_DIAMONDS } from "../lib/referrals.js";
 
 const router: IRouter = Router();
 router.use("/probet", (_req, res, next) => {
@@ -65,25 +66,30 @@ async function tipsFor(owner: string) {
   const owned = await db.select().from(purchases).where(eq(purchases.owner, owner));
   const purchaseByPackageId = new Map(owned.map((row) => [row.packageId, row]));
   const ownedIds = owned.map((row) => row.packageId);
+  const visibleIds = [...new Set([
+    ...vipTipPackageIds,
+    ...ownedIds.filter((id) => id !== "free-vip"),
+  ])];
   const now = new Date();
   const statusFilter = ownedIds.length
     ? or(eq(tipPackages.status, "published"), inArray(tipPackages.id, ownedIds))
     : eq(tipPackages.status, "published");
   const rows = await db.select().from(tipPackages).where(and(
-    inArray(tipPackages.id, weeklyTipPackageIds),
+    inArray(tipPackages.id, visibleIds),
     statusFilter,
   ));
-  const packageOrder = new Map(weeklyTipPackageIds.map((id, index) => [id, index]));
-  rows.sort((a, b) => (packageOrder.get(a.id) ?? 0) - (packageOrder.get(b.id) ?? 0));
+  const packageOrder = new Map(vipTipPackageIds.map((id, index) => [id, index]));
+  rows.sort((a, b) => (packageOrder.get(a.id) ?? 999) - (packageOrder.get(b.id) ?? 999));
   const entries = rows.length
     ? await db.select().from(tipEntries).where(inArray(tipEntries.packageId, rows.map((row) => row.id))).orderBy(tipEntries.position)
     : [];
   return rows.map((pack) => {
     const purchase = purchaseByPackageId.get(pack.id);
-    const purchased = hasActiveTipAccess(purchase, pack.priceCents, now);
+    const purchased = hasActiveTipAccess(purchase, pack.priceCents, now, pack.id);
     const accessExpiresAt = purchase && pack.priceCents > 0
-      ? tipAccessExpiresAt(purchase.createdAt).toISOString()
+      ? tipAccessExpiresAt(purchase.createdAt, pack.id).toISOString()
       : null;
+    const metadata = vipPackageMetadata(pack.id);
     const matches = entries.filter((entry) => entry.packageId === pack.id).flatMap((entry) => {
       if (!entry.matchDate || !entry.kickoff || !entry.homeTeam || !entry.awayTeam || !entry.selection || entry.odds == null) return [];
       return [{
@@ -101,6 +107,10 @@ async function tipsFor(owner: string) {
       title: pack.title,
       description: pack.description,
       price: pack.priceCents / 100,
+      priceDiamonds: Math.round(pack.priceCents / 100),
+      durationDays: metadata?.durationDays ?? tipPackageDurationDays(pack.id),
+      bestValue: metadata?.bestValue ?? false,
+      availableForPurchase: Boolean(metadata && pack.status === "published"),
       purchased,
       accessExpiresAt,
       isSample: pack.isSample,
@@ -146,6 +156,49 @@ router.get("/probet/transactions", async (req, res): Promise<void> => {
 router.get("/probet/tips", async (req, res): Promise<void> => {
   const { owner } = await identity(req, res);
   res.json(GetTipsResponse.parse(await tipsFor(owner)));
+});
+router.get("/probet/referral", async (req, res): Promise<void> => {
+  const accountId = req.probetAccountId;
+  if (!accountId) {
+    res.status(401).json({ error: "Sign in to view your invite rewards." });
+    return;
+  }
+  let [account] = await db.select({ referralCode: accounts.referralCode })
+    .from(accounts)
+    .where(eq(accounts.id, accountId))
+    .limit(1);
+  if (!account) {
+    res.status(404).json({ error: "Account not found." });
+    return;
+  }
+  if (!account.referralCode) {
+    const [updated] = await db.update(accounts)
+      .set({ referralCode: createReferralCode() })
+      .where(and(eq(accounts.id, accountId), isNull(accounts.referralCode)))
+      .returning({ referralCode: accounts.referralCode });
+    if (updated?.referralCode) account = updated;
+    else {
+      const [refreshed] = await db.select({ referralCode: accounts.referralCode })
+        .from(accounts)
+        .where(eq(accounts.id, accountId))
+        .limit(1);
+      account = refreshed ?? account;
+    }
+  }
+  if (!account.referralCode) {
+    res.status(503).json({ error: "Your invite link is not ready yet. Try again shortly." });
+    return;
+  }
+  const [totals] = await db.select({
+    invitedCount: count(),
+    convertedCount: sql<number>`count(*) filter (where ${referrals.rewardedAt} is not null)`,
+  }).from(referrals).where(eq(referrals.referrerAccountId, accountId));
+  res.json(GetReferralSummaryResponse.parse({
+    code: account.referralCode,
+    invitedCount: Number(totals?.invitedCount ?? 0),
+    convertedCount: Number(totals?.convertedCount ?? 0),
+    diamondsEarned: Number(totals?.convertedCount ?? 0) * REFERRAL_BONUS_DIAMONDS,
+  }));
 });
 router.get("/probet/dashboard", async (req, res): Promise<void> => {
   const { owner, isDemo } = await identity(req, res);
@@ -240,6 +293,7 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
   }
   const { owner, isDemo } = await identity(req, res);
   if (pack.isSample && !isDemo) { res.status(403).json({ error: "This sample package is available in the preview wallet only." }); return; }
+  const accountId = req.probetAccountId;
   const result = await db.transaction(async tx => {
     // Serializes simultaneous attempts against the same wallet.
     await tx.execute(sql`SELECT owner FROM probet_wallets WHERE owner = ${owner} FOR UPDATE`);
@@ -260,16 +314,50 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
     await tx.insert(transactions).values({
       id: randomUUID(),
       owner,
-      title: pack.priceCents === 0 ? `${pack.title} access` : `${pack.title} purchase`,
+      title: `${pack.title} purchase`,
       type: "purchase",
       amountCents: -pack.priceCents,
     });
+    let referrerRewardDiamonds = 0;
+    if (accountId && pack.priceCents > 0) {
+      const [referral] = await tx.select().from(referrals)
+        .where(eq(referrals.referredAccountId, accountId))
+        .for("update")
+        .limit(1);
+      if (referral && !referral.rewardedAt && referral.referrerAccountId !== accountId) {
+        const [claimed] = await tx.update(referrals)
+          .set({ rewardedAt: now })
+          .where(and(eq(referrals.id, referral.id), isNull(referrals.rewardedAt)))
+          .returning({ id: referrals.id });
+        if (claimed) {
+          const referrerOwner = `account:${referral.referrerAccountId}`;
+          await tx.insert(wallets).values({ owner: referrerOwner }).onConflictDoNothing();
+          await tx.update(wallets)
+            .set({ balanceCents: sql`${wallets.balanceCents} + ${REFERRAL_BONUS_CENTS}` })
+            .where(eq(wallets.owner, referrerOwner));
+          await tx.insert(transactions).values({
+            id: randomUUID(),
+            owner: referrerOwner,
+            title: `Referral reward · ${REFERRAL_BONUS_DIAMONDS} Diamonds`,
+            type: "referral",
+            amountCents: REFERRAL_BONUS_CENTS,
+          });
+          referrerRewardDiamonds = REFERRAL_BONUS_DIAMONDS;
+        }
+      }
+    }
     const [wallet] = await tx.select().from(wallets).where(eq(wallets.owner, owner));
-    return { kind: "purchased" as const, balance: wallet.balanceCents / 100 };
+    return { kind: "purchased" as const, balance: wallet.balanceCents / 100, referrerRewardDiamonds };
   });
   if (result.kind === "already-active") { res.status(409).json({ error: "You already have access to this package." }); return; }
   if (result.kind === "insufficient") { res.status(409).json({ error: "Insufficient wallet balance." }); return; }
-  res.json(PurchaseTipsResponse.parse({ success: true, balance: result.balance, packageId: pack.id, isDemo }));
+  res.json(PurchaseTipsResponse.parse({
+    success: true,
+    balance: result.balance,
+    packageId: pack.id,
+    isDemo,
+    referrerRewardDiamonds: result.referrerRewardDiamonds,
+  }));
 });
 router.get("/probet/support/messages", async (req, res): Promise<void> => {
   const accountId = req.probetAccountId;

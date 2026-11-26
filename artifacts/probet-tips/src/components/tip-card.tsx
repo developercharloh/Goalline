@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 import type { TipPackage } from "@workspace/api-client-react";
-import { money } from "@/lib/probet";
+import { CircleCheck, CircleX, Clock3, Gem } from "lucide-react";
 import { formatMatchSelection } from "@/lib/match-selections";
 
 function formatMatchDate(value: string) {
@@ -38,6 +38,12 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
   return (
     <div className="gold-card rounded-2xl p-5 transition-transform hover:-translate-y-0.5" data-testid={`card-package-${pkg.id}`}>
       <h3 className="font-display text-xl font-extrabold" data-testid={`text-package-title-${pkg.id}`}>{pkg.title}</h3>
+      {pkg.bestValue && <span className="mt-2 inline-flex rounded-full bg-[hsl(43_96%_56%/.16)] px-3 py-1 text-xs font-extrabold text-gold">Best value</span>}
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground" data-testid={`text-package-duration-${pkg.id}`}>
+        <span className="inline-flex items-center gap-1.5"><Clock3 className="h-3.5 w-3.5 text-primary" aria-hidden="true" />{pkg.durationDays} days of access</span>
+        <span aria-hidden="true" className="text-border">/</span>
+        <span>{pkg.matchCount} fixtures</span>
+      </div>
       {hasAccess && expiry !== null && (
         <p className="mt-2 text-xs font-semibold text-primary" data-testid={`text-access-countdown-${pkg.id}`}>
           Premium access ends in <span className="tabular-nums">{formatRemaining(expiry - now)}</span>
@@ -45,7 +51,7 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
       )}
       {accessExpired && (
         <p className="mt-3 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2 text-xs font-semibold text-loss" role="status" data-testid={`status-access-expired-${pkg.id}`}>
-          Your 7-day access has expired. Purchase again to continue viewing these tips.
+          Your {pkg.durationDays}-day access has expired. Purchase again to continue viewing these tips.
         </p>
       )}
 
@@ -66,13 +72,15 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
                 {formatMatchSelection(match.selection, match.homeTeam, match.awayTeam)}
               </p>
               <p
-                className={`mt-2 text-xs font-bold ${
+                className={`mt-2 inline-flex items-center gap-1.5 text-xs font-bold ${
                   match.result === "won" ? "text-win" : match.result === "lost" ? "text-loss" : "text-muted-foreground"
                 }`}
                 aria-label={`Match result: ${match.result}`}
                 data-testid={`text-match-result-${pkg.id}-${index}`}
               >
-                {match.result === "won" ? "✅ Won" : match.result === "lost" ? "❌ Lost" : "⏳ Pending"}
+                {match.result === "won" ? <><CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />Won</>
+                  : match.result === "lost" ? <><CircleX className="h-3.5 w-3.5" aria-hidden="true" />Lost</>
+                    : <><Clock3 className="h-3.5 w-3.5" aria-hidden="true" />Pending</>}
               </p>
             </article>
           ))}
@@ -86,16 +94,33 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
         </div>
       )}
 
-      <div className="mt-4 flex items-center justify-between">
-        <span className="font-display text-2xl font-extrabold" data-testid={`text-price-${pkg.id}`}>{pkg.price === 0 ? "Free" : money(pkg.price)}</span>
+      <div className="mt-4 flex flex-col gap-3 border-t border-border/70 pt-4">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Access price</span>
+            <span className="font-display text-xl font-extrabold" data-testid={`text-price-${pkg.id}`}>
+              <span className="inline-flex items-center gap-1.5"><Gem className="h-4 w-4 text-gold" aria-hidden="true" />{pkg.priceDiamonds} Diamonds</span>
+            </span>
+          </div>
+          <div className="text-right">
+            <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Cash price</span>
+            <span className="font-mono text-sm font-bold tabular-nums text-foreground" data-testid={`text-cash-price-${pkg.id}`}>
+              KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-end">
         {hasAccess ? (
           compact ? <Link href="/tips" className="btn-blue rounded-lg px-4 py-2 text-sm font-bold" data-testid={`link-view-tips-${pkg.id}`}>View Tips</Link>
           : <span className="text-sm font-bold text-win">Unlocked</span>
         ) : pkg.matchCount === 0 ? (
           <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-no-matches-${pkg.id}`}>Fixtures pending</span>
+        ) : !pkg.availableForPurchase ? (
+          <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-package-archived-${pkg.id}`}>No longer available</span>
         ) : (
-          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>{accessExpired ? "Renew access" : pkg.price === 0 ? "Get Free VIP" : "Purchase"}</Link>
+          <Link href={`/purchase/${pkg.id}`} className="btn-gold rounded-lg px-4 py-2 text-sm font-extrabold" data-testid={`link-purchase-${pkg.id}`}>{accessExpired ? "Renew access" : "Purchase"}</Link>
         )}
+        </div>
       </div>
     </div>
   );

@@ -76,6 +76,12 @@ export interface SignUpInput {
      * @maxLength 80
      */
   country: string;
+  /**
+     * @minLength 16
+     * @maxLength 16
+     * @pattern ^[A-F0-9]{16}$
+     */
+  referralCode?: string;
 }
 
 export interface SignInInput {
@@ -206,6 +212,10 @@ export interface AdminTipPackage {
   title: string;
   description: string;
   price: number;
+  priceDiamonds: number;
+  /** @minimum 1 */
+  durationDays: number;
+  bestValue: boolean;
   status: AdminTipPackageStatus;
   isSample: boolean;
   matchCount: number;
@@ -263,11 +273,58 @@ export interface AdminTipPackageInput {
      */
   totalOdds: number;
   stakeLevel: AdminTipPackageInputStakeLevel;
-  /**
-     * @minItems 1
-     * @maxItems 50
-     */
+  /** @minItems 1 */
   matches: MatchInput[];
+}
+
+export interface FixtureConfigureInput {
+  /**
+     * @minimum 1
+     * @maximum 14
+     */
+  lookaheadDays: number;
+}
+
+export interface FixtureSuggestion {
+  fixtureId: string;
+  competition: string;
+  /** @pattern ^\d{4}-\d{2}-\d{2}$ */
+  matchDate: string;
+  /** @pattern ^([01][0-9]|2[0-3]):[0-5][0-9]$ */
+  kickoff: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  homeTeam: string;
+  /**
+     * @minLength 1
+     * @maxLength 120
+     */
+  awayTeam: string;
+  /** @nullable */
+  suggestedSelection: string | null;
+  rationale: string;
+}
+
+export interface FixtureConfigureResult {
+  fixtures: FixtureSuggestion[];
+  unavailableCompetitions: string[];
+  sourceNote: string;
+}
+
+export interface ReferralSummary {
+  /**
+     * @minLength 16
+     * @maxLength 16
+     */
+  code: string;
+  /** @minimum 0 */
+  invitedCount: number;
+  /** @minimum 0 */
+  convertedCount: number;
+  /** @minimum 0 */
+  diamondsEarned: number;
 }
 
 export interface Wallet {
@@ -286,6 +343,7 @@ export type TransactionType = typeof TransactionType[keyof typeof TransactionTyp
 export const TransactionType = {
   topup: 'topup',
   purchase: 'purchase',
+  referral: 'referral',
 } as const;
 
 export interface Transaction {
@@ -319,6 +377,11 @@ export interface TipPackage {
   title: string;
   description: string;
   price: number;
+  priceDiamonds: number;
+  /** @minimum 1 */
+  durationDays: number;
+  bestValue: boolean;
+  availableForPurchase: boolean;
   purchased: boolean;
   /** @nullable */
   accessExpiresAt: string | null;
@@ -350,6 +413,8 @@ export interface PurchaseResult {
   balance: number;
   packageId: string;
   isDemo: boolean;
+  /** @minimum 0 */
+  referrerRewardDiamonds: number;
 }
 
 export interface DepositInput {

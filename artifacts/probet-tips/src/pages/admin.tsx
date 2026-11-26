@@ -20,11 +20,12 @@ import {
   type AdminUser,
   type MatchResult,
 } from "@workspace/api-client-react";
-import { Check, Search, Shield, Users, Gem, Plus, Trash2, Headset } from "lucide-react";
+import { Check, CircleCheck, CircleX, Clock3, Search, Shield, Users, Gem, Plus, Trash2, Headset } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import AdminSupportInbox from "@/pages/admin-support";
 import { Form } from "@/components/ui/form";
-import { errMsg, money } from "@/lib/probet";
+import { errMsg } from "@/lib/probet";
+import { AdminFixtureConfigurator } from "@/pages/admin-fixture-configurator";
 import {
   CUSTOM_MATCH_SELECTION,
   isPresetMatchSelection,
@@ -64,13 +65,13 @@ const matchEditorSchema = z.object({
 const packageEditorSchema = z.object({
   totalOdds: decimalInput,
   stakeLevel: z.enum(["medium", "high"]),
-  matches: z.array(matchEditorSchema).min(1, "Add at least one complete match.").max(50),
+  matches: z.array(matchEditorSchema).min(1, "Add at least one complete match."),
 });
 
 type PackageEditorValues = z.infer<typeof packageEditorSchema>;
 
 function packagePrice(price: number) {
-  return price === 0 ? "Free" : money(price);
+  return `${Math.round(price)} Diamonds`;
 }
 
 function toEditorMatch(match: AdminTipPackage["matches"][number]) {
@@ -114,7 +115,8 @@ function MatchResultControls({
     });
   }
 
-  const resultLabel = result === "won" ? "✅ Won" : result === "lost" ? "❌ Lost" : "⏳ Pending";
+  const ResultIcon = result === "won" ? CircleCheck : result === "lost" ? CircleX : Clock3;
+  const resultLabel = result === "won" ? "Won" : result === "lost" ? "Lost" : "Pending";
 
   return (
     <div className="mt-3 grid gap-2 border-t border-border pt-3" data-testid={`match-result-controls-${id}`}>
@@ -129,6 +131,7 @@ function MatchResultControls({
           role="status"
           data-testid={`text-match-result-${id}`}
         >
+          <ResultIcon className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />
           {resultLabel}
         </span>
       </div>
@@ -144,7 +147,7 @@ function MatchResultControls({
           }`}
           data-testid={`button-mark-won-${id}`}
         >
-          ✅ Won
+          <CircleCheck className="mr-1 inline h-4 w-4" aria-hidden="true" />Won
         </button>
         <button
           type="button"
@@ -157,7 +160,7 @@ function MatchResultControls({
           }`}
           data-testid={`button-mark-lost-${id}`}
         >
-          ❌ Lost
+          <CircleX className="mr-1 inline h-4 w-4" aria-hidden="true" />Lost
         </button>
         {result !== "pending" && (
           <button
@@ -230,7 +233,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-extrabold">{pkg.title}</h2>
-            <p className="mt-1 text-sm font-semibold text-gold">{packagePrice(pkg.price)}</p>
+            <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gold"><Gem className="h-4 w-4" aria-hidden="true" />{packagePrice(pkg.priceDiamonds)} <span className="text-muted-foreground">· KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days</span>{pkg.bestValue ? " · Best value" : ""}</p>
           </div>
           <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{pkg.matches.length} matches</span>
         </div>
@@ -348,10 +351,12 @@ function PackageManager() {
   if (packages.error) return <ErrorCard message={errMsg(packages.error)} onRetry={() => packages.refetch()} />;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
+    <>
+      <AdminFixtureConfigurator packages={packages.data ?? []} />
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]">
       <section className="glass rounded-3xl p-5 md:p-6">
         <div className="mb-4">
-          <h2 className="font-display text-xl font-extrabold">Weekly VIP packages</h2>
+          <h2 className="font-display text-xl font-extrabold">VIP packages</h2>
           <p className="mt-1 text-xs text-muted-foreground">These are the only packages available to users.</p>
         </div>
         <div className="grid gap-3">
@@ -360,7 +365,8 @@ function PackageManager() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="truncate font-bold">{pkg.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{packagePrice(pkg.price)} · {pkg.matchCount} matches added</p>
+                    <p className="mt-1 inline-flex flex-wrap items-center gap-1 text-xs text-muted-foreground"><Gem className="h-3.5 w-3.5 text-gold" aria-hidden="true" />{packagePrice(pkg.priceDiamonds)} · KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days · {pkg.matchCount} matches added</p>
+                   {pkg.bestValue && <span className="mt-1 inline-block rounded-full bg-gold/10 px-2 py-0.5 text-[10px] font-extrabold text-gold">Best value</span>}
                 </div>
                 <button type="button" onClick={() => setEditingId(pkg.id)} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary" data-testid={`button-edit-package-${pkg.id}`}>
                   {editingId === pkg.id ? "Editing" : "Edit matches"}
@@ -368,7 +374,7 @@ function PackageManager() {
               </div>
             </article>
           ))}
-          {(packages.data ?? []).length === 0 && <p className="rounded-xl bg-background/40 p-4 text-sm text-muted-foreground">The weekly package list is unavailable.</p>}
+          {(packages.data ?? []).length === 0 && <p className="rounded-xl bg-background/40 p-4 text-sm text-muted-foreground">The VIP package list is unavailable.</p>}
         </div>
       </section>
       <section className="glass rounded-3xl p-5 md:p-6">
@@ -380,7 +386,8 @@ function PackageManager() {
           </div>
         )}
       </section>
-    </div>
+      </div>
+    </>
   );
 }
 
@@ -482,7 +489,7 @@ export default function AdminPage() {
 
   return (
     <AppShell title="Admin portal" adminPortal>
-      <PageHeader title="Admin Portal" subtitle="Manage user profiles, weekly VIP matches, and support conversations." />
+      <PageHeader title="Admin Portal" subtitle="Manage VIP fixtures, user profiles, and support conversations." />
       <div className="mb-5 flex gap-2 rounded-2xl border border-border bg-background/40 p-1.5" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" aria-selected={tab === "tips"} onClick={() => setTab("tips")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "tips" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-tips"><Gem className="h-4 w-4" />Tip packages</button>
         <button type="button" role="tab" aria-selected={tab === "users"} onClick={() => setTab("users")} className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold ${tab === "users" ? "btn-blue" : "text-muted-foreground hover:bg-secondary"}`} data-testid="tab-admin-users"><Users className="h-4 w-4" />User profiles</button>
@@ -490,7 +497,7 @@ export default function AdminPage() {
       </div>
       <h2 className="sr-only">{heading}</h2>
       {tab === "tips" ? <PackageManager /> : tab === "users" ? <UserManager /> : <AdminSupportInbox />}
-      <p className="mt-5 flex items-start gap-2 text-xs text-muted-foreground"><Check className="h-4 w-4 shrink-0 text-win" />Wallet balances and payment records cannot be changed from this portal. Archived packages remain available to existing purchasers.</p>
+      <p className="mt-5 flex items-start gap-2 text-xs text-muted-foreground"><Check className="h-4 w-4 shrink-0 text-win" />Wallet balances and payment records cannot be changed from this portal. Existing access remains available until its expiry.</p>
     </AppShell>
   );
 }

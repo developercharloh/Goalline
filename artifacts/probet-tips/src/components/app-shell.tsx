@@ -126,7 +126,7 @@ function AppShellFrame({
           )}
         </header>
         {!adminPortal && <nav aria-label="Primary navigation" data-testid="nav-mobile-primary"
-          className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-[hsl(225_70%_8%/.95)] px-2 py-1.5 backdrop-blur">
+          className="md:hidden sticky top-14 z-30 flex items-center gap-1 border-b border-border bg-sidebar/95 px-2 py-1.5 backdrop-blur">
           {MOBILE_NAV.map((n) => {
             const a = isActive(n.href);
             return (
@@ -171,5 +171,5 @@ export function ErrorCard({ message, onRetry }: { message: string; onRetry?: () 
 }
 
 export function Sk({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-2xl bg-[hsl(222_50%_16%)] ${className}`} />;
+  return <div className={`animate-pulse rounded-2xl bg-secondary/80 ${className}`} />;
 }

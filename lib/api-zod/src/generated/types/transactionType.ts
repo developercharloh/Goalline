@@ -12,4 +12,5 @@ export type TransactionType = typeof TransactionType[keyof typeof TransactionTyp
 export const TransactionType = {
   topup: 'topup',
   purchase: 'purchase',
+  referral: 'referral',
 } as const;

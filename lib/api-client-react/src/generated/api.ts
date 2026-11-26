@@ -38,6 +38,8 @@ import type {
   DepositCheckout,
   DepositInput,
   DepositStatus,
+  FixtureConfigureInput,
+  FixtureConfigureResult,
   GetAdminUsersParams,
   HealthStatus,
   ManualDeposit,
@@ -51,6 +53,7 @@ import type {
   ProfileInput,
   PurchaseInput,
   PurchaseResult,
+  ReferralSummary,
   SignInInput,
   SignUpInput,
   SupportConversation,
@@ -927,6 +930,88 @@ export function useGetAdminTipPackages<TData = Awaited<ReturnType<typeof getAdmi
 
 
 
+export const getConfigureAdminFixturesUrl = () => {
+
+
+
+
+  return `/api/admin/fixtures/configure`
+}
+
+export const configureAdminFixtures = async (fixtureConfigureInput: FixtureConfigureInput, options?: Parameters<typeof customFetch>[1]): Promise<FixtureConfigureResult> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<FixtureConfigureResult>(getConfigureAdminFixturesUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(fixtureConfigureInput)
+  }
+);}
+
+
+
+
+
+export const getConfigureAdminFixturesMutationKey = () => ['configureAdminFixtures'] as const;
+
+export const getConfigureAdminFixturesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configureAdminFixtures>>, TError,ConfigureAdminFixturesMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof configureAdminFixtures>>, TError,ConfigureAdminFixturesMutationVariables, TContext> => {
+
+const mutationKey = getConfigureAdminFixturesMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof configureAdminFixtures>>, ConfigureAdminFixturesMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  configureAdminFixtures(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ConfigureAdminFixturesMutationResult = NonNullable<Awaited<ReturnType<typeof configureAdminFixtures>>>
+    export type ConfigureAdminFixturesMutationBody = BodyType<FixtureConfigureInput>
+    export type ConfigureAdminFixturesMutationError = ErrorType<unknown>
+    export type ConfigureAdminFixturesMutationVariables = {data: BodyType<FixtureConfigureInput>}
+
+    export const useConfigureAdminFixtures = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof configureAdminFixtures>>, TError,ConfigureAdminFixturesMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof configureAdminFixtures>>,
+        TError,
+        ConfigureAdminFixturesMutationVariables,
+        TContext
+      > => {
+      return useMutation(getConfigureAdminFixturesMutationOptions(options), queryClient);
+    }
+
 export const getUpdateAdminTipPackageUrl = (id: string,) => {
 
 
@@ -1734,6 +1819,101 @@ export function useGetTips<TData = Awaited<ReturnType<typeof getTips>>, TError =
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetTipsQueryOptions(options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetReferralSummaryUrl = () => {
+
+
+
+
+  return `/api/probet/referral`
+}
+
+export const getReferralSummary = async ( options?: Parameters<typeof customFetch>[1]): Promise<ReferralSummary> => {
+
+  return customFetch<ReferralSummary>(getGetReferralSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetReferralSummaryQueryKey = () => {
+    return [
+    `/api/probet/referral`
+    ] as const;
+    }
+
+
+export const getGetReferralSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getReferralSummary>>, TError = ErrorType<unknown>>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetReferralSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getReferralSummary>>> = ({ signal }) => getReferralSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetReferralSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getReferralSummary>>>
+export type GetReferralSummaryQueryError = ErrorType<unknown>
+
+
+export function useGetReferralSummary<TData = Awaited<ReturnType<typeof getReferralSummary>>, TError = ErrorType<unknown>>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReferralSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getReferralSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReferralSummary<TData = Awaited<ReturnType<typeof getReferralSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReferralSummary>>,
+          TError,
+          Awaited<ReturnType<typeof getReferralSummary>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetReferralSummary<TData = Awaited<ReturnType<typeof getReferralSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useGetReferralSummary<TData = Awaited<ReturnType<typeof getReferralSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getReferralSummary>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetReferralSummaryQueryOptions(options)
 
   const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

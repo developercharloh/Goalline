@@ -40,4 +40,10 @@ export interface SignUpInput {
      * @maxLength 80
      */
   country: string;
+  /**
+     * @minLength 16
+     * @maxLength 16
+     * @pattern ^[A-F0-9]{16}$
+     */
+  referralCode?: string;
 }

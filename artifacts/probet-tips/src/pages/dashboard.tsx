@@ -18,7 +18,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
     <>
       {guest && (
         <section className="relative overflow-hidden glass rounded-3xl p-6 md:p-10 mb-6 rise">
-          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[hsl(217_100%_50%/.25)] blur-3xl" />
+          <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full bg-[hsl(143_50%_35%/.22)] blur-3xl" />
           <div className="relative flex flex-col md:flex-row md:items-center gap-6">
             <Logo className="h-24 w-24 md:h-32 md:w-32" />
             <div className="flex-1">
@@ -49,7 +49,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
 
       <div className="rise">
         <h2 className="font-display text-3xl font-extrabold" data-testid="text-greeting">Hello, {displayName}</h2>
-        <p className="text-muted-foreground">Bet Smarter with ProBet Tips</p>
+        <p className="text-muted-foreground">Analyze. Predict. Win.</p>
       </div>
 
       {isLoading ? (
@@ -60,7 +60,7 @@ export function DashboardView({ guest = false, name }: { guest?: boolean; name?:
         <div className="grid lg:grid-cols-5 gap-6 mt-6">
           <div className="lg:col-span-3 space-y-6">
             <div className="glass rounded-2xl p-5 flex items-center gap-4 rise" style={{ animationDelay: "60ms" }}>
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-[hsl(214_100%_60%)] to-[hsl(224_100%_40%)]"><Wallet className="h-7 w-7 text-[hsl(43_96%_70%)]" /></div>
+              <div className="grid h-14 w-14 place-items-center rounded-2xl border border-primary/30 bg-gradient-to-br from-[hsl(143_42%_28%)] to-[hsl(218_34%_14%)]"><Wallet className="h-7 w-7 text-gold" /></div>
               <div className="flex-1">
                 <div className="text-sm text-muted-foreground">Wallet Balance</div>
                 <div className="font-display text-3xl font-extrabold" data-testid="text-balance">{money(data.wallet.balance, data.wallet.currency)}</div>

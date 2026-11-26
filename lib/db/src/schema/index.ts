@@ -26,5 +26,6 @@ export * from "./cashia-deposits";
 export * from "./manual-deposits";
 export * from "./payhero-deposits";
 export * from "./accounts";
+export * from "./referrals";
 export * from "./tip-packages";
 export * from "./support-messages";

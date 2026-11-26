@@ -23,8 +23,8 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 public final class MainActivity extends Activity {
-    private static final String APP_URL = "https://probet-tips.vercel.app/";
-    private static final String APP_HOST = "probet-tips.vercel.app";
+    private static final String APP_URL = "https://probet-tips.site/";
+    private static final String APP_HOST = "probet-tips.site";
 
     private WebView webView;
     private ProgressBar progressBar;
@@ -146,7 +146,7 @@ public final class MainActivity extends Activity {
                 + "font:16px Arial,sans-serif;text-align:center}.box{padding:32px;max-width:340px}"
                 + "h1{font-size:23px}p{color:#b7c2dc;line-height:1.6}button{border:0;border-radius:14px;"
                 + "padding:14px 24px;background:#1769ff;color:white;font-size:16px;font-weight:bold}"
-                + "</style></head><body><main class='box'><div style='font-size:54px'>⚽</div>"
+                + "</style></head><body><main class='box'><img src='https://probet-tips.site/logo.svg' alt='ProBet Tips' width='72' height='72'>"
                 + "<h1>Could not reach ProBet Tips</h1><p>Check your internet connection and try again.</p>"
                 + "<button onclick='location.href=\"" + APP_URL + "\"'>Try again</button></main></body></html>";
         webView.loadDataWithBaseURL(APP_URL, page, "text/html", "UTF-8", null);

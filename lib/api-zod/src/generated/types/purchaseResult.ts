@@ -11,4 +11,6 @@ export interface PurchaseResult {
   balance: number;
   packageId: string;
   isDemo: boolean;
+  /** @minimum 0 */
+  referrerRewardDiamonds: number;
 }

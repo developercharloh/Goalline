@@ -4,6 +4,7 @@ export const accounts = pgTable("probet_accounts", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),
   username: text("username").notNull(),
+  referralCode: text("referral_code"),
   fullName: text("full_name").notNull(),
   phone: text("phone").notNull(),
   country: text("country").notNull(),
@@ -15,6 +16,7 @@ export const accounts = pgTable("probet_accounts", {
 }, (table) => [
   uniqueIndex("probet_accounts_email_unique").on(table.email),
   uniqueIndex("probet_accounts_username_unique").on(table.username),
+  uniqueIndex("probet_accounts_referral_code_unique").on(table.referralCode),
   uniqueIndex("probet_accounts_legacy_clerk_unique").on(table.legacyClerkId),
 ]);
 

@@ -4,10 +4,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetAuthMeQueryKey,
   useGetAuthMe,
+  useGetReferralSummary,
   useLinkLegacyAccount,
   useUpdateAccountProfile,
 } from "@workspace/api-client-react";
-import { ShieldCheck, UserRound, Link2 } from "lucide-react";
+import { ShieldCheck, UserRound, Link2, Copy, Gem } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { errMsg } from "@/lib/probet";
 
@@ -15,14 +16,36 @@ export default function AccountPage() {
   const session = useGetAuthMe();
   const update = useUpdateAccountProfile();
   const linkLegacy = useLinkLegacyAccount();
+  const referral = useGetReferralSummary({
+    query: {
+      enabled: Boolean(session.data?.account),
+      refetchInterval: 15_000,
+      refetchOnWindowFocus: true,
+    },
+  });
   const queryClient = useQueryClient();
   const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (session.isLoading) return <AppShell><Sk className="h-72" /></AppShell>;
   if (session.error) return <AppShell><ErrorCard message={errMsg(session.error)} onRetry={() => session.refetch()} /></AppShell>;
   if (!session.data?.account) return <Redirect to="/sign-in?returnTo=%2Fprofile" />;
 
   const account = session.data.account;
+  const inviteLink = referral.data
+    ? `${window.location.origin}/sign-up?ref=${encodeURIComponent(referral.data.code)}`
+    : "";
+
+  async function copyInviteLink() {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setCopied(false);
+    }
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -74,6 +97,47 @@ export default function AccountPage() {
             {update.isPending ? "Saving…" : "Save profile"}
           </button>
         </form>
+      </section>
+
+      <section className="glass relative max-w-2xl overflow-hidden rounded-3xl p-5 sm:p-6 mt-5" data-testid="section-referrals">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full border border-gold/10" />
+        <div className="flex items-start gap-3">
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-gold/20 bg-gold/10 text-gold"><Gem className="h-5 w-5" aria-hidden="true" /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold">Share the game plan</p><h2 className="font-display text-lg font-extrabold">Invite friends</h2></div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-2.5 py-1 text-xs font-extrabold text-gold"><Gem className="h-3.5 w-3.5" aria-hidden="true" />10 Diamonds</span>
+            </div>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Your friend must create an account through your invite link and complete their <strong className="text-foreground">first VIP purchase</strong>. Then you earn 10 Diamonds. One reward per friend; sign-up alone does not qualify.
+            </p>
+            {referral.isLoading ? <Sk className="mt-4 h-12" />
+              : referral.error ? <div className="mt-3 rounded-xl border border-loss/25 bg-loss/5 p-3" role="alert">
+                  <p className="text-sm text-loss">{errMsg(referral.error)}</p>
+                  <button type="button" onClick={() => void referral.refetch()} className="mt-2 text-xs font-bold text-foreground underline underline-offset-4" data-testid="button-retry-referral">Try again</button>
+                </div>
+                : referral.data && (
+                  <>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Referral progress">
+                      <div className="rounded-xl border border-border/70 bg-background/45 p-3" data-testid="text-referral-invited"><b className="block font-mono text-lg tabular-nums">{referral.data.invitedCount}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Invited</span></div>
+                      <div className="rounded-xl border border-border/70 bg-background/45 p-3" data-testid="text-referral-converted"><b className="block font-mono text-lg tabular-nums">{referral.data.convertedCount}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Purchased</span></div>
+                      <div className="rounded-xl border border-gold/15 bg-gold/5 p-3" data-testid="text-referral-earned"><b className="flex items-center justify-center gap-1 font-mono text-lg tabular-nums text-gold"><Gem className="h-4 w-4" aria-hidden="true" />{referral.data.diamondsEarned}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Diamonds earned</span></div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>Your referral code</span>
+                      <code className="rounded-md border border-border bg-background/50 px-2 py-1 font-mono font-bold tracking-[0.12em] text-foreground" data-testid="text-referral-code">{referral.data.code}</code>
+                    </div>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                      <input value={inviteLink} readOnly aria-label="Your invite link" className="min-w-0 flex-1 rounded-xl border border-border bg-background/50 px-3 py-2.5 text-xs" data-testid="input-referral-link" />
+                      <button type="button" onClick={() => void copyInviteLink()} disabled={!inviteLink} aria-label={copied ? "Invite link copied" : "Copy invite link"} className="btn-blue inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold disabled:opacity-60" data-testid="button-copy-referral-link">
+                        <Copy className="h-4 w-4" aria-hidden="true" />{copied ? "Copied" : "Copy link"}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-[11px] text-muted-foreground" role="status" aria-live="polite">{copied ? "Invite link copied. Share it with a friend to get started." : "Share the link directly. Your friend needs to use it when creating their account."}</p>
+                  </>
+                )}
+          </div>
+        </div>
       </section>
 
       {!account.legacyLinked && (

@@ -53,7 +53,7 @@ app.use((req, res, next) => {
   }
   cors({ credentials: true, origin: true })(req, res, next);
 });
-app.use(express.json());
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 if (!process.env.SESSION_SECRET) throw new Error("SESSION_SECRET is required for demo sessions.");
 const parseCookies = cookieParser(process.env.SESSION_SECRET);
