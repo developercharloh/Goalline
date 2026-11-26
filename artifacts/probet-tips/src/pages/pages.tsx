@@ -163,7 +163,7 @@ export function PurchasePage() {
               <>
                 {previousAccessExpired && <p className="mt-4 rounded-lg border border-loss/30 bg-loss/10 px-3 py-2 text-sm font-semibold text-loss" role="status" data-testid="status-renewal-required">Your {pkg.durationDays}-day access expired. Purchase again to continue viewing these tips.</p>}
                 <dl className="mt-6 rounded-2xl bg-background/55 border border-border p-4 space-y-2 text-sm">
-                  <div className="flex justify-between"><dt>Package price</dt><dd className="inline-flex items-center gap-1 font-bold text-gold" data-testid="text-ticket-price"><Gem className="h-4 w-4" aria-hidden="true" />{pkg.priceDiamonds} Diamonds</dd></div>
+                  <div className="flex justify-between"><dt>Package price</dt><dd className="inline-flex items-center gap-1 font-bold text-gold" data-testid="text-ticket-price"><span aria-hidden="true">💎</span>{pkg.priceDiamonds} Diamonds</dd></div>
                   <div className="flex justify-between"><dt>Price in Kenyan shillings</dt><dd className="font-semibold">{money(pkg.price)}</dd></div>
                   <div className="flex justify-between"><dt>Your Balance</dt><dd className="font-bold">{money(bal)}</dd></div>
                   <div className="flex justify-between border-t border-border pt-2"><dt>After Purchase</dt><dd className={`font-extrabold ${short ? "text-loss" : "text-win"}`} data-testid="text-after-balance">{money(after)}</dd></div>
@@ -173,7 +173,7 @@ export function PurchasePage() {
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
                 ) : noMatches ? (
-                  <button type="button" disabled className="w-full mt-5 rounded-xl border border-border py-3 font-bold text-muted-foreground" data-testid="button-no-match-details">Match details coming soon</button>
+                  <button type="button" disabled className="w-full mt-5 rounded-xl border border-border py-3 font-bold text-muted-foreground" data-testid="button-no-match-details">Not available yet</button>
                 ) : (
                   <button type="button" disabled={purchase.isPending} onClick={confirm} className="btn-blue w-full mt-5 rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-confirm-purchase">
                     {purchase.isPending ? "Processing..." : "Confirm Purchase"}

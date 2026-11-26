@@ -233,7 +233,7 @@ function PackageEditor({ pkg }: { pkg: AdminTipPackage }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-extrabold">{pkg.title}</h2>
-            <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gold"><Gem className="h-4 w-4" aria-hidden="true" />{packagePrice(pkg.priceDiamonds)} <span className="text-muted-foreground">· KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days</span>{pkg.bestValue ? " · Best value" : ""}</p>
+            <p className="mt-1 inline-flex flex-wrap items-center gap-1.5 text-sm font-semibold text-gold"><span aria-hidden="true">💎</span>{packagePrice(pkg.priceDiamonds)} <span className="text-muted-foreground">· KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days</span>{pkg.bestValue ? " · Best value" : ""}</p>
           </div>
           <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{pkg.matches.length} matches</span>
         </div>
@@ -365,7 +365,7 @@ function PackageManager() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <h3 className="truncate font-bold">{pkg.title}</h3>
-                    <p className="mt-1 inline-flex flex-wrap items-center gap-1 text-xs text-muted-foreground"><Gem className="h-3.5 w-3.5 text-gold" aria-hidden="true" />{packagePrice(pkg.priceDiamonds)} · KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days · {pkg.matchCount} matches added</p>
+                    <p className="mt-1 inline-flex flex-wrap items-center gap-1 text-xs text-muted-foreground"><span aria-hidden="true">💎</span>{packagePrice(pkg.priceDiamonds)} · KES {new Intl.NumberFormat("en-KE", { maximumFractionDigits: 0 }).format(pkg.price)} · {pkg.durationDays} days · {pkg.matchCount} matches added</p>
                    {pkg.bestValue && <span className="mt-1 inline-block rounded-full bg-gold/10 px-2 py-0.5 text-[10px] font-extrabold text-gold">Best value</span>}
                 </div>
                 <button type="button" onClick={() => setEditingId(pkg.id)} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold hover:bg-secondary" data-testid={`button-edit-package-${pkg.id}`}>

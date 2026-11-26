@@ -8,7 +8,7 @@ import {
   useLinkLegacyAccount,
   useUpdateAccountProfile,
 } from "@workspace/api-client-react";
-import { ShieldCheck, UserRound, Link2, Copy, Gem } from "lucide-react";
+import { ShieldCheck, UserRound, Link2, Copy } from "lucide-react";
 import { AppShell, ErrorCard, PageHeader, Sk } from "@/components/app-shell";
 import { errMsg } from "@/lib/probet";
 
@@ -102,11 +102,11 @@ export default function AccountPage() {
       <section className="glass relative max-w-2xl overflow-hidden rounded-3xl p-5 sm:p-6 mt-5" data-testid="section-referrals">
         <div aria-hidden="true" className="pointer-events-none absolute -right-14 -top-16 h-48 w-48 rounded-full border border-gold/10" />
         <div className="flex items-start gap-3">
-          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-gold/20 bg-gold/10 text-gold"><Gem className="h-5 w-5" aria-hidden="true" /></div>
+          <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-gold/20 bg-gold/10 text-gold"><span className="text-xl" aria-hidden="true">💎</span></div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gold">Share the game plan</p><h2 className="font-display text-lg font-extrabold">Invite friends</h2></div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-2.5 py-1 text-xs font-extrabold text-gold"><Gem className="h-3.5 w-3.5" aria-hidden="true" />10 Diamonds</span>
+               <span className="inline-flex items-center gap-1.5 rounded-full border border-gold/20 bg-gold/10 px-2.5 py-1 text-xs font-extrabold text-gold"><span aria-hidden="true">💎</span>10 Diamonds</span>
             </div>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Your friend must create an account through your invite link and complete their <strong className="text-foreground">first VIP purchase</strong>. Then you earn 10 Diamonds. One reward per friend; sign-up alone does not qualify.
@@ -121,7 +121,7 @@ export default function AccountPage() {
                     <div className="mt-4 grid grid-cols-3 gap-2 text-center" aria-label="Referral progress">
                       <div className="rounded-xl border border-border/70 bg-background/45 p-3" data-testid="text-referral-invited"><b className="block font-mono text-lg tabular-nums">{referral.data.invitedCount}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Invited</span></div>
                       <div className="rounded-xl border border-border/70 bg-background/45 p-3" data-testid="text-referral-converted"><b className="block font-mono text-lg tabular-nums">{referral.data.convertedCount}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Purchased</span></div>
-                      <div className="rounded-xl border border-gold/15 bg-gold/5 p-3" data-testid="text-referral-earned"><b className="flex items-center justify-center gap-1 font-mono text-lg tabular-nums text-gold"><Gem className="h-4 w-4" aria-hidden="true" />{referral.data.diamondsEarned}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Diamonds earned</span></div>
+                      <div className="rounded-xl border border-gold/15 bg-gold/5 p-3" data-testid="text-referral-earned"><b className="flex items-center justify-center gap-1 font-mono text-lg tabular-nums text-gold"><span aria-hidden="true">💎</span>{referral.data.diamondsEarned}</b><span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Diamonds earned</span></div>
                     </div>
                     <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>Your referral code</span>
