@@ -277,20 +277,6 @@ router.post("/probet/purchases", async (req, res): Promise<void> => {
     eq(tipPackages.status, "published"),
   )).limit(1);
   if (!pack) { res.status(404).json({ error: "Tip package not found or no longer available." }); return; }
-  const [availableMatch] = await db.select({ id: tipEntries.id }).from(tipEntries)
-    .where(and(
-      eq(tipEntries.packageId, pack.id),
-      isNotNull(tipEntries.matchDate),
-      isNotNull(tipEntries.kickoff),
-      isNotNull(tipEntries.homeTeam),
-      isNotNull(tipEntries.awayTeam),
-      isNotNull(tipEntries.selection),
-      isNotNull(tipEntries.odds),
-    )).limit(1);
-  if (!availableMatch) {
-    res.status(409).json({ error: "This package is not available until match details are added." });
-    return;
-  }
   const { owner, isDemo } = await identity(req, res);
   if (pack.isSample && !isDemo) { res.status(403).json({ error: "This sample package is available in the preview wallet only." }); return; }
   const accountId = req.probetAccountId;

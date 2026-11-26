@@ -92,10 +92,6 @@ export function TipsPage() {
       {t.isLoading ? <div className="grid md:grid-cols-2 gap-4"><Sk className="h-56" /><Sk className="h-56" /></div>
         : t.error ? <ErrorCard message={errMsg(t.error)} onRetry={() => t.refetch()} /> : (
           <div className="space-y-8">
-            <div className="flex items-start gap-3 rounded-2xl border border-gold/25 bg-gold/5 px-4 py-3.5" role="note" data-testid="text-tips-disclaimer">
-              <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" aria-hidden="true" />
-              <p className="text-xs leading-relaxed text-muted-foreground"><strong className="text-foreground">A considered pick, never a guarantee.</strong> Football outcomes are uncertain. Use predictions as information, choose a stake you can afford, and never treat odds as promised returns.</p>
-            </div>
             <section>
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Your access</p><h2 className="font-display text-xl font-extrabold">My Picks</h2></div>
@@ -137,7 +133,6 @@ export function PurchasePage() {
   const bal = w.data?.balance ?? 0;
   const after = pkg ? bal - pkg.price : bal;
   const short = !!pkg && after < 0;
-  const noMatches = !!pkg && pkg.matchCount === 0;
   const [topup, setTopup] = useState(false);
 
   function confirm() {
@@ -172,8 +167,6 @@ export function PurchasePage() {
                 {purchase.error && <p className="mt-3 text-sm text-loss" data-testid="text-purchase-error">{errMsg(purchase.error)}</p>}
                 {short ? (
                   <button type="button" onClick={() => setTopup(true)} className="btn-green w-full mt-5 rounded-xl py-3 font-bold" data-testid="button-insufficient-topup">Insufficient balance — Top Up</button>
-                ) : noMatches ? (
-                  <button type="button" disabled className="w-full mt-5 rounded-xl border border-border py-3 font-bold text-muted-foreground" data-testid="button-no-match-details">Not available yet</button>
                 ) : (
                   <button type="button" disabled={purchase.isPending} onClick={confirm} className="btn-blue w-full mt-5 rounded-xl py-3 font-bold disabled:opacity-60" data-testid="button-confirm-purchase">
                     {purchase.isPending ? "Processing..." : "Confirm Purchase"}

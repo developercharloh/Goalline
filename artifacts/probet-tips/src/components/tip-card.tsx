@@ -55,6 +55,11 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
 
       {hasAccess && !compact && (
         <div className="mt-4 space-y-3">
+          {pkg.matches.length === 0 && (
+            <p className="rounded-xl border border-border bg-background/40 p-4 text-sm text-muted-foreground" data-testid={`status-no-tips-yet-${pkg.id}`}>
+              No tips have been posted yet.
+            </p>
+          )}
           {pkg.matches.map((match, index) => (
             <article key={`${match.matchDate}-${match.kickoff}-${index}`} className="rounded-xl border border-border bg-[hsl(224_60%_9%)] p-4" data-testid={`card-match-${pkg.id}-${index}`}>
               <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -82,13 +87,13 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
               </p>
             </article>
           ))}
-          <div className="rounded-xl border border-border bg-background/40 p-4">
+          {pkg.matches.length > 0 && <div className="rounded-xl border border-border bg-background/40 p-4">
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-semibold">Total odds</span>
               <span className="font-display text-xl font-extrabold text-gold" data-testid={`text-total-odds-${pkg.id}`}>{pkg.totalOdds.toFixed(2)}</span>
             </div>
             <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground" data-testid={`text-stake-disclaimer-${pkg.id}`}>Disclaimer: Stake {pkg.stakeLevel}</p>
-          </div>
+          </div>}
         </div>
       )}
 
@@ -111,8 +116,6 @@ export function TipCard({ pkg, compact = false }: { pkg: TipPackage; compact?: b
         {hasAccess ? (
           compact ? <Link href="/tips" className="btn-blue rounded-lg px-4 py-2 text-sm font-bold" data-testid={`link-view-tips-${pkg.id}`}>View Tips</Link>
           : <span className="text-sm font-bold text-win">Unlocked</span>
-        ) : pkg.matchCount === 0 ? (
-          <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-no-matches-${pkg.id}`}>Not available yet</span>
         ) : !pkg.availableForPurchase ? (
           <span className="text-xs font-semibold text-muted-foreground" data-testid={`status-package-archived-${pkg.id}`}>No longer available</span>
         ) : (
