@@ -68,7 +68,7 @@ export function AdminFixtureConfigurator({ packages }: { packages: AdminTipPacka
           included: true,
         })));
         setMessage(result.fixtures.length
-          ? `${result.fixtures.length} upcoming fixtures loaded. Review each suggestion and enter odds before saving.`
+          ? `${result.fixtures.length} upcoming fixtures loaded. Review selections and enter odds before saving.`
           : "No upcoming fixtures were found in this date range.");
       },
       onError: (error) => setMessage(errMsg(error)),
@@ -194,6 +194,9 @@ export function AdminFixtureConfigurator({ packages }: { packages: AdminTipPacka
       <p className="mt-3 text-xs text-muted-foreground">
         Suggestions are estimates from current league position and recent form, not guarantees. Review every prediction and price before publishing.
       </p>
+      <p className="mt-3 text-xs text-muted-foreground">
+        OpenLigaDB supplies fixtures for supported leagues without a token. Optional Football-Data.org standings can add wider coverage and initial suggestions.
+      </p>
       {message && (
         <p
           className={`mt-4 rounded-xl border p-3 text-sm ${
@@ -205,6 +208,11 @@ export function AdminFixtureConfigurator({ packages }: { packages: AdminTipPacka
           data-testid="fixture-config-status"
         >
           {message}
+        </p>
+      )}
+      {configure.data?.sourceNote && (
+        <p className="mt-3 rounded-xl border border-border bg-background/35 p-3 text-xs text-muted-foreground" data-testid="fixture-source-note">
+          {configure.data.sourceNote}
         </p>
       )}
       {configure.data?.unavailableCompetitions.length ? (

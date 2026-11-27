@@ -29,6 +29,7 @@ import { publicAccount } from "../lib/account-session.js";
 import { ensureTipCatalogSeed, vipPackageMetadata, vipTipPackageIds } from "../lib/tip-catalog.js";
 import { requireAdmin } from "../lib/admin-access.js";
 import { configureUpcomingFixtures, FixtureProviderError } from "../lib/football-data.js";
+import { configureOpenLigaDbFixtures } from "../lib/openligadb.js";
 
 const router: IRouter = Router();
 const fixtureConfigureLimit = rateLimit({
@@ -258,22 +259,54 @@ router.post("/admin/fixtures/configure", fixtureConfigureLimit, async (req, res)
     res.status(400).json({ error: "Choose a fixture look-ahead between 1 and 14 days." });
     return;
   }
-  const token = process.env.FOOTBALL_DATA_API_TOKEN;
-  if (!token) {
-    res.status(503).json({ error: "Fixture configuration needs a free Football-Data.org API token in FOOTBALL_DATA_API_TOKEN." });
-    return;
-  }
+  const openLiga = await configureOpenLigaDbFixtures(input.data.lookaheadDays);
+  const token = process.env.FOOTBALL_DATA_API_TOKEN?.trim();
+  let footballData: Awaited<ReturnType<typeof configureUpcomingFixtures>> | null = null;
+  let footballDataWarning = "";
   try {
-    res.json(ConfigureAdminFixturesResponse.parse(
-      await configureUpcomingFixtures(token, input.data.lookaheadDays),
-    ));
+    if (token) footballData = await configureUpcomingFixtures(token, input.data.lookaheadDays);
   } catch (error) {
     if (error instanceof FixtureProviderError) {
-      res.status(error.statusCode).json({ error: error.message });
-      return;
+      footballDataWarning = error.message;
+    } else {
+      throw error;
     }
-    throw error;
   }
+
+  const fixtureKey = (fixture: { matchDate: string; kickoff: string; homeTeam: string; awayTeam: string }) => [
+    fixture.matchDate,
+    fixture.kickoff,
+    fixture.homeTeam.trim().normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase(),
+    fixture.awayTeam.trim().normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase(),
+  ].join("|");
+  const fixtures = [];
+  const seenFixtures = new Set<string>();
+  for (const fixture of [...(footballData?.fixtures ?? []), ...openLiga.fixtures]) {
+    const key = fixtureKey(fixture);
+    if (seenFixtures.has(key)) continue;
+    seenFixtures.add(key);
+    fixtures.push(fixture);
+  }
+  fixtures.sort((a, b) => `${a.matchDate} ${a.kickoff}`.localeCompare(`${b.matchDate} ${b.kickoff}`));
+
+  const sourceNote = [
+    `OpenLigaDB loaded ${openLiga.fixtures.length} upcoming fixture${openLiga.fixtures.length === 1 ? "" : "s"} from supported leagues without a token.`,
+    openLiga.unavailableCompetitions.length
+      ? `OpenLigaDB could not load: ${openLiga.unavailableCompetitions.join(", ")}.`
+      : "",
+    footballData
+      ? `Football-Data.org added ${footballData.fixtures.length} fixture${footballData.fixtures.length === 1 ? "" : "s"} with optional standings-based suggestions.`
+      : token
+        ? `Football-Data.org was unavailable: ${footballDataWarning}`
+        : "Add the optional free Football-Data.org token for wider competition coverage and standings-based suggestions.",
+    "Review selections and verify odds before saving.",
+  ].filter(Boolean).join(" ");
+
+  res.json(ConfigureAdminFixturesResponse.parse({
+    fixtures,
+    unavailableCompetitions: footballData?.unavailableCompetitions ?? [],
+    sourceNote,
+  }));
 });
 
 router.patch("/admin/tip-packages/:id", async (req, res): Promise<void> => {
